@@ -547,7 +547,7 @@ def clear():
     else:
         os.system('clear')
         chromedriver = 'chromedriver'
-        chrome_mac = "/Contents/MacOS/Chromium"
+        chrome_mac = "Contents/MacOS/Chromium"
 
 
 if __name__ == '__main__':
