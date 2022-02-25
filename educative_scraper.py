@@ -3,11 +3,6 @@ from selenium.webdriver.common.by import By
 import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
-'''
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from webdriver_manager.firefox import GeckoDriverManager
-'''
 from selenium.webdriver.common.keys import Keys
 from slugify import slugify
 import glob
@@ -27,8 +22,6 @@ def load_config():
         raise Exception("Config is corrupted, Please recreate the config")
     user_data_dir = os.path.join(OS_ROOT, f"User Data")
     chrome_exe = ROOT_DIR
-    # user_data_dir = config["user_data_dir"]
-    # chrome_exe = config["chrome_exe"]
     url_text_file = config["url_file_path"]
     save_path = config["save_path"]
     return user_data_dir, chrome_exe, url_text_file, save_path
@@ -58,27 +51,14 @@ def load_chrome_driver(headless=True):
     return driver
 
 
-r"""
-# Firefox has issues with screenshots being too large
-def load_firefox_driver(headless):
-    profile_path = r'C:\Users\anila\AppData\Roaming\Mozilla\Firefox\Profiles\Educative'
-    options = FirefoxOptions()
-    options.add_argument("-profile")
-    options.add_argument(profile_path)
-    if headless:
-        options.add_argument("-headless")
-    driver = webdriver.Firefox(
-        options=options, service=FirefoxService(GeckoDriverManager().install()))
-    return driver
-"""
-
-
-def create_course_folder(driver):
+def create_course_folder(driver, url):
     print("Create Course Folder Function")
     course_name_class = "mb-4 px-6"
-
-    course_name = slugify(driver.find_element(
-        By.CSS_SELECTOR, f"h4[class='{course_name_class}']").get_attribute('innerHTML'))
+    if "educative.io/page" in url:
+        course_name = get_file_name(driver)
+    else:
+        course_name = slugify(driver.find_element(
+            By.CSS_SELECTOR, f"h4[class='{course_name_class}']").get_attribute('innerHTML'))
     if course_name not in os.listdir():
         print("Created a folder")
         os.mkdir(course_name)
@@ -140,11 +120,17 @@ def get_file_name(driver):
         file_name = driver.find_element(
             By.CSS_SELECTOR, f"h1[class*='{secondary_heading_class}']").get_attribute('innerHTML')
     '''
+
+    '''
     heading_class = "flex flex-col"
 
     heading_element = driver.find_element(
         By.XPATH, f"//div[contains(@class,'{heading_class}')]//descendant::node()[1]")
     file_name = heading_element.get_attribute('innerHTML')
+    '''
+
+    file_name = driver.find_element(
+        By.XPATH, "//h1[text()]").get_attribute('innerHTML')
     print("File Name Found")
     return slugify(file_name)
 
@@ -240,7 +226,7 @@ def show_code_box_answer(driver):
 
 def create_temp_textarea(driver):
     driver.execute_script('''
-        var div = document.getElementsByClassName("ed-grid-main")[0];
+        var div = document.getElementById('handleArticleScroll');
                 var input = document.createElement("textarea");
                 input.name = "temptextarea";
                 input.className = "temptextarea";
@@ -291,11 +277,11 @@ def code_container_download_type(driver):
 
 
 def copy_code(container, driver, use_svg=True):
-    svg_class = "w-7 h-7"
+    # svg_class = "w-7 h-7"
 
     if use_svg:
         container.find_elements(
-            By.CSS_SELECTOR, f"svg[class*='{svg_class}'")[0].click()
+            By.CSS_SELECTOR, f"svg[title='Copy To Clipboard']")[0].click()
     else:
         container.find_elements(
             By.CSS_SELECTOR, f"button[title='Copy To Clipboard']")[0].click()
@@ -361,7 +347,6 @@ def iterate_general_code(code, driver, file_index):
         write_code(f"Code_{file_index}", returned_code)
     except Exception as e:
         print("Failed to write")
-
     if code.find_elements(By.CSS_SELECTOR, f"div[class*='{solution_code_class}']"):
         try:
             returned_code = copy_code(code, driver, False)
@@ -443,7 +428,7 @@ def load_webpage(driver, url, file_index):
     if not check_login(driver):
         return False
     os.chdir(save_path)
-    create_course_folder(driver)
+    create_course_folder(driver, url)
     course_path = os.getcwd()
     while check_login(driver) and scrape_page(driver, file_index):
         print("---------------", file_index, "Complete-------------------")
@@ -505,9 +490,6 @@ def generate_config():
         user_data_dir, chrome_exe, url_text_file, save_path = load_config()
     except Exception as e:
         print(e)
-    # user_data_dir = input(
-    #     "Enter the Chrome User Data directory path: ") or user_data_dir
-    # chrome_exe = input("Enter Chrome Executable path: ") or chrome_exe
     user_data_dir = os.path.join(OS_ROOT, f"User Data")
     chrome_exe = ROOT_DIR
     url_text_file = input("Enter the URL text file path: ") or url_text_file
