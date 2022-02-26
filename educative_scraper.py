@@ -8,6 +8,7 @@ from slugify import slugify
 import glob
 import zipfile
 import json
+import sys
 
 OS_ROOT = os.path.expanduser('~')
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +21,7 @@ def load_config():
         config = json.load(config_file)
     if "user_data_dir" not in config or "chrome_exe" not in config or "url_file_path" not in config or "save_path" not in config:
         raise Exception("Config is corrupted, Please recreate the config")
-    user_data_dir = os.path.join(OS_ROOT, f"User Data")
+    user_data_dir = os.path.join(OS_ROOT, f"User Data","Educative")
     chrome_exe = ROOT_DIR
     url_text_file = config["url_file_path"]
     save_path = config["save_path"]
@@ -38,6 +39,7 @@ def load_chrome_driver(headless=True):
     options.add_argument("--start-maximized")
     options.add_argument('--disable-gpu')
     options.add_argument('--no-sandbox')
+    options.add_argument("--disable-dev-shm-usage")
     options.add_argument('--log-level=3')
     userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.56 Safari/537.36"
     options.add_argument(f'user-agent={userAgent}')
@@ -524,14 +526,18 @@ def login_educative():
 
 def clear():
     global chromedriver, chrome_os
-    if os.name == "nt":
-        os.system('cls')
-        chromedriver = r'Chrome-bin\win\chromedriver.exe'
-        chrome_os = r'Chrome-bin\win\chrome.exe'
-    else:
+    if sys.platform.startswith('darwin'):
         os.system('clear')
         chromedriver = r'Chrome-bin/mac/chromedriver'
         chrome_os = r"Chrome-bin/mac/Chromium.app/Contents/MacOS/Chromium"
+    elif sys.platform.startswith('linux'):
+        os.system('clear')
+        chromedriver = r'Chrome-bin/linux/chromedriver'
+        chrome_os = r"Chrome-bin/linux/chrome/chrome"
+    elif sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
+        os.system('cls')
+        chromedriver = r'Chrome-bin\win\chromedriver.exe'
+        chrome_os = r'Chrome-bin\win\chrome.exe'
 
 
 if __name__ == '__main__':
