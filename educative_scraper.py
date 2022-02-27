@@ -1,3 +1,4 @@
+import imp
 from time import sleep
 from selenium.webdriver.common.by import By
 import os
@@ -15,22 +16,21 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def load_config():
-    if ".educative_scraper_config" not in os.listdir(OS_ROOT):
+    config_path = os.path.join(OS_ROOT, ".educative")
+    if ".educative" not in os.listdir(OS_ROOT) or "config.json" not in os.listdir(config_path):
         raise Exception("No config found, Please create one")
-    with open(os.path.join(OS_ROOT, ".educative_scraper_config", "config.json"), "r") as config_file:
+    with open(os.path.join(config_path, "config.json"), "r") as config_file:
         config = json.load(config_file)
-    if "user_data_dir" not in config or "chrome_exe" not in config or "url_file_path" not in config or "save_path" not in config:
+    if "url_file_path" not in config or "save_path" not in config:
         raise Exception("Config is corrupted, Please recreate the config")
-    user_data_dir = os.path.join(OS_ROOT, f"User Data","Educative")
-    chrome_exe = ROOT_DIR
     url_text_file = config["url_file_path"]
     save_path = config["save_path"]
-    return user_data_dir, chrome_exe, url_text_file, save_path
+    return url_text_file, save_path
 
 
 def load_chrome_driver(headless=True):
-    global chromedriver, chrome_os
-    user_data_dir, chrome_exe, _, _ = load_config()
+    chrome_path, chromedriver = get_binary_path()
+    user_data_dir = os.path.join(OS_ROOT, ".educative", "User Data")
     options = webdriver.ChromeOptions()
     if headless:
         options.add_argument('headless')
@@ -43,9 +43,9 @@ def load_chrome_driver(headless=True):
     options.add_argument('--log-level=3')
     userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.56 Safari/537.36"
     options.add_argument(f'user-agent={userAgent}')
-    options.binary_location = os.path.join(chrome_exe, chrome_os)
+    options.binary_location = os.path.join(ROOT_DIR, "Chrome-bin", chrome_path)
     driver = webdriver.Chrome(service=ChromeService(
-        os.path.join(f"{ROOT_DIR}", f"{chromedriver}")), options=options)
+        os.path.join(ROOT_DIR, "Chrome-bin" ,chromedriver)), options=options)
     driver.set_window_size(1920, 1080)
     driver.command_executor._commands["send_command"] = (
         "POST", '/session/$sessionId/chromium/send_command')
@@ -60,7 +60,7 @@ def create_course_folder(driver, url):
         course_name = get_file_name(driver)
     else:
         course_name = slugify(driver.find_element(
-            By.CSS_SELECTOR, f"h4[class='{course_name_class}']").get_attribute('innerHTML'))
+            By.CSS_SELECTOR, f"h4[class='{course_name_class}']").get_attribute('innerHTML')).replace("-"," ")
     if course_name not in os.listdir():
         print("Created a folder")
         os.mkdir(course_name)
@@ -72,7 +72,7 @@ def next_page(driver):
     print("Next Page Function")
     next_page_class = "outlined-primary m-0"
 
-    if not driver.find_elements(By.CSS_SELECTOR, f"button[class='{next_page_class}']"):
+    if not driver.find_elements(By.CSS_SELECTOR, f"button[class*='{next_page_class}']"):
         return False
     base_js_cmd = f'''document.getElementsByClassName("{next_page_class}")[0]'''
     check_next_module = driver.execute_script(
@@ -87,8 +87,8 @@ def next_page(driver):
 def open_slides(driver):
     print("Finding Slides Function")
     slidebox_class = "text-center block"
-    menubar_class = "styles__ButtonsWrap-sc-8tvqhb-5"
-    button_class = "Button-sc-1i9ny0d-0"
+    menubar_class = "styles__ButtonsWrap"
+    button_class = "Button-sc"
 
     total_slides = driver.find_elements(
         By.CSS_SELECTOR, f"div[class*='{slidebox_class}']")
@@ -99,6 +99,7 @@ def open_slides(driver):
             if slide:
                 slide[0].find_elements(
                     By.CSS_SELECTOR, f"button[class*='{button_class}']")[-2].click()
+                sleep(1)
                 print("Slides opened")
         sleep(10)
     else:
@@ -107,34 +108,12 @@ def open_slides(driver):
 
 def get_file_name(driver):
     print("Getting File Name")
-    '''
-    # Depreciated this part as it is not working
-    primary_heading_class = "mt-10"
-    secondary_heading_class = "text-3xl"
 
-    primary_heading_list = driver.find_elements(
-        By.CSS_SELECTOR, f"h1[class*='{primary_heading_class}']")
-    file_name = ""
-    if primary_heading_list:
-        if primary_heading_list[0] != "":
-            file_name = primary_heading_list[0].get_attribute('innerHTML')
-    else:
-        file_name = driver.find_element(
-            By.CSS_SELECTOR, f"h1[class*='{secondary_heading_class}']").get_attribute('innerHTML')
-    '''
-
-    '''
-    heading_class = "flex flex-col"
-
-    heading_element = driver.find_element(
-        By.XPATH, f"//div[contains(@class,'{heading_class}')]//descendant::node()[1]")
-    file_name = heading_element.get_attribute('innerHTML')
-    '''
-
-    file_name = driver.find_element(
-        By.XPATH, "//h1[text()]").get_attribute('innerHTML')
+    file_name = driver.find_elements(
+        By.XPATH, "//h1[text()]") or driver.find_elements(
+        By.XPATH, "//h2[text()]")
     print("File Name Found")
-    return slugify(file_name)
+    return slugify(file_name[0].get_attribute('innerHTML'))
 
 
 def delete_node(driver, node):
@@ -179,14 +158,22 @@ def create_html(file_name, base_64_png):
 
 def take_screenshot(driver, file_name):
     print("Take Screenshot Function")
-    page_class = "PageContent-sc-8tufop-0"
+    article_page_class = "ArticlePage"
+    page_class = "Page"
+    second_page_class = "PageContent"
     main_class = "ed-grid"
     nav_node = f"div[class*='{main_class}'] > nav"
 
     delete_node(driver, nav_node)
     increase_window_size(driver)
-    base_64_png = driver.find_element(
-        By.CSS_SELECTOR, f"div[class*='{page_class}']").screenshot_as_base64
+
+    base_64_png_ele = driver.find_element(
+        By.CSS_SELECTOR, f"div[class*='{article_page_class}']").find_element(By.CSS_SELECTOR, f"div[class*='{page_class}']")
+    base_64_png_ele_2 = base_64_png_ele.find_elements(By.CSS_SELECTOR, f"div[class*='{second_page_class}']")
+    if base_64_png_ele_2:
+        base_64_png = base_64_png_ele_2[0].screenshot_as_base64
+    else:
+        base_64_png = base_64_png_ele.screenshot_as_base64
     sleep(2)
     create_html(file_name, base_64_png)
     driver.set_window_size(1920, 1080)
@@ -195,9 +182,10 @@ def take_screenshot(driver, file_name):
 
 def show_hints_answer(driver):
     print("Show Hints Function")
-    hints_button_class = "whitespace-normal outlined-default m-0"
+    hints_div_class = "styles__Viewer"
+
     hints_list = driver.find_elements(
-        By.CSS_SELECTOR, f"button[class*='{hints_button_class}']")
+        By.CSS_SELECTOR, f"div[class*='{hints_div_class}'] > button")
     if hints_list:
         for hints in hints_list:
             hints.click()
@@ -211,7 +199,7 @@ def show_code_box_answer(driver):
     print("Show Codebox Answers Function")
     sol1 = "solution"
     sol2 = "show solution"
-    show_solution_class = "text-default py-2 m-2"
+    show_solution_class = "popover-content"
     answer_list = driver.find_elements(By.CSS_SELECTOR,
                                        f'button[aria-label="{sol1}"]') + driver.find_elements(By.CSS_SELECTOR, f'button[aria-label="{sol2}"]')
     if answer_list:
@@ -219,7 +207,7 @@ def show_code_box_answer(driver):
             answer.click()
             sleep(1)
             driver.find_element(
-                By.CSS_SELECTOR, f"button[class*='{show_solution_class}']").click()
+                By.CSS_SELECTOR, f"div[class*='{show_solution_class}'] > button").click()
             sleep(1)
         print("Show Codebox Answers Complete")
     else:
@@ -228,14 +216,14 @@ def show_code_box_answer(driver):
 
 def create_temp_textarea(driver):
     driver.execute_script('''
-        var div = document.getElementById('handleArticleScroll');
+        var div = document.getElementsByClassName('ed-grid-main')[0];
                 var input = document.createElement("textarea");
                 input.name = "temptextarea";
                 input.className = "temptextarea";
                 input.maxLength = "10000";
                 input.cols = "50";
                 input.rows = "10";
-                div.appendChild(input);
+                div.prepend(input);
     ''')
     sleep(1)
 
@@ -254,7 +242,7 @@ def download_parameters_for_chrome_headless(driver):
 
 def code_container_download_type(driver):
     print("Code Container Download Type Function")
-    code_container_class = "styles__Spa_Container-sc-1vx22vv"
+    code_container_class = "styles__Spa_Container"
     svg_class = "w-7 h-7"
 
     code_containers = driver.find_elements(
@@ -267,8 +255,7 @@ def code_container_download_type(driver):
             svg_buttons = code.find_elements(
                 By.CSS_SELECTOR, f"svg[class*='{svg_class}']")
             if svg_buttons:
-                for svg in svg_buttons:
-                    svg.click()
+                svg_buttons[-1].click()
                 sleep(2)
                 print("Downloaded Zip File")
             else:
@@ -279,14 +266,13 @@ def code_container_download_type(driver):
 
 
 def copy_code(container, driver, use_svg=True):
-    # svg_class = "w-7 h-7"
-
+    clipboard_title = "Copy To Clipboard"
     if use_svg:
         container.find_elements(
-            By.CSS_SELECTOR, f"svg[title='Copy To Clipboard']")[0].click()
+            By.CSS_SELECTOR, f"svg[title='{clipboard_title}']")[0].click()
     else:
         container.find_elements(
-            By.CSS_SELECTOR, f"button[title='Copy To Clipboard']")[0].click()
+            By.CSS_SELECTOR, f"button[title='{clipboard_title}']")[0].click()
     print("Clicked on Clipboard")
     textbox = driver.find_element(
         By.CSS_SELECTOR, "textarea[class*='temptextarea']")
@@ -395,6 +381,12 @@ def extract_zip_files():
         zipfile.ZipFile(path, 'r').extractall(path[:-len(zf)])
         os.remove(path)
 
+def demark_as_completed(driver):
+    svg_class = "styles__Checkbox"
+    try:
+        driver.find_element(By.CSS_SELECTOR, f"div[class*='{svg_class}'] > svg").click()
+    except Exception as e:
+        pass
 
 def scrape_page(driver, file_index):
     title = get_file_name(driver)
@@ -407,6 +399,7 @@ def scrape_page(driver, file_index):
     take_screenshot(driver, file_name)
     code_container_download_type(driver)
     code_container_clipboard_type(driver)
+    demark_as_completed(driver)
 
     if not next_page(driver):
         sleep(5)
@@ -423,13 +416,15 @@ def check_login(driver):
     return False
 
 
-def load_webpage(driver, url, file_index):
-    _, _, _, save_path = load_config()
+def load_webpage(driver, url):
+    global file_index
+    _, save_path = load_config()
     driver.get(url)
     sleep(10)
     if not check_login(driver):
         return False
     os.chdir(save_path)
+    
     create_course_folder(driver, url)
     course_path = os.getcwd()
     while check_login(driver) and scrape_page(driver, file_index):
@@ -442,16 +437,20 @@ def load_webpage(driver, url, file_index):
     os.chdir(save_path)
     return True
 
+def create_log(file_index, url, save_path):
+    with open(os.path.join(save_path, 'log.txt'), 'a') as file:
+        file.write(f"{file_index} {url}\n")
 
 def scrape_courses():
     clear()
+    global file_index
     print('''
                 Scraper Started, Log file can be found in config directory
     ''')
 
     driver = load_chrome_driver(headless=True)
     try:
-        _, _, url_text_file, save_path = load_config()
+        url_text_file, save_path = load_config()
         if not os.path.isfile(url_text_file):
             raise Exception(
                 "Url Text file path not found, Please check your config")
@@ -467,12 +466,14 @@ def scrape_courses():
                 print(f'''
                             Starting Scraping: {file_index}, {url}
                 ''')
-                if not load_webpage(driver, url, file_index):
+                if not load_webpage(driver, url):
                     break
                 print("Next Course")
+            except KeyboardInterrupt:
+                create_log(file_index, url, save_path)
+                raise Exception("Exited Manually")
             except Exception as e:
-                with open(os.path.join(save_path, 'log.txt'), 'a') as file:
-                    file.write(f"{url}\n")
+                create_log(file_index, url, save_path)
                 print("Found Issue, Going Next Course", e)
 
         print("Script Execution Complete")
@@ -489,22 +490,18 @@ def generate_config():
         Leave Blank in you don't want to overwrite Previous Values
     ''')
     try:
-        user_data_dir, chrome_exe, url_text_file, save_path = load_config()
+        url_text_file, save_path = load_config()
     except Exception as e:
-        print(e)
-    user_data_dir = os.path.join(OS_ROOT, f"User Data")
-    chrome_exe = ROOT_DIR
+        print("Enter the paths for your config")
     url_text_file = input("Enter the URL text file path: ") or url_text_file
     save_path = input("Enter Save Path: ") or save_path
 
-    folder_name = ".educative_scraper_config"
-    if folder_name not in os.listdir(OS_ROOT):
-        os.mkdir(os.path.join(OS_ROOT, folder_name))
+    base_config_path = os.path.join(OS_ROOT, ".educative")
+    if ".educative" not in os.listdir(OS_ROOT):
+        os.mkdir(base_config_path)
 
-    with open(os.path.join(OS_ROOT, folder_name, "config.json"), "w+") as config_file:
+    with open(os.path.join(base_config_path, "config.json"), "w+") as config_file:
         json.dump({
-            "user_data_dir": user_data_dir,
-            "chrome_exe": chrome_exe,
             "url_file_path": url_text_file,
             "save_path": save_path
         }, config_file)
@@ -516,7 +513,6 @@ def login_educative():
     try:
         driver.get("https://educative.io")
         input("Press enter to return to Main Menu after Login is successfull")
-        # driver.save_screenshot('test.png')
         driver.quit()
         print("Login Success!")
     except Exception as e:
@@ -524,27 +520,35 @@ def login_educative():
         driver.quit()
 
 
+def get_binary_path():
+    global current_os
+    if current_os.startswith('darwin'):
+        chromedriver = r'mac/chromedriver'
+        chrome_path = r"mac/Chromium.app/Contents/MacOS/Chromium"
+    elif current_os.startswith('linux'):
+        chromedriver = r'linux/chromedriver'
+        chrome_path = r"linux/chrome/chrome"
+    elif current_os.startswith('win32') or current_os.startswith('cygwin'):
+        chromedriver = r'win\chromedriver.exe'
+        chrome_path = r'win\chrome.exe'
+    return chrome_path, chromedriver
+
+
 def clear():
-    global chromedriver, chrome_os
-    if sys.platform.startswith('darwin'):
+    global current_os
+    if current_os.startswith('darwin'):
         os.system('clear')
-        chromedriver = r'Chrome-bin/mac/chromedriver'
-        chrome_os = r"Chrome-bin/mac/Chromium.app/Contents/MacOS/Chromium"
-    elif sys.platform.startswith('linux'):
+    elif current_os.startswith('linux'):
         os.system('clear')
-        chromedriver = r'Chrome-bin/linux/chromedriver'
-        chrome_os = r"Chrome-bin/linux/chrome/chrome"
-    elif sys.platform.startswith('win32') or sys.platform.startswith('cygwin'):
+    elif current_os.startswith('win32') or current_os.startswith('cygwin'):
         os.system('cls')
-        chromedriver = r'Chrome-bin\win\chromedriver.exe'
-        chrome_os = r'Chrome-bin\win\chrome.exe'
 
 
 if __name__ == '__main__':
-    chromedriver = ""
-    chrome_os = ""
+    current_os = sys.platform
+    clear()
     while True:
-        clear()
+        file_index = 0
         try:
             print('''
                         Educative Scraper, made by Anilabha Datta
