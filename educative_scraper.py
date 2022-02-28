@@ -223,7 +223,7 @@ def show_code_box_answer(driver):
 
 def create_temp_textarea(driver):
     driver.execute_script('''
-        var div = document.querySelector('div[class*="ArticlePage"]');
+        var div = document.querySelector('div[class*="ed-grid-main"]');
                 var input = document.createElement("textarea");
                 input.name = "temptextarea";
                 input.className = "temptextarea";
@@ -291,8 +291,12 @@ def copy_code(container, driver, use_svg=True):
         By.CSS_SELECTOR, "textarea[class*='temptextarea']")
     action.move_to_element(textbox).click().perform()
     sleep(1)
-    textbox.send_keys(Keys.CONTROL, "a")
-    textbox.send_keys(Keys.CONTROL, "v")
+    if current_os == "darwin":
+        textbox.send_keys(Keys.COMMAND, "a")
+        textbox.send_keys(Keys.COMMAND, "v")
+    else:
+        textbox.send_keys(Keys.CONTROL, "a")
+        textbox.send_keys(Keys.CONTROL, "v")
     print("Paste complete")
     sleep(1)
     return textbox.get_attribute('value')
@@ -549,7 +553,7 @@ def get_binary_path():
     global current_os
     if current_os.startswith('darwin'):
         chromedriver = r'mac/chromedriver'
-        chrome_path = r"mac/Chromium.app/Contents/MacOS/Chromium"
+        chrome_path = r"mac/Chromium.app/Contents/MacOS/Google Chrome"
     elif current_os.startswith('linux'):
         chromedriver = r'linux/chromedriver'
         chrome_path = r"linux/chrome/chrome"
