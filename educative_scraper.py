@@ -4,6 +4,7 @@ import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from slugify import slugify
 import glob
 import zipfile
@@ -44,7 +45,7 @@ def load_chrome_driver(headless=True):
     options.add_argument(f'user-agent={userAgent}')
     options.binary_location = os.path.join(ROOT_DIR, "Chrome-bin", chrome_path)
     driver = webdriver.Chrome(service=ChromeService(
-        os.path.join(ROOT_DIR, "Chrome-bin" ,chromedriver)), options=options)
+        os.path.join(ROOT_DIR, "Chrome-bin", chromedriver)), options=options)
     driver.set_window_size(1920, 1080)
     driver.command_executor._commands["send_command"] = (
         "POST", '/session/$sessionId/chromium/send_command')
@@ -59,7 +60,7 @@ def create_course_folder(driver, url):
         course_name = get_file_name(driver)
     else:
         course_name = slugify(driver.find_element(
-            By.CSS_SELECTOR, f"h4[class='{course_name_class}']").get_attribute('innerHTML')).replace("-"," ")
+            By.CSS_SELECTOR, f"h4[class='{course_name_class}']").get_attribute('innerHTML')).replace("-", " ")
     if course_name not in os.listdir():
         print("Created a folder")
         os.mkdir(course_name)
@@ -88,6 +89,7 @@ def open_slides(driver):
     slidebox_class = "text-center block"
     menubar_class = "styles__ButtonsWrap"
     button_class = "Button-sc"
+    action = ActionChains(driver)
 
     total_slides = driver.find_elements(
         By.CSS_SELECTOR, f"div[class*='{slidebox_class}']")
@@ -96,8 +98,9 @@ def open_slides(driver):
             slide = slide.find_elements(
                 By.CSS_SELECTOR, f"div[class*='{menubar_class}']")
             if slide:
-                slide[0].find_elements(
-                    By.CSS_SELECTOR, f"button[class*='{button_class}']")[-2].click()
+                slide_button = slide[0].find_elements(
+                    By.CSS_SELECTOR, f"button[class*='{button_class}']")[-2]
+                action.move_to_element(slide_button).click().perform()
                 sleep(1)
                 print("Slides opened")
         sleep(10)
@@ -168,7 +171,8 @@ def take_screenshot(driver, file_name):
 
     base_64_png_ele = driver.find_element(
         By.CSS_SELECTOR, f"div[class*='{article_page_class}']").find_element(By.CSS_SELECTOR, f"div[class*='{page_class}']")
-    base_64_png_ele_2 = base_64_png_ele.find_elements(By.CSS_SELECTOR, f"div[class*='{second_page_class}']")
+    base_64_png_ele_2 = base_64_png_ele.find_elements(
+        By.CSS_SELECTOR, f"div[class*='{second_page_class}']")
     if base_64_png_ele_2:
         base_64_png = base_64_png_ele_2[0].screenshot_as_base64
     else:
@@ -182,12 +186,13 @@ def take_screenshot(driver, file_name):
 def show_hints_answer(driver):
     print("Show Hints Function")
     hints_div_class = "styles__Viewer"
+    action = ActionChains(driver)
 
     hints_list = driver.find_elements(
         By.CSS_SELECTOR, f"div[class*='{hints_div_class}'] > button")
     if hints_list:
         for hints in hints_list:
-            hints.click()
+            action.move_to_element(hints).click().perform()
             sleep(1)
         print("Show Hints Complete")
     else:
@@ -199,14 +204,17 @@ def show_code_box_answer(driver):
     sol1 = "solution"
     sol2 = "show solution"
     show_solution_class = "popover-content"
+    action = ActionChains(driver)
+
     answer_list = driver.find_elements(By.CSS_SELECTOR,
                                        f'button[aria-label="{sol1}"]') + driver.find_elements(By.CSS_SELECTOR, f'button[aria-label="{sol2}"]')
     if answer_list:
         for answer in answer_list:
-            answer.click()
+            action.move_to_element(answer).click().perform()
             sleep(1)
-            driver.find_element(
-                By.CSS_SELECTOR, f"div[class*='{show_solution_class}'] > button").click()
+            show_solution_button = driver.find_element(
+                By.CSS_SELECTOR, f"div[class*='{show_solution_class}'] > button")
+            action.move_to_element(show_solution_button).click().perform()
             sleep(1)
         print("Show Codebox Answers Complete")
     else:
@@ -215,7 +223,7 @@ def show_code_box_answer(driver):
 
 def create_temp_textarea(driver):
     driver.execute_script('''
-        var div = document.getElementsByClassName('ed-grid-main')[0];
+        var div = document.querySelector('div[class*="ArticlePage"]');
                 var input = document.createElement("textarea");
                 input.name = "temptextarea";
                 input.className = "temptextarea";
@@ -243,6 +251,7 @@ def code_container_download_type(driver):
     print("Code Container Download Type Function")
     code_container_class = "styles__Spa_Container"
     svg_class = "w-7 h-7"
+    action = ActionChains(driver)
 
     code_containers = driver.find_elements(
         By.CSS_SELECTOR, f"div[class*='{code_container_class}']")
@@ -254,7 +263,7 @@ def code_container_download_type(driver):
             svg_buttons = code.find_elements(
                 By.CSS_SELECTOR, f"svg[class*='{svg_class}']")
             if svg_buttons:
-                svg_buttons[-1].click()
+                action.move_to_element(svg_buttons[-1]).click().perform()
                 sleep(2)
                 print("Downloaded Zip File")
             else:
@@ -266,21 +275,26 @@ def code_container_download_type(driver):
 
 def copy_code(container, driver, use_svg=True):
     clipboard_title = "Copy To Clipboard"
+    action = ActionChains(driver)
+    sleep(1)
+
     if use_svg:
-        container.find_elements(
-            By.CSS_SELECTOR, f"svg[title='{clipboard_title}']")[0].click()
+        svg_button = container.find_elements(
+            By.CSS_SELECTOR, f"svg[title='{clipboard_title}']")[0]
     else:
-        container.find_elements(
-            By.CSS_SELECTOR, f"button[title='{clipboard_title}']")[0].click()
+        svg_button = container.find_elements(
+            By.CSS_SELECTOR, f"button[title='{clipboard_title}']")[0]
     print("Clicked on Clipboard")
+    action.move_to_element(svg_button).click().perform()
+    sleep(1)
     textbox = driver.find_element(
         By.CSS_SELECTOR, "textarea[class*='temptextarea']")
-    textbox.click()
+    action.move_to_element(textbox).click().perform()
     sleep(1)
     textbox.send_keys(Keys.CONTROL, "a")
     textbox.send_keys(Keys.CONTROL, "v")
-    sleep(1)
     print("Paste complete")
+    sleep(1)
     return textbox.get_attribute('value')
 
 
@@ -311,26 +325,30 @@ def iterate_nav_bar(code, code_nav_bar, code_nav_tab, driver):
                 returned_code = copy_code(code, driver)
                 write_code(nav_bar_file_name, returned_code)
             except Exception as e:
+                print(e)
                 print("Failed to write")
 
 
 def iterate_nav_tab(code, code_nav_tab, driver, nav_bar_file_name=""):
     print("Inside iterate_nav_tab function")
-    for tab in code_nav_tab:
-        tab.click()
+    action = ActionChains(driver)
+
+    for idx, tab in enumerate(code_nav_tab):
+        action.move_to_element(tab).click().perform()
         sleep(1)
         try:
             returned_code = copy_code(code, driver)
             file_name = nav_bar_file_name + tab.get_attribute('innerHTML')
             write_code(file_name, returned_code)
         except Exception as e:
+            print(e)
             print("Failed to write")
 
 
 def iterate_general_code(code, driver, file_index):
     solution_code_class = "styles__Buttons_Wrapper"
     try:
-        returned_code = copy_code(code, driver)
+        returned_code = copy_code(code, driver, file_index)
         write_code(f"Code_{file_index}", returned_code)
     except Exception as e:
         print("Failed to write")
@@ -339,6 +357,7 @@ def iterate_general_code(code, driver, file_index):
             returned_code = copy_code(code, driver, False)
             write_code(f"Code_Solution_{file_index}", returned_code)
         except Exception as e:
+            print(e)
             print("Failed to write")
 
 
@@ -361,7 +380,8 @@ def code_container_clipboard_type(driver):
                 By.CSS_SELECTOR, f"div[class*='{code_nav_tab_class}']")
             if code_nav_bar:
                 print("Nav Bar Found in code container")
-                iterate_nav_bar(code, code_nav_bar[0], code_nav_tab, driver)
+                iterate_nav_bar(
+                    code, code_nav_bar[0], code_nav_tab, driver)
             elif not code_nav_bar and code_nav_tab:
                 iterate_nav_tab(code, code_nav_tab, driver)
             elif not code_nav_bar and not code_nav_tab:
@@ -380,12 +400,16 @@ def extract_zip_files():
         zipfile.ZipFile(path, 'r').extractall(path[:-len(zf)])
         os.remove(path)
 
+
 def demark_as_completed(driver):
-    svg_class = "styles__Checkbox"
+    div_class = "styles__Checkbox"
     try:
-        driver.find_element(By.CSS_SELECTOR, f"div[class*='{svg_class}'] > svg").click()
-    except Exception as e:
+        driver.execute_script(f'''
+            return document.querySelector("div[class*='{div_class}']").click();
+        ''')
+    except Exception:
         pass
+
 
 def scrape_page(driver, file_index):
     title = get_file_name(driver)
@@ -423,7 +447,7 @@ def load_webpage(driver, url):
     if not check_login(driver):
         return False
     os.chdir(save_path)
-    
+
     create_course_folder(driver, url)
     course_path = os.getcwd()
     while check_login(driver) and scrape_page(driver, file_index):
@@ -436,9 +460,11 @@ def load_webpage(driver, url):
     os.chdir(save_path)
     return True
 
+
 def create_log(file_index, url, save_path):
     with open(os.path.join(save_path, 'log.txt'), 'a') as file:
         file.write(f"{file_index} {url}\n")
+
 
 def scrape_courses():
     clear()
@@ -469,10 +495,10 @@ def scrape_courses():
                     break
                 print("Next Course")
             except KeyboardInterrupt:
-                create_log(file_index, url, save_path)
+                create_log(file_index, driver.current_url, save_path)
                 raise Exception("Exited Manually")
             except Exception as e:
-                create_log(file_index, url, save_path)
+                create_log(file_index, driver.current_url, save_path)
                 print("Found Issue, Going Next Course", e)
 
         print("Script Execution Complete")
