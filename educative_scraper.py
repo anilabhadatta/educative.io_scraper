@@ -415,25 +415,46 @@ def demark_as_completed(driver):
         pass
 
 
-def click_right_button_quiz(driver, quiz_container, screenshot=False):
+def click_option_quiz(driver, quiz_container):
+    print("Click on Option Quiz")
+    option_class = "styles__CheckBoxIcon"
+    action = ActionChains(driver)
+    option = quiz_container.find_element(
+        By.CSS_SELECTOR, f"div[class*='{option_class}'] > svg")
+    action.move_to_element(option).click().perform()
+    sleep(1)
+
+
+def quiz_container_html(quiz_container):
+    container_screenshot = quiz_container.screenshot_as_base64
+    sleep(1)
+    return f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
+
+
+def click_right_button_quiz(driver, quiz_container):
+    print("Clicking on Right button")
     action = ActionChains(driver)
     right_button_class = "SlideRightButton"
 
     html_template = ""
     right_button = quiz_container.find_elements(
         By.CSS_SELECTOR, f"button[class*='{right_button_class}']")
-    while right_button:
-        if screenshot:
-            container_screenshot = quiz_container.screenshot_as_base64
-            html_template += f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
-            sleep(1)
 
+    if not right_button:
+        click_option_quiz(driver, quiz_container)
+        click_submit_quiz(driver, quiz_container)
+        click_submit_quiz(driver, quiz_container)
+
+    while right_button:
+        click_option_quiz(driver, quiz_container)
+        click_submit_quiz(driver, quiz_container)
+        html_template += quiz_container_html(quiz_container)
         action.move_to_element(right_button[0]).click().perform()
         sleep(1)
         right_button = quiz_container.find_elements(
             By.CSS_SELECTOR, f"button[class*='{right_button_class}']")
-    if screenshot:
-        return html_template
+
+    return html_template
 
 
 def click_submit_quiz(driver, quiz_container):
@@ -454,11 +475,8 @@ def take_quiz_screenshot(driver):
         By.CSS_SELECTOR, f"div[class*='{quiz_container_class}']")
     if quiz_containers:
         for quiz_container in quiz_containers:
-
-            click_right_button_quiz(driver, quiz_container)
-            click_submit_quiz(driver, quiz_container)
             html_template += click_right_button_quiz(
-                driver, quiz_container, True)
+                driver, quiz_container)
     else:
         print("Quiz not found")
     return html_template
