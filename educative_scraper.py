@@ -1,4 +1,5 @@
 from time import sleep
+from venv import create
 from selenium.webdriver.common.by import By
 import os
 from selenium import webdriver
@@ -138,7 +139,7 @@ def increase_window_size(driver):
     sleep(2)
 
 
-def create_html(file_name, base_64_png):
+def create_html(file_name, base_64_png, html_template):
     with open(file_name + ".html", "w+") as fh:
         fh.write(f'''
                 <!DOCTYPE html>
@@ -148,7 +149,8 @@ def create_html(file_name, base_64_png):
                 </head>
                 <body style="zoom: 80%">
                     <div style="text-align: center">
-                        <img src="data:image/png;base64,{base_64_png}" alt="">
+                        <img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{base_64_png}" alt="">
+                        {html_template}
                     </div>
                 </body>
                 </html>
@@ -156,7 +158,7 @@ def create_html(file_name, base_64_png):
     sleep(1)
 
 
-def take_screenshot(driver, file_name):
+def take_screenshot(driver, file_name, html_template):
     print("Take Screenshot Function")
     article_page_class = "ArticlePage"
     page_class = "Page"
@@ -176,7 +178,7 @@ def take_screenshot(driver, file_name):
     else:
         base_64_png = base_64_png_ele.screenshot_as_base64
     sleep(2)
-    create_html(file_name, base_64_png)
+    create_html(file_name, base_64_png, html_template)
     driver.set_window_size(1920, 1080)
     print("Screenshot taken and HTML File generated")
 
@@ -413,6 +415,65 @@ def demark_as_completed(driver):
         pass
 
 
+def create_html_for_quiz(idx, html_template):
+    course_root = os.getcwd()
+    create_folder(f"quiz-{idx}")
+    with open(f"quiz-{idx}.html", 'w') as file:
+        file.write(html_template)
+    os.chdir(course_root)
+
+
+def click_right_icon(driver, quiz_container, idx, screenshot=False):
+    action = ActionChains(driver)
+    right_button_class = "SlideRightButton"
+    global html_template
+
+    html_template = ''''''
+    right_button = quiz_container.find_elements(
+        By.CSS_SELECTOR, f"button[class*='{right_button_class}']")
+    while right_button:
+        if screenshot:
+            container_screenshot = quiz_container.screenshot_as_base64
+            html_template += f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
+            sleep(1)
+
+        action.move_to_element(right_button[0]).click().perform()
+        sleep(1)
+        right_button = quiz_container.find_elements(
+            By.CSS_SELECTOR, f"button[class*='{right_button_class}']")
+    if screenshot:
+        # create_html_for_quiz(idx, html_template)
+        return html_template
+
+
+def click_submit_quiz(driver, quiz_container):
+    action = ActionChains(driver)
+    button_class = "contained-primary"
+    button = quiz_container.find_element(
+        By.CSS_SELECTOR, f"button[class*='{button_class}']")
+    action.move_to_element(button).click().perform()
+    sleep(1)
+
+
+def take_quiz_screenshot(driver):
+    print("Inside take_quiz_screenshot function")
+    quiz_container_class = "styles__QuizViewMode"
+    html_template = ""
+
+    quiz_containers = driver.find_elements(
+        By.CSS_SELECTOR, f"div[class*='{quiz_container_class}']")
+    if quiz_containers:
+        for idx, quiz_container in enumerate(quiz_containers):
+
+            click_right_icon(driver, quiz_container, idx)
+            click_submit_quiz(driver, quiz_container)
+            html_template += click_right_icon(driver,
+                                              quiz_container, idx, True)
+    else:
+        print("Quiz not found")
+    return html_template
+
+
 def scrape_page(driver, file_index):
     title = get_file_name(driver)
     file_name = str(file_index) + "-" + title
@@ -421,7 +482,8 @@ def scrape_page(driver, file_index):
     show_code_box_answer(driver)
     open_slides(driver)
     create_folder(file_name)
-    take_screenshot(driver, file_name)
+    html_template = take_quiz_screenshot(driver)
+    take_screenshot(driver, file_name, html_template)
     code_container_download_type(driver)
     code_container_clipboard_type(driver)
     demark_as_completed(driver)
