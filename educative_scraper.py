@@ -11,6 +11,7 @@ import zipfile
 import json
 import sys
 
+
 OS_ROOT = os.path.expanduser('~')
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -55,16 +56,13 @@ def load_chrome_driver(headless=True):
 
 def create_course_folder(driver, url):
     print("Create Course Folder Function")
-    course_name_class = "mb-4 px-6"
+    course_name_class = "ed-grid-sidebar"
     if "educative.io/page" in url:
         course_name = get_file_name(driver)
     else:
-        course_name = slugify(driver.find_element(
-            By.CSS_SELECTOR, f"h4[class='{course_name_class}']").get_attribute('innerHTML')).replace("-", " ")
-    if course_name not in os.listdir():
-        print("Created a folder")
-        os.mkdir(course_name)
-    os.chdir(course_name)
+        course_name = slugify(driver.find_element(By.CSS_SELECTOR, f"nav[class*='{course_name_class}']").find_element(
+            By.TAG_NAME, "h4").get_attribute('innerHTML')).replace("-", " ")
+    create_folder(course_name)
     print("Inside Course Folder")
 
 
@@ -88,7 +86,7 @@ def open_slides(driver):
     print("Finding Slides Function")
     slidebox_class = "text-center block"
     menubar_class = "styles__ButtonsWrap"
-    button_class = "Button-sc"
+    svg_label = "view all slides"
     action = ActionChains(driver)
 
     total_slides = driver.find_elements(
@@ -98,8 +96,8 @@ def open_slides(driver):
             slide = slide.find_elements(
                 By.CSS_SELECTOR, f"div[class*='{menubar_class}']")
             if slide:
-                slide_button = slide[0].find_elements(
-                    By.CSS_SELECTOR, f"button[class*='{button_class}']")[-2]
+                slide_button = slide[0].find_element(
+                    By.CSS_SELECTOR, f"svg[aria-label*='{svg_label}']")
                 action.move_to_element(slide_button).click().perform()
                 sleep(1)
                 print("Slides opened")
@@ -250,7 +248,7 @@ def download_parameters_for_chrome_headless(driver):
 def code_container_download_type(driver):
     print("Code Container Download Type Function")
     code_container_class = "styles__Spa_Container"
-    svg_class = "w-7 h-7"
+    svg_xpath = "//div[contains(@aria-label,'copy-code-button')]//*[local-name() = 'svg' and contains(@title,'Copy To Clipboard')=false]"
     action = ActionChains(driver)
 
     code_containers = driver.find_elements(
@@ -260,10 +258,9 @@ def code_container_download_type(driver):
         for folder_index, code in enumerate(code_containers):
             create_folder("code_downloaded" + str(folder_index))
             download_parameters_for_chrome_headless(driver)
-            svg_buttons = code.find_elements(
-                By.CSS_SELECTOR, f"svg[class*='{svg_class}']")
-            if svg_buttons:
-                action.move_to_element(svg_buttons[-1]).click().perform()
+            clipboard_button = code.find_elements(By.XPATH, svg_xpath)
+            if clipboard_button:
+                action.move_to_element(clipboard_button[0]).click().perform()
                 sleep(2)
                 print("Downloaded Zip File")
             else:
@@ -337,7 +334,7 @@ def iterate_nav_tab(code, code_nav_tab, driver, nav_bar_file_name=""):
     print("Inside iterate_nav_tab function")
     action = ActionChains(driver)
 
-    for idx, tab in enumerate(code_nav_tab):
+    for tab in code_nav_tab:
         action.move_to_element(tab).click().perform()
         sleep(1)
         try:
@@ -355,6 +352,7 @@ def iterate_general_code(code, driver, file_index):
         returned_code = copy_code(code, driver, file_index)
         write_code(f"Code_{file_index}", returned_code)
     except Exception as e:
+        print(e)
         print("Failed to write")
     if code.find_elements(By.CSS_SELECTOR, f"div[class*='{solution_code_class}']"):
         try:

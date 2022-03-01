@@ -140,3 +140,4 @@ venv
 __pycache__
 env
 .DS_Store
+Chrome-bin/win
