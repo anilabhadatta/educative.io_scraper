@@ -415,20 +415,11 @@ def demark_as_completed(driver):
         pass
 
 
-def create_html_for_quiz(idx, html_template):
-    course_root = os.getcwd()
-    create_folder(f"quiz-{idx}")
-    with open(f"quiz-{idx}.html", 'w') as file:
-        file.write(html_template)
-    os.chdir(course_root)
-
-
-def click_right_icon(driver, quiz_container, idx, screenshot=False):
+def click_right_button_quiz(driver, quiz_container, screenshot=False):
     action = ActionChains(driver)
     right_button_class = "SlideRightButton"
-    global html_template
 
-    html_template = ''''''
+    html_template = ""
     right_button = quiz_container.find_elements(
         By.CSS_SELECTOR, f"button[class*='{right_button_class}']")
     while right_button:
@@ -442,7 +433,6 @@ def click_right_icon(driver, quiz_container, idx, screenshot=False):
         right_button = quiz_container.find_elements(
             By.CSS_SELECTOR, f"button[class*='{right_button_class}']")
     if screenshot:
-        # create_html_for_quiz(idx, html_template)
         return html_template
 
 
@@ -463,12 +453,12 @@ def take_quiz_screenshot(driver):
     quiz_containers = driver.find_elements(
         By.CSS_SELECTOR, f"div[class*='{quiz_container_class}']")
     if quiz_containers:
-        for idx, quiz_container in enumerate(quiz_containers):
+        for quiz_container in quiz_containers:
 
-            click_right_icon(driver, quiz_container, idx)
+            click_right_button_quiz(driver, quiz_container)
             click_submit_quiz(driver, quiz_container)
-            html_template += click_right_icon(driver,
-                                              quiz_container, idx, True)
+            html_template += click_right_button_quiz(
+                driver, quiz_container, True)
     else:
         print("Quiz not found")
     return html_template
