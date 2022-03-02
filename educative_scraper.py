@@ -6,6 +6,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from slugify import slugify
 import glob
 import zipfile
@@ -482,7 +484,37 @@ def take_quiz_screenshot(driver):
     return html_template
 
 
+def wait_webdriver(driver):
+    article_page_class = "ArticlePage"
+    project_page_class = "Page__PageEditor"
+    non_project_page_class = "PageContent"
+    next_button_class = "outlined-primary m-0"
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{article_page_class}']")))
+    except Exception:
+        pass
+    try:
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{non_project_page_class}']")))
+    except:
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{project_page_class}']")))
+    try:
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{next_button_class}']")))
+    except:
+        pass
+    try:
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, "//h1[text()]")))
+    except:
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, "//h2[text()]")))
+
+
 def scrape_page(driver, file_index):
+    wait_webdriver(driver)
     title = get_file_name(driver)
     file_name = str(file_index) + "-" + title
     driver.set_window_size(1920, get_current_height(driver))
