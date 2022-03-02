@@ -1,5 +1,4 @@
 from time import sleep
-from venv import create
 from selenium.webdriver.common.by import By
 import os
 from selenium import webdriver
@@ -565,9 +564,9 @@ def load_webpage(driver, url):
     return True
 
 
-def create_log(file_index, url, save_path):
+def create_log(file_index, url, save_path, e):
     with open(os.path.join(save_path, 'log.txt'), 'a') as file:
-        file.write(f"{file_index} {url}\n")
+        file.write(f"{file_index} {url} {e}\n")
 
 
 def scrape_courses():
@@ -599,10 +598,10 @@ def scrape_courses():
                     break
                 print("Next Course")
             except KeyboardInterrupt:
-                create_log(file_index, driver.current_url, save_path)
+                create_log(file_index, driver.current_url, e)
                 raise Exception("Exited Manually")
             except Exception as e:
-                create_log(file_index, driver.current_url, save_path)
+                create_log(file_index, driver.current_url, save_path, e)
                 print("Found Issue, Going Next Course", e)
 
         print("Script Execution Complete")
