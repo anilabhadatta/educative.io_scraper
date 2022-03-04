@@ -400,7 +400,7 @@ def code_container_clipboard_type(driver):
 
 def extract_zip_files():
     print("Zip File Extraction")
-    for path in glob.iglob("./**/*zip", recursive=True):
+    for path in glob.iglob("./**/*educative-code-widget.zip", recursive=True):
         zf = os.path.basename(path)
         zipfile.ZipFile(path, 'r').extractall(path[:-len(zf)])
         os.remove(path)
