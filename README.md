@@ -32,7 +32,7 @@
 
 
 ### Step 5 (Optional): To build the educative-viewer using pyinstaller:
-      Uncomment Line 54 and Comment Line 57,58 in run.py
+      For multiprocess.py, Uncomment Line 66 and Comment Line 69 in multiprocess.py
 #### Install the pyinstaller package and run the following commands
       
       pip3 install pyinstaller
