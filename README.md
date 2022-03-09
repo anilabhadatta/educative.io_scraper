@@ -25,7 +25,7 @@
 ### Step 3: Install the required modules and start the educative-scraper using the following commands:
       
       pip3 install -r requirements.txt
-      python3 educative_scraper.py
+      python3 run.py
       
 
 ### Step 4: Create a config by entering 1 and provide the urls.txt file path and course-save folder path
@@ -39,7 +39,9 @@
 #### > (For Windows) 
       
       pyinstaller --clean --add-data Chrome-bin;Chrome-bin --onefile -i"icon.ico" educative_scraper.py
+      pyinstaller --clean --add-data "Chrome-driver;Chrome-driver" --add-data "./dist/educative_scraper.exe;./dist" --onefile -i"icon.ico" run.py
       
 #### > (For MacOS/Linux) 
       
       pyinstaller --clean --add-data Chrome-bin:Chrome-bin --onefile -i"icon.ico" educative_scraper.py
+      pyinstaller --clean --add-data "Chrome-driver:Chrome-driver" --add-data "./dist/educative_scraper.exe:./dist" --onefile -i"icon.ico" run.py
