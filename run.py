@@ -8,7 +8,6 @@ import psutil
 
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-pyinstaller_build = ""
 
 
 def get_chromdriver_pid():
