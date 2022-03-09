@@ -2,6 +2,7 @@ from multiprocessing import Process
 import multiprocessing
 import os
 import subprocess
+from subprocess import Popen, PIPE, STDOUT
 import sys
 import signal
 import psutil
@@ -24,38 +25,51 @@ def get_binary_path():
         chromedriver = r'mac/chromedriver'
         pyinstaller_build = os.path.join(
             ROOT_DIR, "dist", "educative_scraper")
+        scraper_path = "python3 " + \
+            os.path.join(ROOT_DIR, "educative_scraper.py")
     elif current_os.startswith('linux'):
         chromedriver = r'linux/chromedriver'
         pyinstaller_build = os.path.join(
             ROOT_DIR, "dist", "educative_scraper")
+        scraper_path = "python3 " + \
+            os.path.join(ROOT_DIR, "educative_scraper.py")
     elif current_os.startswith('win32') or current_os.startswith('cygwin'):
         multiprocessing.freeze_support()
         chromedriver = r'win\chromedriver.exe'
         pyinstaller_build = os.path.join(
             ROOT_DIR, "dist", "educative_scraper.exe")
-    return chromedriver, pyinstaller_build
+        scraper_path = "python " + \
+            os.path.join(ROOT_DIR, "educative_scraper.py")
+        
+    return chromedriver, pyinstaller_build, scraper_path
 
 
 def load_chromedriver():
     try:
-        chromedriver, _ = get_binary_path()
+        current_os = sys.platform
+        chromedriver, _, _ = get_binary_path()
         chromedriver_path = os.path.join(
             ROOT_DIR, "Chrome-driver", chromedriver)
-        subprocess.run(f"{chromedriver_path} --port=9515",
-                       creationflags=subprocess.CREATE_NO_WINDOW)
+        if current_os.startswith('win32') or current_os.startswith('cygwin'):
+            subprocess.run(chromedriver_path, creationflags=subprocess.CREATE_NO_WINDOW)
+        elif current_os.startswith('darwin'):
+            subprocess.run(["open", "-a", "Terminal", chromedriver_path])
+        elif current_os.startswith('linux'):
+            try:
+                subprocess.run(['gnome-terminal', chromedriver_path])
+            except:
+                subprocess.run(['xterm', chromedriver_path])
     except KeyboardInterrupt:
         pass
 
 
 def initiate_scraper_process():
-    global pyinstaller_build
     try:
-        '''For Pyinstaller
-        _, scraper_path = get_binary_path()'''
+        '''For Pyinstaller'''
+        # _, scraper_path, _ = get_binary_path()
 
         '''For Manual Python Execution'''
-        scraper_path = "python " + \
-            os.path.join(ROOT_DIR, "educative_scraper.py")
+        _, _, scraper_path = get_binary_path()
         subprocess.run(scraper_path, shell=True)
     except KeyboardInterrupt:
         pass
