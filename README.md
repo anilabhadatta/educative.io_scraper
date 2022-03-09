@@ -45,4 +45,4 @@
 #### > (For MacOS/Linux) 
       
       pyinstaller --clean --add-data Chrome-bin:Chrome-bin --onefile -i"icon.ico" educative_scraper.py
-      pyinstaller --clean --add-data "Chrome-driver:Chrome-driver" --add-data "./dist/educative_scraper.exe:./dist" --onefile -i"icon.ico" run.py
+      pyinstaller --clean --add-data "Chrome-driver:Chrome-driver" --add-data "./dist/educative_scraper:./dist" --onefile -i"icon.ico" run.py
