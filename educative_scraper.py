@@ -2,7 +2,6 @@ from time import sleep
 from selenium.webdriver.common.by import By
 import os
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
@@ -32,7 +31,7 @@ def load_config():
 
 
 def load_chrome_driver(headless=True):
-    chrome_path, chromedriver = get_binary_path()
+    chrome_path = get_binary_path()
     user_data_dir = os.path.join(OS_ROOT, ".educative", "User Data")
     options = webdriver.ChromeOptions()
     if headless:
@@ -47,8 +46,8 @@ def load_chrome_driver(headless=True):
     userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.56 Safari/537.36"
     options.add_argument(f'user-agent={userAgent}')
     options.binary_location = os.path.join(ROOT_DIR, "Chrome-bin", chrome_path)
-    driver = webdriver.Chrome(service=ChromeService(
-        os.path.join(ROOT_DIR, "Chrome-bin", chromedriver)), options=options)
+    driver = webdriver.Remote(
+        command_executor='http://127.0.0.1:9515', options=options)
     driver.set_window_size(1920, 1080)
     driver.command_executor._commands["send_command"] = (
         "POST", '/session/$sessionId/chromium/send_command')
@@ -555,8 +554,8 @@ def load_webpage(driver, url):
     course_path = os.getcwd()
     while check_login(driver) and scrape_page(driver, file_index):
         print("---------------", file_index, "Complete-------------------")
-        sleep(10)
         file_index += 1
+        sleep(10)
         os.chdir(course_path)
     os.chdir(course_path)
     extract_zip_files()
@@ -566,7 +565,7 @@ def load_webpage(driver, url):
 
 def create_log(file_index, url, save_path, e):
     with open(os.path.join(save_path, 'log.txt'), 'a') as file:
-        file.write(f"{file_index} {url} {e}\n")
+        file.write(f"{file_index} {url} \n{e}\n")
 
 
 def scrape_courses():
@@ -598,7 +597,7 @@ def scrape_courses():
                     break
                 print("Next Course")
             except KeyboardInterrupt:
-                create_log(file_index, driver.current_url, e)
+                create_log(file_index, driver.current_url, save_path, "")
                 raise Exception("Exited Manually")
             except Exception as e:
                 create_log(file_index, driver.current_url, save_path, e)
@@ -651,15 +650,12 @@ def login_educative():
 def get_binary_path():
     global current_os
     if current_os.startswith('darwin'):
-        chromedriver = r'mac/chromedriver'
         chrome_path = r"mac/Chromium.app/Contents/MacOS/Google Chrome"
     elif current_os.startswith('linux'):
-        chromedriver = r'linux/chromedriver'
         chrome_path = r"linux/chrome/chrome"
     elif current_os.startswith('win32') or current_os.startswith('cygwin'):
-        chromedriver = r'win\chromedriver.exe'
         chrome_path = r'win\chrome.exe'
-    return chrome_path, chromedriver
+    return chrome_path
 
 
 def clear():
