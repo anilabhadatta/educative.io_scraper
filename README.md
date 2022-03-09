@@ -45,7 +45,7 @@
       pyinstaller --clean --add-data "Chrome-driver;Chrome-driver" --onefile -i"icon.ico" chromedriver.py
       
       > For multiprocess.py (Auto Chromedriver Loader)
-      pyinstaller --clean --add-data "Chrome-driver;Chrome-driver" --add-data "./dist/educative_scraper;./dist" --onefile -i"icon.ico" multiprocess.py
+      pyinstaller --clean --add-data "Chrome-driver;Chrome-driver" --add-data "./dist/educative_scraper.exe;./dist" --onefile -i"icon.ico" multiprocess.py
       
 #### > (For MacOS/Linux) 
       
