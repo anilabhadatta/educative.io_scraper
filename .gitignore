@@ -142,6 +142,7 @@ env
 .DS_Store
 Chrome-bin/win
 Chrome-bin/mac
+Chrome-bin/linux
 Chrome-bin-linux.zip
 Chrome-bin-win.zip
 Chrome-bin-osx.zip

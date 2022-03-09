@@ -2,7 +2,6 @@ from multiprocessing import Process
 import multiprocessing
 import os
 import subprocess
-from subprocess import Popen, PIPE, STDOUT
 import sys
 import signal
 import psutil
@@ -34,7 +33,6 @@ def get_binary_path():
         scraper_path = "python3 " + \
             os.path.join(ROOT_DIR, "educative_scraper.py")
     elif current_os.startswith('win32') or current_os.startswith('cygwin'):
-        multiprocessing.freeze_support()
         chromedriver = r'win\chromedriver.exe'
         pyinstaller_build = os.path.join(
             ROOT_DIR, "dist", "educative_scraper.exe")
@@ -76,7 +74,7 @@ def initiate_scraper_process():
 
 
 if __name__ == '__main__':
-    get_binary_path()
+    multiprocessing.freeze_support()
     chromedriver_process = Process(target=load_chromedriver)
     scraper_process = Process(target=initiate_scraper_process)
     chromedriver_process.start()
