@@ -1,3 +1,7 @@
+'''Create a virtual environment named env or else this script won't work
+   Make sure you have xterm or uxterm or gnome-terminal installed in your Linux OS.
+'''
+
 from multiprocessing import Process
 import multiprocessing
 import os
@@ -5,7 +9,7 @@ import subprocess
 import sys
 import signal
 import psutil
-
+import time
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -21,30 +25,24 @@ def get_binary_path():
     current_os = sys.platform
     if current_os.startswith('darwin'):
         chromedriver = r'mac/chromedriver'
-        pyinstaller_build = os.path.join(
-            ROOT_DIR, "dist", "educative_scraper")
-        scraper_path = "python3 " + \
-            os.path.join(ROOT_DIR, "educative_scraper.py")
+        scraper_path = os.path.join(
+            ROOT_DIR, "env/bin/python3")
     elif current_os.startswith('linux'):
         chromedriver = r'linux/chromedriver'
-        pyinstaller_build = os.path.join(
-            ROOT_DIR, "dist", "educative_scraper")
-        scraper_path = "python3 " + \
-            os.path.join(ROOT_DIR, "educative_scraper.py")
+        scraper_path = os.path.join(
+            ROOT_DIR, "env/bin/python3")
     elif current_os.startswith('win32') or current_os.startswith('cygwin'):
         chromedriver = r'win\chromedriver.exe'
-        pyinstaller_build = os.path.join(
-            ROOT_DIR, "dist", "educative_scraper.exe")
-        scraper_path = "python " + \
-            os.path.join(ROOT_DIR, "educative_scraper.py")
+        scraper_path = os.path.join(
+            ROOT_DIR, r"env\Scripts\python.exe")
         
-    return chromedriver, pyinstaller_build, scraper_path
+    return chromedriver, scraper_path
 
 
 def load_chromedriver():
     try:
         current_os = sys.platform
-        chromedriver, _, _ = get_binary_path()
+        chromedriver, _= get_binary_path()
         chromedriver_path = os.path.join(
             ROOT_DIR, "Chrome-driver", chromedriver)
         if current_os.startswith('win32') or current_os.startswith('cygwin'):
@@ -52,22 +50,34 @@ def load_chromedriver():
         elif current_os.startswith('darwin'):
             subprocess.run(["open", "-a", "Terminal", chromedriver_path])
         elif current_os.startswith('linux'):
+            subprocess.check_call(['chmod','u+x', chromedriver_path])
             try:
-                subprocess.run(['gnome-terminal', chromedriver_path])
-            except:
-                subprocess.run(['xterm', chromedriver_path])
+                try:
+                    subprocess.run(['xterm', '-e', chromedriver_path])
+                except Exception:
+                    subprocess.run(['uxterm', '-e', chromedriver_path]) 
+            except Exception:
+                subprocess.run(['gnome-terminal', '--', chromedriver_path])
     except KeyboardInterrupt:
         pass
 
 
 def initiate_scraper_process():
     try:
-        '''For Pyinstaller'''
-        # _, scraper_path, _ = get_binary_path()
-
-        '''For Manual Python Execution'''
-        _, _, scraper_path = get_binary_path()
-        subprocess.run(scraper_path, shell=True)
+        _, scraper_path = get_binary_path()
+        file_path = os.path.join(ROOT_DIR, "educative_scraper.py")
+        
+        if sys.platform.startswith('linux'):
+            subprocess.check_call(['chmod','u+x', file_path])
+            try:
+                try:
+                    subprocess.run(['xterm', '-e', scraper_path, file_path])
+                except Exception:
+                    subprocess.run(['uxterm', '-e', scraper_path, file_path]) 
+            except Exception:
+                subprocess.Popen(['gnome-terminal', '--', scraper_path, file_path])
+        else:
+            subprocess.run(scraper_path, shell=True)
     except KeyboardInterrupt:
         pass
 
@@ -88,3 +98,5 @@ if __name__ == '__main__':
         if scraper_process.exitcode == 0:
             os.kill(get_chromdriver_pid(), signal.SIGTERM)
             chromedriver_process.terminate()
+    except KeyboardInterrupt:
+        sys.exit()
