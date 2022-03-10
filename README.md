@@ -30,7 +30,7 @@
       python3 chromedriver.py
       python3 educative_scraper.py
       
-      > For Auto Chromedriver Loader
+      > For Auto Chromedriver Loader (Multiprocessing)
       python3 multiprocess.py
       
 
