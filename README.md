@@ -39,7 +39,7 @@
 
 ### Step 5 (Optional): To build the educative-viewer using pyinstaller:
       
-#### Install the pyinstaller package and run the following commands
+#### Install the pyinstaller package and run the following commands.
       
       pip3 install pyinstaller
       
