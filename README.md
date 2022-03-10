@@ -6,7 +6,7 @@
 
 ## To Run/Build this project:
 
-### Step 1: Install the virtualenv package for python3 and create a virtual environment
+### Step 1: Install the virtualenv package for python3 and create a virtual environment "env"
 
       
       pip3 install virtualenv 
@@ -25,34 +25,38 @@
 ### Step 3: Install the required modules and start the educative-scraper using the following commands:
       
       pip3 install -r requirements.txt
-      python3 run.py
+      
+      > For Manual Chromedriver Loader
+      python3 chromedriver.py
+      python3 educative_scraper.py
+      
+      > For Auto Chromedriver Loader
+      python3 multiprocess.py
       
 
 ### Step 4: Create a config by entering 1 and provide the urls.txt file path and course-save folder path
 
 
 ### Step 5 (Optional): To build the educative-viewer using pyinstaller:
-      For multiprocess.py, Uncomment Line 66 and Comment Line 69 in multiprocess.py
+      
 #### Install the pyinstaller package and run the following commands
       
       pip3 install pyinstaller
       
 #### > (For Windows) 
       
+      > For educative_scraper and chromedriver.py (Manual Chromedriver Loader)
       pyinstaller --clean --add-data Chrome-bin;Chrome-bin --onefile -i"icon.ico" educative_scraper.py
-      
-      > For chromedriver.py (Manual Chromedriver Loader)
       pyinstaller --clean --add-data "Chrome-driver;Chrome-driver" --onefile -i"icon.ico" chromedriver.py
       
       > For multiprocess.py (Auto Chromedriver Loader)
-      pyinstaller --clean --add-data "Chrome-driver;Chrome-driver" --add-data "./dist/educative_scraper.exe;./dist" --onefile -i"icon.ico" multiprocess.py
+      pyinstaller --clean --add-data "Chrome-driver;Chrome-driver" --add-data "./educative_scraper.py;./" --add-data "Chrome-bin;Chrome-bin" --add-data "env;env" --onefile -i"icon.ico" multiprocess.py
       
 #### > (For MacOS/Linux) 
       
+      > For educative_scraper and chromedriver.py (Manual Chromedriver Loader)
       pyinstaller --clean --add-data Chrome-bin:Chrome-bin --onefile -i"icon.ico" educative_scraper.py
-      
-      > For chromedriver.py (Manual Chromedriver Loader)
       pyinstaller --clean --add-data "Chrome-driver:Chrome-driver" --onefile -i"icon.ico" chromedriver.py
       
       > For multiprocess.py (Auto Chromedriver Loader)
-      pyinstaller --clean --add-data "Chrome-driver:Chrome-driver" --add-data "./dist/educative_scraper:./dist" --onefile -i"icon.ico" multiprocess.py
+      pyinstaller --clean --add-data "Chrome-driver:Chrome-driver" --add-data "./educative_scraper.py:./" --add-data "Chrome-bin:Chrome-bin" --add-data "env:env" --onefile -i"icon.ico" multiprocess.py
