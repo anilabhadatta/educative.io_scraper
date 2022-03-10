@@ -79,7 +79,7 @@ def initiate_scraper_process():
                 subprocess.Popen(
                     ['gnome-terminal', '--', scraper_path, file_path])
         else:
-            subprocess.run([scraper_path, file_path], shell=True)
+            subprocess.run([scraper_path, file_path])
     except KeyboardInterrupt:
         pass
 
