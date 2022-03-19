@@ -34,7 +34,7 @@
       python3 multiprocess.py
       
 
-### Step 4: Create a config by entering 1 and provide the urls.txt file path and course-save folder path
+### Step 4: Create a config by entering 1 and provide the urls.txt file path and course-save folder path.
 
 
 ### Step 5 (Optional): To build the educative-viewer using pyinstaller:
