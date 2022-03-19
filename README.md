@@ -7,7 +7,7 @@
       
 ## To Run/Build this project:
 
-### Step 1: Install the virtualenv package for python3 and create a virtual environment "env"
+### Step 1: Install the virtualenv package for python3 and create a virtual environment named "env".
 
       
       pip3 install virtualenv 
