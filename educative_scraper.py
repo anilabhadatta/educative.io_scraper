@@ -169,6 +169,7 @@ def send_command(driver, cmd, params={}):
 
 def screenshot_as_cdp(driver, ele_to_screenshot):
 
+    sleep(1)
     size, location = ele_to_screenshot.size, ele_to_screenshot.location
     width, height = size['width'], size['height']
     x, y = location['x'], location['y']
@@ -194,9 +195,12 @@ def take_screenshot(driver, file_name, html_template):
     page_class = "Page"
     second_page_class = "PageContent"
     main_class = "ed-grid"
+    sidebar_class = "ed-grid-sidebar"
     nav_node = f"div[class*='{main_class}'] > nav"
+    sidebar_nav_node = f"nav[class*='{sidebar_class}']"
 
     delete_node(driver, nav_node)
+    delete_node(driver, sidebar_nav_node)
     # increase_window_size(driver)
 
     ele_to_screenshot = driver.find_element(
