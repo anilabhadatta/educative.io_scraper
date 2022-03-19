@@ -3,7 +3,8 @@
 
 ## To view the scraped courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository
 ### Refer Step 4 if you are using Releases.
-
+      Make sure you have xterm or uxterm or gnome-terminal installed in your Linux OS.
+      
 ## To Run/Build this project:
 
 ### Step 1: Install the virtualenv package for python3 and create a virtual environment "env"
