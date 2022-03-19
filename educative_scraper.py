@@ -655,7 +655,7 @@ def generate_config():
         print("Enter the paths for your config")
     url_text_file = input("Enter the URL text file path: ") or url_text_file
     save_path = input("Enter Save Path: ") or save_path
-    headless = bool(input("Headless T/F? ") == 'T') or headless
+    headless = bool(input("Headless T/F? ") == 'T')
 
     base_config_path = os.path.join(OS_ROOT, ".educative")
     if ".educative" not in os.listdir(OS_ROOT):
@@ -665,7 +665,7 @@ def generate_config():
         json.dump({
             "url_file_path": url_text_file,
             "save_path": save_path,
-            "headless": headless
+            "headless": headless or headless
         }, config_file)
 
 
