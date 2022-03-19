@@ -23,14 +23,15 @@ def load_config():
         raise Exception("No config found, Please create one")
     with open(os.path.join(config_path, "config.json"), "r") as config_file:
         config = json.load(config_file)
-    if "url_file_path" not in config or "save_path" not in config:
+    if "url_file_path" not in config or "save_path" not in config or "headless" not in config:
         raise Exception("Config is corrupted, Please recreate the config")
     url_text_file = config["url_file_path"]
     save_path = config["save_path"]
-    return url_text_file, save_path
+    headless = config["headless"]
+    return url_text_file, save_path, headless
 
 
-def load_chrome_driver(headless=True):
+def load_chrome_driver(headless):
     chrome_path = get_binary_path()
     user_data_dir = os.path.join(OS_ROOT, ".educative", "User Data")
     options = webdriver.ChromeOptions()
@@ -158,6 +159,35 @@ def create_html(file_name, base_64_png, html_template):
     sleep(1)
 
 
+def send_command(driver, cmd, params={}):
+    resource = "/session/%s/chromium/send_command_and_get_result" % driver.session_id
+    url = driver.command_executor._url + resource
+    body = json.dumps({'cmd': cmd, 'params': params})
+    response = driver.command_executor._request('POST', url, body)
+    return response.get('value')
+
+
+def screenshot_as_cdp(driver, ele_to_screenshot):
+
+    size, location = ele_to_screenshot.size, ele_to_screenshot.location
+    width, height = size['width'], size['height']
+    x, y = location['x'], location['y']
+
+    params = {
+        "format": "png",
+        "captureBeyondViewport": True,
+        "clip": {
+            "width": width,
+            "height": height,
+            "x": x,
+            "y": y,
+            "scale": 1
+        }
+    }
+    screenshot = send_command(driver, "Page.captureScreenshot", params)
+    return screenshot['data']
+
+
 def take_screenshot(driver, file_name, html_template):
     print("Take Screenshot Function")
     article_page_class = "ArticlePage"
@@ -167,19 +197,20 @@ def take_screenshot(driver, file_name, html_template):
     nav_node = f"div[class*='{main_class}'] > nav"
 
     delete_node(driver, nav_node)
-    increase_window_size(driver)
+    # increase_window_size(driver)
 
-    base_64_png_ele = driver.find_element(
+    ele_to_screenshot = driver.find_element(
         By.CSS_SELECTOR, f"div[class*='{article_page_class}']").find_element(By.CSS_SELECTOR, f"div[class*='{page_class}']")
-    base_64_png_ele_2 = base_64_png_ele.find_elements(
+    ele_to_screenshot_normal_type = ele_to_screenshot.find_elements(
         By.CSS_SELECTOR, f"div[class*='{second_page_class}']")
-    if base_64_png_ele_2:
-        base_64_png = base_64_png_ele_2[0].screenshot_as_base64
-    else:
-        base_64_png = base_64_png_ele.screenshot_as_base64
+    if ele_to_screenshot_normal_type:
+        ele_to_screenshot = ele_to_screenshot_normal_type[0]
+
+    base_64_png = screenshot_as_cdp(driver, ele_to_screenshot)
+    # base_64_png = ele_to_screenshot.screenshot_as_base64
+    # driver.set_window_size(1920, 1080)
     sleep(2)
     create_html(file_name, base_64_png, html_template)
-    driver.set_window_size(1920, 1080)
     print("Screenshot taken and HTML File generated")
 
 
@@ -425,8 +456,10 @@ def click_option_quiz(driver, quiz_container):
     sleep(1)
 
 
-def quiz_container_html(quiz_container):
-    container_screenshot = quiz_container.screenshot_as_base64
+def quiz_container_html(driver, quiz_container):
+    container_screenshot = screenshot_as_cdp(
+        driver, quiz_container)
+    # container_screenshot = quiz_container.screenshot_as_base64
     sleep(1)
     return f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
 
@@ -448,7 +481,7 @@ def click_right_button_quiz(driver, quiz_container):
     while right_button:
         click_option_quiz(driver, quiz_container)
         click_submit_quiz(driver, quiz_container)
-        html_template += quiz_container_html(quiz_container)
+        html_template += quiz_container_html(driver, quiz_container)
         action.move_to_element(right_button[0]).click().perform()
         sleep(1)
         right_button = quiz_container.find_elements(
@@ -543,7 +576,7 @@ def check_login(driver):
 
 def load_webpage(driver, url):
     global file_index
-    _, save_path = load_config()
+    _, save_path, _ = load_config()
     driver.get(url)
     sleep(10)
     if not check_login(driver):
@@ -575,9 +608,9 @@ def scrape_courses():
                 Scraper Started, Log file can be found in config directory
     ''')
 
-    driver = load_chrome_driver(headless=True)
     try:
-        url_text_file, save_path = load_config()
+        url_text_file, save_path, headless = load_config()
+        driver = load_chrome_driver(headless)
         if not os.path.isfile(url_text_file):
             raise Exception(
                 "Url Text file path not found, Please check your config")
@@ -617,11 +650,12 @@ def generate_config():
         Leave Blank in you don't want to overwrite Previous Values
     ''')
     try:
-        url_text_file, save_path = load_config()
+        url_text_file, save_path, headless = load_config()
     except Exception as e:
         print("Enter the paths for your config")
     url_text_file = input("Enter the URL text file path: ") or url_text_file
     save_path = input("Enter Save Path: ") or save_path
+    headless = bool(input("Headless T/F? ") == 'T') or headless
 
     base_config_path = os.path.join(OS_ROOT, ".educative")
     if ".educative" not in os.listdir(OS_ROOT):
@@ -630,13 +664,14 @@ def generate_config():
     with open(os.path.join(base_config_path, "config.json"), "w+") as config_file:
         json.dump({
             "url_file_path": url_text_file,
-            "save_path": save_path
+            "save_path": save_path,
+            "headless": headless
         }, config_file)
 
 
 def login_educative():
     clear()
-    driver = load_chrome_driver(headless=False)
+    driver = load_chrome_driver(False)
     try:
         driver.get("https://educative.io")
         input("Press enter to return to Main Menu after Login is successfull")
