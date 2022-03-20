@@ -14,7 +14,7 @@
       virtualenv env 
       
 
-### Step 2: Activate the environment
+### Step 2: Activate the environment.
 #### > (For Windows) 
       
       env\Scripts\activate
