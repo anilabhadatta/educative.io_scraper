@@ -201,7 +201,6 @@ def take_screenshot(driver, file_name, html_template):
 
     delete_node(driver, nav_node)
     delete_node(driver, sidebar_nav_node)
-    # increase_window_size(driver)
 
     ele_to_screenshot = driver.find_element(
         By.CSS_SELECTOR, f"div[class*='{article_page_class}']").find_element(By.CSS_SELECTOR, f"div[class*='{page_class}']")
@@ -211,8 +210,6 @@ def take_screenshot(driver, file_name, html_template):
         ele_to_screenshot = ele_to_screenshot_normal_type[0]
 
     base_64_png = screenshot_as_cdp(driver, ele_to_screenshot)
-    # base_64_png = ele_to_screenshot.screenshot_as_base64
-    # driver.set_window_size(1920, 1080)
     sleep(2)
     create_html(file_name, base_64_png, html_template)
     print("Screenshot taken and HTML File generated")
@@ -221,35 +218,39 @@ def take_screenshot(driver, file_name, html_template):
 def show_hints_answer(driver):
     print("Show Hints Function")
     hints_div_class = "styles__Viewer"
-    action = ActionChains(driver)
 
     hints_list = driver.find_elements(
         By.CSS_SELECTOR, f"div[class*='{hints_div_class}'] > button")
+    hints_button_selector = f"div[class*='{hints_div_class}'] > button"
     if hints_list:
-        for hints in hints_list:
-            action.move_to_element(hints).click().perform()
+        for idx in range(len(hints_list)):
+            click_using_driver_js(driver, hints_button_selector, idx)
             sleep(1)
         print("Show Hints Complete")
     else:
         print("No hints found")
 
 
+def click_using_driver_js(driver, selectors, idx):
+    driver.execute_script(f'''
+            return document.querySelectorAll("{selectors}")[{idx}].click();
+        ''')
+
+
 def show_code_box_answer(driver):
     print("Show Codebox Answers Function")
-    sol1 = "solution"
-    sol2 = "show solution"
+    solution_button_label = "solution"
     show_solution_class = "popover-content"
-    action = ActionChains(driver)
 
     answer_list = driver.find_elements(By.CSS_SELECTOR,
-                                       f'button[aria-label="{sol1}"]') + driver.find_elements(By.CSS_SELECTOR, f'button[aria-label="{sol2}"]')
+                                       f"button[aria-label*='{solution_button_label}']")
     if answer_list:
-        for answer in answer_list:
-            action.move_to_element(answer).click().perform()
+        for idx in range(len(answer_list)):
+            solution_button = f"button[aria-label*='{solution_button_label}']"
+            click_using_driver_js(driver, solution_button, idx)
             sleep(1)
-            show_solution_button = driver.find_element(
-                By.CSS_SELECTOR, f"div[class*='{show_solution_class}'] > button")
-            action.move_to_element(show_solution_button).click().perform()
+            show_solution_button = f"div[class*='{show_solution_class}'] > button"
+            click_using_driver_js(driver, show_solution_button, 0)
             sleep(1)
         print("Show Codebox Answers Complete")
     else:
