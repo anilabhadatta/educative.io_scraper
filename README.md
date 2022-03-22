@@ -1,7 +1,7 @@
 # Educative Scraper
 ## A Python script that scraps Educative.io courses using selenium.
 
-## To view the scraped courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository
+## To view the scraped courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 ### Refer Step 4 if you are using Releases.
       Make sure you have xterm or uxterm or gnome-terminal installed in your Linux OS.
       
