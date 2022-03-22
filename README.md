@@ -61,3 +61,6 @@
       
       > For multiprocess.py (Auto Chromedriver Loader)
       pyinstaller --clean --add-data "Chrome-driver:Chrome-driver" --add-data "./educative_scraper.py:./" --add-data "Chrome-bin:Chrome-bin" --add-data "env:env" --onefile -i"icon.ico" multiprocess.py
+
+
+Pyinstaller command for Linux OS may or may not work due to a pyinstaller bug, currently checking for a fix.
