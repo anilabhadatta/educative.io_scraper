@@ -621,7 +621,6 @@ def scrape_courses():
 
     try:
         url_text_file, save_path, headless = load_config()
-        driver = load_chrome_driver(headless)
         if not os.path.isfile(url_text_file):
             raise Exception(
                 "Url Text file path not found, Please check your config")
@@ -633,6 +632,7 @@ def scrape_courses():
                 file_index, url = int(url_data[0]), url_data[1]
             else:
                 file_index, url = 0, url_data[0]
+            driver = load_chrome_driver(headless)
             try:
                 print(f'''
                             Starting Scraping: {file_index}, {url}
@@ -646,12 +646,12 @@ def scrape_courses():
             except Exception as e:
                 create_log(file_index, driver.current_url, save_path, e)
                 print("Found Issue, Going Next Course", e)
+            driver.quit()
 
         print("Script Execution Complete")
-        driver.quit()
     except Exception as e:
         driver.quit()
-        print("Exception, Driver exited")
+        print("Exception, Driver exited", e)
         raise Exception(e)
 
 
