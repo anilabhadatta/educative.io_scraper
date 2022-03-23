@@ -1,3 +1,4 @@
+from this import d
 from time import sleep
 from selenium.webdriver.common.by import By
 import os
@@ -585,11 +586,20 @@ def check_login(driver):
     return False
 
 
+def check_page(driver):
+    print("Checking page")
+    page_source = driver.page_source
+    if "Something went wrong" in str(page_source):
+        driver.refresh()
+        sleep(10)
+
+
 def load_webpage(driver, url):
     global file_index
     _, save_path, _ = load_config()
     driver.get(url)
     sleep(10)
+    check_page(driver)
     if not check_login(driver):
         return False
     os.chdir(save_path)
