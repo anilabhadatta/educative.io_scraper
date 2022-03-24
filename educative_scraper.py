@@ -647,6 +647,7 @@ def scrape_courses():
                             Starting Scraping: {file_index}, {url}
                 ''')
                 if not load_webpage(driver, url):
+                    driver.quit()
                     break
                 print("Next Course")
             except KeyboardInterrupt:
