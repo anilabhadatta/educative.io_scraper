@@ -488,11 +488,30 @@ def click_right_button_quiz(driver, quiz_container):
         click_submit_quiz(driver, quiz_container)
         html_template += quiz_container_html(driver, quiz_container)
         action.move_to_element(right_button[0]).click().perform()
+        print("Clicking on Right button")
         sleep(1)
+        click_on_submit_dialog_if_visible(driver)
         right_button = quiz_container.find_elements(
             By.CSS_SELECTOR, f"button[class*='{right_button_class}']")
 
     return html_template
+
+
+def click_on_submit_dialog_if_visible(driver):
+    print("Clicking on Submit dialog")
+    button_div_class = "ConfirmationModal"
+    button_id = "confirm-button"
+    action = ActionChains(driver)
+
+    try:
+        dialog_box = driver.find_elements(
+            By.CSS_SELECTOR, f"div[class*='{button_div_class}']")
+        if dialog_box:
+            button = dialog_box[0].find_elements(
+                By.CSS_SELECTOR, f"button[id*='{button_id}']")
+            action.move_to_element(button[0]).click().perform()
+    except Exception:
+        pass
 
 
 def click_submit_quiz(driver, quiz_container):
