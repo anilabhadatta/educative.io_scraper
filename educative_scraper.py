@@ -115,7 +115,7 @@ def get_file_name(driver):
         By.XPATH, "//h1[text()]") or driver.find_elements(
         By.XPATH, "//h2[text()]")
     print("File Name Found")
-    return slugify(file_name[0].get_attribute('innerHTML'))
+    return slugify(file_name[0].get_attribute('innerHTML')).replace("-", " ")
 
 
 def delete_node(driver, node):
@@ -127,17 +127,23 @@ def delete_node(driver, node):
     sleep(1)
 
 
+def remove_nav_tags(driver):
+    print("Removing Nav tags from page")
+    main_class = "ed-grid"
+    sidebar_class = "ed-grid-sidebar"
+    discuss_id = "discourseLink"
+    nav_node = f"div[class*='{main_class}'] > nav"
+    sidebar_nav_node = f"nav[class*='{sidebar_class}']"
+    ask_a_question = f"a[id*='{discuss_id}']"
+
+    delete_node(driver, nav_node)
+    delete_node(driver, sidebar_nav_node)
+    delete_node(driver, ask_a_question)
+    sleep(2)
+
+
 def get_current_height(driver):
     return driver.execute_script('return document.body.parentNode.scrollHeight')
-
-
-def increase_window_size(driver):
-    driver.execute_script(f"window.scrollTo(0,{get_current_height(driver)})")
-    sleep(2)
-    driver.set_window_size(1920, get_current_height(driver))
-    sleep(2)
-    driver.set_window_size(1920, get_current_height(driver))
-    sleep(2)
 
 
 def create_html(file_name, base_64_png, html_template):
@@ -194,13 +200,6 @@ def take_screenshot(driver, file_name, html_template):
     article_page_class = "ArticlePage"
     page_class = "Page"
     second_page_class = "PageContent"
-    main_class = "ed-grid"
-    sidebar_class = "ed-grid-sidebar"
-    nav_node = f"div[class*='{main_class}'] > nav"
-    sidebar_nav_node = f"nav[class*='{sidebar_class}']"
-
-    delete_node(driver, nav_node)
-    delete_node(driver, sidebar_nav_node)
 
     ele_to_screenshot = driver.find_element(
         By.CSS_SELECTOR, f"div[class*='{article_page_class}']").find_element(By.CSS_SELECTOR, f"div[class*='{page_class}']")
@@ -283,10 +282,57 @@ def download_parameters_for_chrome_headless(driver):
     driver.execute("send_command", params)
 
 
+def click_on_sidebar(driver, code):
+    file_div_class = "ml-2"
+    action = ActionChains(driver)
+
+    elements = code.find_element(
+        By.CSS_SELECTOR, f"div[class*='{file_div_class}']").find_elements(By.CSS_SELECTOR, "svg")
+    for element in elements:
+        try:
+            action.move_to_element(element).click().perform()
+        except Exception:
+            pass
+
+
+'''
+Testing
+def download_code_manually(driver, code):
+    file_div_class = "ml-2"
+    action = ActionChains(driver)
+
+    create_temp_textarea(driver)
+    elements = code.find_element(
+        By.CSS_SELECTOR, f"div[class*='{file_div_class}']").find_elements(By.CSS_SELECTOR, "svg")
+    for element in elements:
+        try:
+            element.location_once_scrolled_into_view
+            action.move_to_element(element).perform()
+            sleep(2)
+            file_name = driver.find_element(
+                By.CSS_SELECTOR, "div[class*='tooltip-inner']").get_attribute('innerHTML')
+            print(file_name)
+            if element.find_elements(By.CSS_SELECTOR, "path[d*='M6 12l4']"):
+                action.move_to_element(element[0]).click().perform()
+            elif element.find_elements(By.CSS_SELECTOR, "path[d*='M4 6l4']"):
+                continue
+            else:
+                action.move_to_element(element).click().perform()
+                sleep(1)
+                returned_code = copy_code(code, driver)
+                write_code(slugify(file_name), returned_code)
+            sleep(1)
+        except Exception as e:
+            print(e)
+            pass
+    delete_node(driver, "textarea[class*='temptextarea']")
+'''
+
+
 def code_container_download_type(driver):
     print("Code Container Download Type Function")
     code_container_class = "styles__Spa_Container"
-    svg_xpath = "//div[contains(@aria-label,'copy-code-button')]//*[local-name() = 'svg' and contains(@title,'Copy To Clipboard')=false]"
+    div_class = "styles__Buttons"
     action = ActionChains(driver)
 
     code_containers = driver.find_elements(
@@ -294,15 +340,29 @@ def code_container_download_type(driver):
     if code_containers:
         code_directory_path = os.getcwd()
         for folder_index, code in enumerate(code_containers):
-            create_folder("code_downloaded" + str(folder_index))
-            download_parameters_for_chrome_headless(driver)
-            clipboard_button = code.find_elements(By.XPATH, svg_xpath)
-            if clipboard_button:
-                action.move_to_element(clipboard_button[0]).click().perform()
-                sleep(2)
-                print("Downloaded Zip File")
-            else:
-                print("Zip File not Downloaded")
+            buttons = code.find_elements(
+                By.CSS_SELECTOR, f"div[class*='{div_class}']")
+            if not buttons:
+                click_on_sidebar(driver, code)
+                buttons = code.find_elements(
+                    By.CSS_SELECTOR, f"div[class*='{div_class}']")
+            if buttons:
+                download_button = buttons[0].find_elements(
+                    By.CSS_SELECTOR, "svg:not([title])")
+                if download_button:
+                    create_folder("code_downloaded" + str(folder_index))
+                    download_parameters_for_chrome_headless(driver)
+                    sleep(1)
+                    action.move_to_element(
+                        download_button[-1]).click().perform()
+                    sleep(2)
+                    if os.listdir(os.getcwd()) == []:
+                        # download_code_manually(driver, code)
+                        pass
+                    else:
+                        print("Downloaded Zip File")
+                else:
+                    print("Zip File not Downloaded")
             os.chdir(code_directory_path)
     else:
         print("No Code Container Downloadable Type found")
@@ -455,8 +515,10 @@ def click_option_quiz(driver, quiz_container):
     print("Click on Option Quiz")
     option_class = "styles__CheckBoxIcon"
     action = ActionChains(driver)
+
     option = quiz_container.find_element(
         By.CSS_SELECTOR, f"div[class*='{option_class}'] > svg")
+    option.location_once_scrolled_into_view
     action.move_to_element(option).click().perform()
     sleep(1)
 
@@ -464,7 +526,6 @@ def click_option_quiz(driver, quiz_container):
 def quiz_container_html(driver, quiz_container):
     container_screenshot = screenshot_as_cdp(
         driver, quiz_container)
-    # container_screenshot = quiz_container.screenshot_as_base64
     sleep(1)
     return f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
 
@@ -510,6 +571,8 @@ def click_on_submit_dialog_if_visible(driver):
             button = dialog_box[0].find_elements(
                 By.CSS_SELECTOR, f"button[id*='{button_id}']")
             action.move_to_element(button[0]).click().perform()
+        else:
+            print("No submit dialog found")
     except Exception:
         pass
 
@@ -545,34 +608,49 @@ def wait_webdriver(driver):
     non_project_page_class = "PageContent"
     next_button_class = "outlined-primary m-0"
     try:
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{article_page_class}']")))
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{article_page_class}']")))
+        except Exception:
+            pass
+        try:
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{non_project_page_class}']")))
+        except Exception:
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{project_page_class}']")))
+        try:
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{next_button_class}']")))
+        except Exception:
+            pass
+        try:
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.XPATH, "//h1[text()]")))
+        except Exception:
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.XPATH, "//h2[text()]")))
     except Exception:
         pass
-    try:
-        WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{non_project_page_class}']")))
-    except:
-        WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{project_page_class}']")))
-    try:
-        WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{next_button_class}']")))
-    except:
-        pass
-    try:
-        WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.XPATH, "//h1[text()]")))
-    except:
-        WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.XPATH, "//h2[text()]")))
+
+
+def scroll_page(driver):
+    print("Scrolling Page")
+    total_height = int(driver.execute_script(
+        "return document.body.scrollHeight"))
+    for i in range(1, total_height, 10):
+        driver.execute_script("window.scrollTo(0, {});".format(i))
+    sleep(2)
 
 
 def scrape_page(driver, file_index):
+    scroll_page(driver)
     wait_webdriver(driver)
     title = get_file_name(driver)
+    check_page(title)
     file_name = str(file_index) + "-" + title
     driver.set_window_size(1920, get_current_height(driver))
+    remove_nav_tags(driver)
     show_hints_answer(driver)
     show_code_box_answer(driver)
     open_slides(driver)
@@ -597,19 +675,18 @@ def check_login(driver):
         By.CSS_SELECTOR, f"div[class*='{login_pagination_class}'] > span > span")
     if login_text and "Login" in login_text[0].get_attribute('innerHTML'):
         is_logged_in += login_text
-
+    if "login" in driver.current_url:
+        is_logged_in += ["login"]
     if not is_logged_in:
         return True
     print("Please log in")
     return False
 
 
-def check_page(driver):
+def check_page(title):
     print("Checking page")
-    page_source = driver.page_source
-    if "Something went wrong" in str(page_source):
-        driver.refresh()
-        sleep(10)
+    if "something went wrong" == title:
+        raise Exception("Something went wrong")
 
 
 def load_webpage(driver, url):
@@ -617,14 +694,21 @@ def load_webpage(driver, url):
     _, save_path, _ = load_config()
     driver.get(url)
     sleep(10)
-    check_page(driver)
+    log_url = url
     if not check_login(driver):
+        create_log(file_index, log_url, save_path, "Not logged in")
         return False
     os.chdir(save_path)
 
     create_course_folder(driver, url)
     course_path = os.getcwd()
-    while check_login(driver) and scrape_page(driver, file_index):
+    while True:
+        if not check_login(driver):
+            create_log(file_index-1, log_url, save_path, "Not logged in")
+            return False
+        log_url = driver.current_url
+        if not scrape_page(driver, file_index):
+            break
         print("---------------", file_index, "Complete-------------------")
         file_index += 1
         sleep(10)
