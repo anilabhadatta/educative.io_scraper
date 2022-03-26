@@ -285,14 +285,16 @@ def download_parameters_for_chrome_headless(driver):
 def click_on_sidebar(driver, code):
     file_div_class = "ml-2"
     action = ActionChains(driver)
-
-    elements = code.find_element(
-        By.CSS_SELECTOR, f"div[class*='{file_div_class}']").find_elements(By.CSS_SELECTOR, "svg")
-    for element in elements:
-        try:
-            action.move_to_element(element).click().perform()
-        except Exception:
-            pass
+    try:
+        elements = code.find_element(
+            By.CSS_SELECTOR, f"div[class*='{file_div_class}']").find_elements(By.CSS_SELECTOR, "svg")
+        for element in elements:
+            try:
+                action.move_to_element(element).click().perform()
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 '''
