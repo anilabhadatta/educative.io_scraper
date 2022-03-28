@@ -746,22 +746,27 @@ def scrape_courses():
                 file_index, url = int(url_data[0]), url_data[1]
             else:
                 file_index, url = 0, url_data[0]
-            driver = load_chrome_driver(headless)
             try:
+                driver = load_chrome_driver(headless)
                 print(f'''
                             Starting Scraping: {file_index}, {url}
                 ''')
                 if not load_webpage(driver, url):
                     driver.quit()
                     break
+                else:
+                    driver.quit()
                 print("Next Course")
             except KeyboardInterrupt:
                 create_log(file_index, driver.current_url, save_path, "")
                 raise Exception("Exited Manually")
             except Exception as e:
-                create_log(file_index, driver.current_url, save_path, e)
+                try:
+                    create_log(file_index, driver.current_url, save_path, e)
+                    driver.quit()
+                except Exception:
+                    pass
                 print("Found Issue, Going Next Course", e)
-            driver.quit()
 
         print("Script Execution Complete")
     except Exception as e:
