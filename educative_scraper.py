@@ -606,8 +606,6 @@ def take_quiz_screenshot(driver):
 
 def wait_webdriver(driver):
     article_page_class = "ArticlePage"
-    project_page_class = "Page__PageEditor"
-    non_project_page_class = "PageContent"
     next_button_class = "outlined-primary m-0"
     try:
         try:
@@ -617,20 +615,14 @@ def wait_webdriver(driver):
             pass
         try:
             WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{non_project_page_class}']")))
-        except Exception:
-            WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{project_page_class}']")))
-        try:
-            WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, f"div[class*='{next_button_class}']")))
         except Exception:
             pass
         try:
-            WebDriverWait(driver, 5).until(
+            WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//h1[text()]")))
         except Exception:
-            WebDriverWait(driver, 5).until(
+            WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//h2[text()]")))
     except Exception:
         pass
