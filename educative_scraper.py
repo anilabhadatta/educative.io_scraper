@@ -547,6 +547,13 @@ def code_container_clipboard_type(driver):
         print("No code containers found")
 
 
+def check_widget_svg_clipboard_button(container):
+    clipboard_title = "Copy To Clipboard"
+    if container.find_elements(By.CSS_SELECTOR, f"svg[title='{clipboard_title}']"):
+        return True
+    return False
+
+
 def code_widget_type(driver):
     print("Inside Widget Container Function")
     container_class = "Widget__WidgetTabs"
@@ -560,25 +567,26 @@ def code_widget_type(driver):
         code_directory_path = os.getcwd()
         create_temp_textarea(driver)
         for folder_index, container in enumerate(containers):
-            create_folder("code_widget_type" + str(folder_index))
-            tabs = container.find_elements(By.CSS_SELECTOR, "ul > li")
-            for tab in tabs:
-                try:
-                    file_name = tab.get_attribute('innerHTML')
-                    action.move_to_element(tab).click().perform()
-                    sleep(1)
-                    line_div = container.find_element(
-                        By.CSS_SELECTOR, f"div[class*='{line_div_class}']").find_element(By.CSS_SELECTOR, f"div[class*='{view_line_div_class}']")
-                    action.move_to_element(line_div).click().perform()
-                    copy_from_container(driver)
-                    textbox = driver.find_element(
-                        By.CSS_SELECTOR, "textarea[class*='temptextarea']")
-                    action.move_to_element(textbox).click().perform()
-                    copy_from_container(driver, textbox)
-                    write_code(file_name, textbox.get_attribute('value'))
-                except Exception:
-                    pass
-            os.chdir(code_directory_path)
+            if not check_widget_svg_clipboard_button(container):
+                create_folder("code_widget_type" + str(folder_index))
+                tabs = container.find_elements(By.CSS_SELECTOR, "ul > li")
+                for tab in tabs:
+                    try:
+                        file_name = tab.get_attribute('innerHTML')
+                        action.move_to_element(tab).click().perform()
+                        sleep(1)
+                        line_div = container.find_element(
+                            By.CSS_SELECTOR, f"div[class*='{line_div_class}']").find_element(By.CSS_SELECTOR, f"div[class*='{view_line_div_class}']")
+                        action.move_to_element(line_div).click().perform()
+                        copy_from_container(driver)
+                        textbox = driver.find_element(
+                            By.CSS_SELECTOR, "textarea[class*='temptextarea']")
+                        action.move_to_element(textbox).click().perform()
+                        copy_from_container(driver, textbox)
+                        write_code(file_name, textbox.get_attribute('value'))
+                    except Exception:
+                        pass
+                os.chdir(code_directory_path)
         delete_node(driver, "textarea[class*='temptextarea']")
 
     else:
