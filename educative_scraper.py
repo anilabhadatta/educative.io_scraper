@@ -465,6 +465,8 @@ def iterate_nav_bar(code, code_nav_bar, code_nav_tab, driver):
             except Exception as e:
                 print(e)
                 print("Failed to write")
+            find_and_write_code_solutions(
+                driver, code, nav_bar_file_name + str(file_index))
 
 
 def iterate_nav_tab(code, code_nav_tab, driver, nav_bar_file_name=""):
@@ -483,21 +485,32 @@ def iterate_nav_tab(code, code_nav_tab, driver, nav_bar_file_name=""):
             print("Failed to write")
 
 
-def iterate_general_code(code, driver, file_index):
+def find_and_write_code_solutions(driver, code, file_index):
+    print("Solution copying Function")
     solution_code_class = "styles__Buttons_Wrapper"
+
+    code = code.find_element(By.XPATH, "../..").find_elements(
+        By.CSS_SELECTOR, f"div[class*='{solution_code_class}']")
+    if code:
+        try:
+            returned_code = copy_code(code[0], driver, False)
+            write_code(f"{file_index}_Solution", returned_code)
+        except Exception as e:
+            print(e)
+            print("Failed to write")
+    else:
+        print("No solution found")
+
+
+def iterate_general_code(code, driver, file_index):
+    print("Iterate General Code Function")
     try:
         returned_code = copy_code(code, driver, file_index)
         write_code(f"Code_{file_index}", returned_code)
     except Exception as e:
         print(e)
         print("Failed to write")
-    if code.find_elements(By.CSS_SELECTOR, f"div[class*='{solution_code_class}']"):
-        try:
-            returned_code = copy_code(code, driver, False)
-            write_code(f"Code_Solution_{file_index}", returned_code)
-        except Exception as e:
-            print(e)
-            print("Failed to write")
+    find_and_write_code_solutions(driver, code, file_index)
 
 
 def code_container_clipboard_type(driver):
