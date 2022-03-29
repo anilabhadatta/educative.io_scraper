@@ -217,10 +217,10 @@ def take_screenshot(driver, file_name, html_template):
 def show_hints_answer(driver):
     print("Show Hints Function")
     hints_div_class = "styles__Viewer"
+    hints_button_selector = f"div[class*='{hints_div_class}'] > button"
 
     hints_list = driver.find_elements(
         By.CSS_SELECTOR, f"div[class*='{hints_div_class}'] > button")
-    hints_button_selector = f"div[class*='{hints_div_class}'] > button"
     if hints_list:
         for idx in range(len(hints_list)):
             click_using_driver_js(driver, hints_button_selector, idx)
@@ -242,11 +242,13 @@ def show_code_box_answer(driver):
     show_solution_class = "popover-content"
     show_solution_button = f"div[class*='{show_solution_class}'] > button"
     action = ActionChains(driver)
+
     answer_list = driver.find_elements(By.CSS_SELECTOR,
                                        f"button[aria-label*='{solution_button_label}']") + driver.find_elements(By.CSS_SELECTOR,
                                                                                                                 f"button[aria-label*='{solution_button_label.capitalize()}']")
     if answer_list:
         for answer_button in answer_list:
+            answer_button.location_once_scrolled_into_view
             action.move_to_element(answer_button).click().perform()
             sleep(1)
             click_using_driver_js(driver, show_solution_button, 0)
@@ -716,6 +718,24 @@ def take_quiz_screenshot(driver):
     return html_template
 
 
+def mark_down_quiz(driver):
+    print("Inside Mark Down Quiz function")
+    quiz_container_class = "markdownViewerQuiz"
+    action = ActionChains(driver)
+
+    quiz_containers = driver.find_elements(
+        By.CSS_SELECTOR, f"div[class*='{quiz_container_class}']")
+    if quiz_containers:
+        for quiz_container in quiz_containers:
+            quiz_container = quiz_container.find_element(By.XPATH, "../..")
+            div_buttons = quiz_container.find_elements(
+                By.CSS_SELECTOR, "div[role*='button']")
+            for div_button in div_buttons:
+                action.move_to_element(div_button).click().perform()
+    else:
+        print("No mark down quiz_container found")
+
+
 def wait_webdriver(driver):
     article_page_class = "ArticlePage"
     next_button_class = "outlined-primary m-0"
@@ -758,6 +778,7 @@ def scrape_page(driver, file_index):
     driver.set_window_size(1920, get_current_height(driver))
     remove_nav_tags(driver)
     show_hints_answer(driver)
+    mark_down_quiz(driver)
     show_code_box_answer(driver)
     open_slides(driver)
     create_folder(file_name)
