@@ -297,38 +297,72 @@ def click_on_sidebar(driver, code):
         pass
 
 
-'''
-Testing
+def check_file_in_dir(original_file_name):
+    file_name_splitted = original_file_name.split(".")
+    if len(file_name_splitted) == 1 and original_file_name in os.listdir():
+        return original_file_name
+    elif len(file_name_splitted) > 1 and file_name_splitted[0] == "":
+        for file in os.listdir():
+            if file_name_splitted[1] in file:
+                return file
+    else:
+        return original_file_name
+
+
+def download_file(driver, element):
+    action = ActionChains(driver)
+    action.move_to_element(element).perform()
+    sleep(2)
+    original_file_name = element.find_element(
+        By.XPATH, "../..").find_element(By.CSS_SELECTOR, "span").get_attribute('innerHTML')
+    try:
+        hover_file_name = driver.find_element(
+            By.CSS_SELECTOR, "div[class*='tooltip-inner']").get_attribute('innerHTML')
+    except Exception:
+        hover_file_name = original_file_name
+
+    action.move_to_element(element).click().perform()
+    sleep(1)
+    parent_div = element.find_element(By.XPATH, "../../..")
+    svg_button = parent_div.find_elements(By.CSS_SELECTOR, "svg")
+    if len(svg_button) == 1:
+        action.move_to_element(element).click().perform()
+        sleep(1)
+        parent_div = element.find_element(By.XPATH, "../../..")
+        svg_button = parent_div.find_elements(By.CSS_SELECTOR, "svg")
+    if len(svg_button) == 2:
+        action.move_to_element(svg_button[-1]).click().perform()
+        sleep(1)
+        parent_div = element.find_element(By.XPATH, "../../..")
+        svg_button = parent_div.find_elements(By.CSS_SELECTOR, "svg")
+        if len(svg_button) == 3:
+            action.move_to_element(svg_button[-1]).click().perform()
+            sleep(2)
+            original_file_name = check_file_in_dir(original_file_name)
+            os.rename(original_file_name, slugify(
+                hover_file_name).replace("-", "."))
+    print(hover_file_name, original_file_name)
+
+
 def download_code_manually(driver, code):
     file_div_class = "ml-2"
     action = ActionChains(driver)
 
-    create_temp_textarea(driver)
     elements = code.find_element(
         By.CSS_SELECTOR, f"div[class*='{file_div_class}']").find_elements(By.CSS_SELECTOR, "svg")
     for element in elements:
         try:
             element.location_once_scrolled_into_view
-            action.move_to_element(element).perform()
-            sleep(2)
-            file_name = driver.find_element(
-                By.CSS_SELECTOR, "div[class*='tooltip-inner']").get_attribute('innerHTML')
-            print(file_name)
             if element.find_elements(By.CSS_SELECTOR, "path[d*='M6 12l4']"):
-                action.move_to_element(element[0]).click().perform()
+                action.move_to_element(element).click().perform()
             elif element.find_elements(By.CSS_SELECTOR, "path[d*='M4 6l4']"):
                 continue
             else:
-                action.move_to_element(element).click().perform()
-                sleep(1)
-                returned_code = copy_code(code, driver)
-                write_code(slugify(file_name), returned_code)
+                download_file(driver, element)
             sleep(1)
         except Exception as e:
             print(e)
             pass
-    delete_node(driver, "textarea[class*='temptextarea']")
-'''
 
 
 def code_container_download_type(driver):
@@ -358,9 +392,12 @@ def code_container_download_type(driver):
                     action.move_to_element(
                         download_button[-1]).click().perform()
                     sleep(2)
-                    if os.listdir(os.getcwd()) == []:
-                        # download_code_manually(driver, code)
-                        pass
+                    if os.listdir() == []:
+                        try:
+                            # download_code_manually(driver, code)
+                            pass
+                        except Exception:
+                            pass
                     else:
                         print("Downloaded Zip File")
                 else:
@@ -493,6 +530,68 @@ def code_container_clipboard_type(driver):
         delete_node(driver, "textarea[class*='temptextarea']")
     else:
         print("No code containers found")
+
+
+def code_widget_type(driver):
+    print("Inside Widget Container Function")
+    container_class = "Widget__WidgetTabs"
+    line_div_class = "lines-content"
+    view_line_div_class = "view-line"
+    action = ActionChains(driver)
+
+    containers = driver.find_elements(
+        By.CSS_SELECTOR, f"div[class*='{container_class}']")
+    if containers:
+        code_directory_path = os.getcwd()
+        create_temp_textarea(driver)
+        for folder_index, container in enumerate(containers):
+            create_folder("code_widget_type" + str(folder_index))
+            tabs = container.find_elements(By.CSS_SELECTOR, "ul > li")
+            for tab in tabs:
+                try:
+                    file_name = tab.get_attribute('innerHTML')
+                    action.move_to_element(tab).click().perform()
+                    sleep(1)
+                    line_div = container.find_element(
+                        By.CSS_SELECTOR, f"div[class*='{line_div_class}']").find_element(By.CSS_SELECTOR, f"div[class*='{view_line_div_class}']")
+                    action.move_to_element(line_div).click().perform()
+                    copy_from_container(driver)
+                    textbox = driver.find_element(
+                        By.CSS_SELECTOR, "textarea[class*='temptextarea']")
+                    action.move_to_element(textbox).click().perform()
+                    copy_from_container(driver, textbox)
+                    write_code(file_name, textbox.get_attribute('value'))
+                except Exception:
+                    pass
+            os.chdir(code_directory_path)
+        delete_node(driver, "textarea[class*='temptextarea']")
+
+    else:
+        print("No widget container found")
+
+
+def copy_from_container(driver, element=""):
+    action = ActionChains(driver)
+    sleep(1)
+    if current_os == "darwin":
+        if element:
+            element.send_keys(Keys.COMMAND, "a")
+            element.send_keys(Keys.COMMAND, "v")
+        else:
+            action.key_down(Keys.COMMAND).send_keys(
+                'a').key_up(Keys.COMMAND).perform()
+            action.key_down(Keys.COMMAND).send_keys(
+                'c').key_up(Keys.COMMAND).perform()
+    else:
+        if element:
+            element.send_keys(Keys.CONTROL, "a")
+            element.send_keys(Keys.CONTROL, "v")
+        else:
+            action.key_down(Keys.CONTROL).send_keys(
+                'a').key_up(Keys.CONTROL).perform()
+            action.key_down(Keys.CONTROL).send_keys(
+                'c').key_up(Keys.CONTROL).perform()
+    sleep(1)
 
 
 def extract_zip_files():
@@ -651,6 +750,7 @@ def scrape_page(driver, file_index):
     create_folder(file_name)
     html_template = take_quiz_screenshot(driver)
     take_screenshot(driver, file_name, html_template)
+    code_widget_type(driver)
     code_container_download_type(driver)
     code_container_clipboard_type(driver)
     demark_as_completed(driver)
