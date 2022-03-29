@@ -732,6 +732,7 @@ def mark_down_quiz(driver):
                 By.CSS_SELECTOR, "div[role*='button']")
             for div_button in div_buttons:
                 action.move_to_element(div_button).click().perform()
+                sleep(1)
     else:
         print("No mark down quiz_container found")
 
