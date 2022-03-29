@@ -240,15 +240,15 @@ def show_code_box_answer(driver):
     print("Show Codebox Answers Function")
     solution_button_label = "solution"
     show_solution_class = "popover-content"
-
+    show_solution_button = f"div[class*='{show_solution_class}'] > button"
+    action = ActionChains(driver)
     answer_list = driver.find_elements(By.CSS_SELECTOR,
-                                       f"button[aria-label*='{solution_button_label}']")
+                                       f"button[aria-label*='{solution_button_label}']") + driver.find_elements(By.CSS_SELECTOR,
+                                                                                                                f"button[aria-label*='{solution_button_label.capitalize()}']")
     if answer_list:
-        for idx in range(len(answer_list)):
-            solution_button = f"button[aria-label*='{solution_button_label}']"
-            click_using_driver_js(driver, solution_button, idx)
+        for answer_button in answer_list:
+            action.move_to_element(answer_button).click().perform()
             sleep(1)
-            show_solution_button = f"div[class*='{show_solution_class}'] > button"
             click_using_driver_js(driver, show_solution_button, 0)
             sleep(1)
         print("Show Codebox Answers Complete")
