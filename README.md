@@ -5,6 +5,7 @@
       2. Create a config (if not present) and provide the details as asked by pressing 1.
       3. Login your educative account by pressing 2.
       4. Start Scraping by pressing 3.
+      (Additional Note: Uncomment line 399 to download the courses having download_button container but download button not working)
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 ### Refer Step 4 if you are using Releases.
       Make sure you have xterm or uxterm or gnome-terminal installed in your Linux OS.
