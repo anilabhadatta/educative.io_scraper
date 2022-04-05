@@ -446,6 +446,7 @@ def write_code(file_name, content):
 def iterate_nav_bar(code, code_nav_bar, code_nav_tab, driver):
     print('Inside iterate_nav_bar function')
     nav_bar_tabs_class = "styles__TabTitle"
+    code_nav_tab_class = "Widget__NavigaitonTab"
 
     nav_bar_tabs = code_nav_bar.find_elements(
         By.CSS_SELECTOR, f"span[class*='{nav_bar_tabs_class}']")
@@ -458,6 +459,8 @@ def iterate_nav_bar(code, code_nav_bar, code_nav_tab, driver):
         nav_bar_file_name = driver.execute_script(f'''
             return document.querySelectorAll("span[class*='{nav_bar_tabs_class}']")[{idx}].textContent;
         ''')
+        code_nav_tab = code.find_elements(
+            By.CSS_SELECTOR, f"div[class*='{code_nav_tab_class}']")
         if code_nav_tab:
             iterate_nav_tab(code, code_nav_tab, driver, nav_bar_file_name)
         else:
