@@ -488,6 +488,9 @@ def iterate_nav_tab(code, code_nav_tab, driver, nav_bar_file_name=""):
         except Exception as e:
             print(e)
             print("Failed to write")
+    if nav_bar_file_name == "":
+        find_and_write_code_solutions(
+            driver, code, "")
 
 
 def find_and_write_code_solutions(driver, code, file_index):
