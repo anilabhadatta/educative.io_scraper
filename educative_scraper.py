@@ -19,9 +19,9 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def load_config():
     config_path = os.path.join(OS_ROOT, ".educative")
-    if ".educative" not in os.listdir(OS_ROOT) or "config.json" not in os.listdir(config_path):
+    if ".educative" not in os.listdir(OS_ROOT) or f"config_{selected_config}.json" not in os.listdir(config_path):
         raise Exception("No config found, Please create one")
-    with open(os.path.join(config_path, "config.json"), "r") as config_file:
+    with open(os.path.join(config_path, f"config_{selected_config}.json"), "r") as config_file:
         config = json.load(config_file)
     if "url_file_path" not in config or "save_path" not in config or "headless" not in config:
         raise Exception("Config is corrupted, Please recreate the config")
@@ -33,7 +33,8 @@ def load_config():
 
 def load_chrome_driver(headless):
     chrome_path = get_binary_path()
-    user_data_dir = os.path.join(OS_ROOT, ".educative", "User Data")
+    user_data_dir = os.path.join(
+        OS_ROOT, ".educative", f"User Data_{selected_config}")
     options = webdriver.ChromeOptions()
     if headless:
         options.add_argument('headless')
@@ -890,7 +891,7 @@ def scrape_courses():
             try:
                 driver = load_chrome_driver(headless)
                 print(f'''
-                            Starting Scraping: {file_index}, {url}
+                            [Selected config: {selected_config}] Starting Scraping: {file_index}, {url}
                 ''')
                 if not load_webpage(driver, url):
                     driver.quit()
@@ -923,22 +924,43 @@ def generate_config():
     ''')
     try:
         url_text_file, save_path, headless = load_config()
-    except Exception as e:
-        print("Enter the paths for your config")
+    except Exception:
+        print('''
+                    Config doesnt exist, Create a new one.
+                    Enter the paths for your config
+            ''')
     url_text_file = input("Enter the URL text file path: ") or url_text_file
     save_path = input("Enter Save Path: ") or save_path
     headless = bool(input("Headless T/F? ") == 'T')
 
-    base_config_path = os.path.join(OS_ROOT, ".educative")
-    if ".educative" not in os.listdir(OS_ROOT):
-        os.mkdir(base_config_path)
+    base_config_path = create_base_config_dir()
 
-    with open(os.path.join(base_config_path, "config.json"), "w+") as config_file:
+    with open(os.path.join(base_config_path, f"config_{selected_config}.json"), "w+") as config_file:
         json.dump({
             "url_file_path": url_text_file,
             "save_path": save_path,
             "headless": headless or headless
         }, config_file)
+
+
+def create_base_config_dir():
+    base_config_path = os.path.join(OS_ROOT, ".educative")
+    if ".educative" not in os.listdir(OS_ROOT):
+        os.mkdir(base_config_path)
+    return base_config_path
+
+
+def select_config():
+    global selected_config
+    base_config_path = create_base_config_dir()
+    print("\nIf you are creating a new config, please select 1 in main menu to generate the new config and also you must login your educative account.\n")
+
+    if len(os.listdir(base_config_path)) > 1:
+        for configs in os.listdir(base_config_path):
+            if ".json" in configs:
+                print(configs)
+        selected_config = input(
+            "\nSelect a config or enter a number to create a new config: ") or "0"
 
 
 def login_educative():
@@ -977,26 +999,30 @@ def clear():
 
 if __name__ == '__main__':
     current_os = sys.platform
+    selected_config = "0"
     clear()
     while True:
         file_index = 0
         try:
-            print('''
+            print(f'''
                         Educative Scraper, made by Anilabha Datta
                         Project Link: github.com/anilabhadatta/educative.io_scraper
                         Read the documentation for more information about this project.
 
                         Press 1 to generate config
-                        Press 2 to login Educative
-                        Press 3 to start scraping
+                        Press 2 to select a config [Currently selected config {selected_config}]
+                        Press 3 to login Educative
+                        Press 4 to start scraping
                         Press any key to exit
             ''')
             choice = input("Enter your choice: ")
             if choice == "1":
                 generate_config()
             elif choice == "2":
-                login_educative()
+                select_config()
             elif choice == "3":
+                login_educative()
+            elif choice == "4":
                 scrape_courses()
             else:
                 break
