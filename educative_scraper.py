@@ -99,11 +99,14 @@ def open_slides(driver):
             slide = slide.find_elements(
                 By.CSS_SELECTOR, f"div[class*='{menubar_class}']")
             if slide:
-                slide_button = slide[0].find_element(
-                    By.CSS_SELECTOR, f"svg[aria-label*='{svg_label}']")
-                action.move_to_element(slide_button).click().perform()
-                sleep(1)
-                print("Slides opened")
+                try:
+                    slide_button = slide[0].find_element(
+                        By.CSS_SELECTOR, f"svg[aria-label*='{svg_label}']")
+                    action.move_to_element(slide_button).click().perform()
+                    sleep(1)
+                    print("Slides opened")
+                except Exception:
+                    pass
         sleep(10)
     else:
         print("No Slides Found")
@@ -424,10 +427,7 @@ def copy_code(container, driver, use_svg=True):
     print("Clicked on Clipboard")
     action.move_to_element(svg_button).click().perform()
     sleep(1)
-    textbox = driver.find_element(
-        By.CSS_SELECTOR, "textarea[class*='temptextarea']")
-    action.move_to_element(textbox).click().perform()
-    sleep(1)
+    textbox = click_on_textbox(driver)
     if current_os == "darwin":
         textbox.send_keys(Keys.COMMAND, "a")
         textbox.send_keys(Keys.COMMAND, "v")
@@ -586,9 +586,7 @@ def code_widget_type(driver):
                             By.CSS_SELECTOR, f"div[class*='{line_div_class}']").find_element(By.CSS_SELECTOR, f"div[class*='{view_line_div_class}']")
                         action.move_to_element(line_div).click().perform()
                         copy_from_container(driver)
-                        textbox = driver.find_element(
-                            By.CSS_SELECTOR, "textarea[class*='temptextarea']")
-                        action.move_to_element(textbox).click().perform()
+                        textbox = click_on_textbox(driver)
                         copy_from_container(driver, textbox)
                         write_code(file_name, textbox.get_attribute('value'))
                     except Exception:
@@ -598,6 +596,15 @@ def code_widget_type(driver):
 
     else:
         print("No widget container found")
+
+
+def click_on_textbox(driver):
+    action = ActionChains(driver)
+    textbox = driver.find_element(
+        By.CSS_SELECTOR, "textarea[class*='temptextarea']")
+    action.move_to_element(textbox).click().perform()
+    sleep(1)
+    return textbox
 
 
 def copy_from_container(driver, element=""):
@@ -647,11 +654,14 @@ def click_option_quiz(driver, quiz_container):
     option_class = "styles__CheckBoxIcon"
     action = ActionChains(driver)
 
-    option = quiz_container.find_element(
-        By.CSS_SELECTOR, f"div[class*='{option_class}'] > svg")
-    option.location_once_scrolled_into_view
-    action.move_to_element(option).click().perform()
-    sleep(1)
+    try:
+        option = quiz_container.find_element(
+            By.CSS_SELECTOR, f"div[class*='{option_class}'] > svg")
+        option.location_once_scrolled_into_view
+        action.move_to_element(option).click().perform()
+        sleep(1)
+    except Exception:
+        pass
 
 
 def quiz_container_html(driver, quiz_container):
@@ -711,10 +721,13 @@ def click_on_submit_dialog_if_visible(driver):
 def click_submit_quiz(driver, quiz_container):
     action = ActionChains(driver)
     button_class = "contained-primary"
-    button = quiz_container.find_element(
-        By.CSS_SELECTOR, f"button[class*='{button_class}']")
-    action.move_to_element(button).click().perform()
-    sleep(1)
+    try:
+        button = quiz_container.find_element(
+            By.CSS_SELECTOR, f"button[class*='{button_class}']")
+        action.move_to_element(button).click().perform()
+        sleep(1)
+    except Exception:
+        pass
 
 
 def take_quiz_screenshot(driver):
