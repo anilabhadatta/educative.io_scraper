@@ -689,6 +689,8 @@ def click_right_button_quiz(driver, quiz_container):
         click_option_quiz(driver, quiz_container)
         click_submit_quiz(driver, quiz_container)
         html_template += quiz_container_html(driver, quiz_container)
+        if check_last_right_button(right_button):
+            break
         action.move_to_element(right_button[0]).click().perform()
         print("Clicking on Right button")
         sleep(1)
@@ -697,6 +699,12 @@ def click_right_button_quiz(driver, quiz_container):
             By.CSS_SELECTOR, f"button[class*='{right_button_class}']")
 
     return html_template
+
+
+def check_last_right_button(right_button):
+    if right_button[0].find_elements(By.CSS_SELECTOR, "path"):
+        return True
+    return False
 
 
 def click_on_submit_dialog_if_visible(driver):
