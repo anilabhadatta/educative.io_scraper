@@ -1,13 +1,14 @@
 # Educative.io Scraper / Educative.io Downloader
 ## A Python script that downloads Educative.io courses for offline use using selenium.
-      How to use the Scraper?
+
+## How to use the Scraper?
       1. Create a text file and copy the links of the first topic of courses and paste it in text file.
       2. Select a config if you don't wish to use the default config 0 by pressing 2. (Make sure to generate the config if the selected config is new)
       3. Generate a config (if not present) and provide the details as asked by pressing 1.
       4. Login your educative account by pressing 3.
       5. Start Scraping by pressing 4.
       
-      (Additional Note 1: Uncomment line 400 to download the courses having download_button container but download button not working)[Feature not added in releases]
+      (Additional Note 1: Uncomment line 403 to download the courses having download_button container but download button not working)[Feature not added in releases]
       (Additional Note 2: If you are using Multiprocessing release, use only 1 instance per machine since chromedriver may exit if the scraper stops and may hamper the secondary scraper)
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 ### Refer Step 4 if you are using Releases.
