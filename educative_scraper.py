@@ -834,13 +834,15 @@ def scrape_page(driver, file_index):
 
 def check_login(driver):
     login_pagination_class = "styles__Pagination"
+    page_source = driver.page_source
+
     is_logged_in = driver.find_elements(
         By.CSS_SELECTOR, "a[href*='/unlimited']")
     login_text = driver.find_elements(
         By.CSS_SELECTOR, f"div[class*='{login_pagination_class}'] > span > span")
     if login_text and "Login" in login_text[0].get_attribute('innerHTML'):
         is_logged_in += login_text
-    if "login" in driver.current_url:
+    if "https://www.educative.io/login" in driver.current_url or "A Free Signup is required to view this lesson." in page_source or ("I'm not a robot" in page_source and "reCAPTCHA" in page_source) or "Please complete the security check to access" in page_source:
         is_logged_in += ["login"]
     if not is_logged_in:
         return True
