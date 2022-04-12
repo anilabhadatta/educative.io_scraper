@@ -3,8 +3,10 @@
 
 ## How to use the Scraper?
       1. Create a text file and copy the links of the first topic of courses and paste it in text file.
-      2. Select a config if you don't wish to use the default config 0 by pressing 2. (Make sure to generate the config if the selected config is new)
-      3. Generate a config (if not present) and provide the details as asked by pressing 1.
+      ![image](https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png)
+      eg: url -> https://www.educative.io/courses/grokking-computer-networking/JQBKG47LlGg
+      2. Select a config if you don't wish to use the default config 0 by pressing 2. (Make sure to generate the config if the selected config is created for the first time)
+      3. Generate the config (if not present) and provide the url text file path, save location and headless mode by pressing 1.
       4. Login your educative account by pressing 3.
       5. Start Scraping by pressing 4.
       
