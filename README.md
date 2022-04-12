@@ -12,8 +12,11 @@
       4. Login your educative account by pressing 3.
       5. Start Scraping by pressing 4.
       
-      (Additional Note 1: Uncomment line 403 to download the courses having download_button container but download button not working)[This Feature is not added in releases]
-      (Additional Note 2: If you are using Multiprocessing release, use only 1 instance per machine since chromedriver may exit if the scraper stops and may hamper the secondary scraper)
+      Note 1: Uncomment line 403 to download the courses having download_button container but download button not working.[This Feature is not added in releases]
+      Note 2: If you are using Multiprocessing release, use only 1 instance per machine since chromedriver may exit if the scraper stops and may hamper the secondary scraper.
+      Note 3: If the scraper fails to scrap a url for any specific reason, a log.txt file will be automatically created in the save directory, copy the <index url> line and replace it in urls text file (make sure to delete the urls that are already scraped while replacing) to resume scraping the course by restarting the scraper.
+      If for any reason your system shuts down for power failure then you have to manually search where the scraper stopped working and provide the <index url> in urls text file since the scraper cannot create log.txt for sudden power cut/ crash.
+      To exit the scraper in between scraping, press Ctrl+C/ CMD+C (This will save the <index url> of the url being scraped at the moment) to return to main menu and press enter to exit
       
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 ### Refer Step 4 if you are using Releases.
