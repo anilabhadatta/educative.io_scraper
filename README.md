@@ -48,7 +48,7 @@
       python3 educative_scraper.py
       
 
-### Step 5: Refer, "How to use the Scraper? == " above.
+ == ### Step 5: Refer, "How to use the Scraper?" above.
 
 
 ## To Build the chromdriver and educative-scraper using pyinstaller:
