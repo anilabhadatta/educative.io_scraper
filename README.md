@@ -41,7 +41,9 @@
       
       pip3 install -r requirements.txt
       
-### Step 4: Open up two terminals and run the following commands.
+### Step 4: Download and paste the respective Chrome-bin for your OS from the releases section. 
+
+### Step 5: Open up two terminals and run the following commands.
       python3 chromedriver.py
       python3 educative_scraper.py
       
