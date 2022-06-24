@@ -21,7 +21,7 @@
       
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
       
-## To Run/Build this project manually:
+## To Run this project manually:
 
 ### Step 1: Install the virtualenv package for python3 and create a virtual environment named "env".
 
@@ -49,7 +49,7 @@
 ### Step 5: Refer, "How to use the Scraper?" above.
 
 
-## To build the educative-viewer using pyinstaller:
+## To Build the chromdriver and educative-scraper using pyinstaller:
       
 #### Install the pyinstaller package and run the following commands.
       
@@ -69,3 +69,4 @@
 
 
 Pyinstaller command for Linux OS may or may not work due to a pyinstaller bug, currently checking for a fix.
+A whitepaper will be released containing the explanation of each functions and the cases handled.
