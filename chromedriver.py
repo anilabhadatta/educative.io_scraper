@@ -1,4 +1,3 @@
-import subprocess
 import sys
 import os
 
@@ -25,6 +24,7 @@ def load_chromedriver():
         os.system(chromedriver_path)
     except KeyboardInterrupt:
         sys.exit()
+
 
 if __name__ == '__main__':
     load_chromedriver()
