@@ -2,7 +2,7 @@
 ## A Python script that downloads Educative.io courses for offline use using selenium.
 
 ## How to use the Scraper?
-      1. Create a text file and copy the links of the first topic of courses and paste it in text file.
+      1. Create a urls text file and copy the links of the first topic of courses and paste it in text file as shown below.
       
 ![image](https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png)
       
@@ -10,15 +10,14 @@
       2. Run both the executables chromedriver and educative_scraper by downloading them from latest release.
       3. Select a config if you don't wish to use the default config "0" by pressing 2. 
       (Make sure to generate the config if it is selected for the first time)
-      4. Generate the config (if not present) and provide the url text file path, save location and headless mode by pressing 1.
+      4. Generate the config (if not present) and provide the urls text file path, save location and headless mode by pressing 1.
       5. Login your educative account by pressing 3.
       6. Start Scraping by pressing 4.
+      7. To return to Main Menu/ Exit Scraper press Ctrl+C / CMD+C.
       
-######   Note 1: Uncomment line 403 to download the courses having download_button container but download button not working.[This Feature is not added in releases]
-######   Note 2: If you are using Multiprocessing release, use only 1 instance per machine since chromedriver may exit if the scraper stops and may hamper the secondary scraper.
-######   Note 3: If the scraper fails to scrap a url for any specific reason, a log.txt file will be automatically created in the save directory, copy the <index url> line and replace it in urls text file (make sure to delete the urls that are already scraped while replacing) to resume scraping the course by restarting the scraper.
-######   Note 4: If for any reason your system shuts down for power failure then you have to manually search where the scraper stopped working and provide the <index url> in urls text file since the scraper cannot create log.txt for sudden power cut/ crash.
-######   Note 5: To exit the scraper in between scraping, press Ctrl+C/ CMD+C (This will save the <index url> of the url being scraped at the moment) to return to main menu and press enter to exit
+#####   Note 1: Uncomment line 403 to download the courses having download_button container but download button not working.[This Feature is not added in releases]
+#####   Note 2: If the scraper fails or the User Exits in between for any specific reason, a log.txt file will be created in the save directory, containing the last known url while scraping along with the index, copy the <index url> line and replace it in the original urls text file (make sure to delete the urls that are already scraped while replacing) to resume scraping the course where it was stopped previously by restarting the scraper.
+#####   Note 3: If for any reason your system shuts down for power failure or the scraper crashes then you have to manually search the url and index and provide the <index url> in urls text file since the scraper cannot create log.txt for sudden power cut/ crash.      
       
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
       
@@ -26,10 +25,8 @@
 
 ### Step 1: Install the virtualenv package for python3 and create a virtual environment named "env".
 
-      
       pip3 install virtualenv 
       virtualenv env 
-      
 
 ### Step 2: Activate the environment.
 #### > (For Windows) 
@@ -44,15 +41,15 @@
       
       pip3 install -r requirements.txt
       
-### Step 4: Open two terminals and run the following commands.
+### Step 4: Open up two terminals and run the following commands.
       python3 chromedriver.py
       python3 educative_scraper.py
       
 
-### Step 5: Create a config by entering 1 and provide the urls.txt file path and course-save folder path.
-      (For more info refer, "How to use the Scraper?" above)
+### Step 5: Refer, "How to use the Scraper?" above.
 
-### Step 6 (Optional): To build the educative-viewer using pyinstaller:
+
+## To build the educative-viewer using pyinstaller:
       
 #### Install the pyinstaller package and run the following commands.
       
