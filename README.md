@@ -16,12 +16,12 @@
       7. To return to Main Menu/ Exit Scraper press Ctrl+C / CMD+C.
       
 #####   Note 1: Uncomment line 403 to download the courses having download_button container but download button not working.[This Feature is not added in releases]
-#####   Note 2: If the scraper fails or the User Exits in between for any specific reason, a log.txt file will be created in the save directory, containing the last known url while scraping along with the index, copy the <<index url>> line and replace it in the original urls text file (make sure to delete the urls that are already scraped while replacing) to resume scraping the course where it was stopped previously by restarting the scraper.
-#####   Note 3: If for any reason your system shuts down for power failure or the scraper crashes then you have to manually search the url and index and provide the <<index url>> in urls text file since the scraper cannot create log.txt for sudden power cut/ crash.      
+#####   Note 2: If the scraper fails or the User Exits in between for any specific reason, a log.txt file will be created in the save directory, containing the last known url while scraping along with the index, copy the {index url} line and replace it in the original urls text file (make sure to delete the urls that are already scraped while replacing) to resume scraping the course where it was stopped previously by restarting the scraper.
+#####   Note 3: If for any reason your system shuts down for power failure or the scraper crashes then you have to manually search the url and index and provide the {index url} in urls text file since the scraper cannot create log.txt for sudden power cut/ crash.      
       
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
       
-## To Run this project manually:
+## To Run the project manually:
 
 ### Step 1: Install the virtualenv package for python3 and create a virtual environment named "env".
 
@@ -41,14 +41,14 @@
       
       pip3 install -r requirements.txt
       
-### Step 4: Download and paste the respective Chrome-bin for your OS from the releases section. 
+### Step 4: Download and paste the respective Chrome-bin for your OS from the latest releases section. 
 
 ### Step 5: Open up two terminals and run the following commands.
       python3 chromedriver.py
       python3 educative_scraper.py
       
 
-### Step 5: Refer, "How to use the Scraper?" above.
+### Step 5: Refer, "How to use the Scraper? == " above.
 
 
 ## To Build the chromdriver and educative-scraper using pyinstaller:
