@@ -69,5 +69,5 @@
       pyinstaller --clean --add-data "Chrome-driver:Chrome-driver" --onefile -i"icon.ico" chromedriver.py
 
 
-Pyinstaller command for Linux OS may or may not work due to a pyinstaller bug, currently checking for a fix.__
+Pyinstaller command for Linux OS may or may not work due to a pyinstaller bug, currently checking for a fix.\
 A Whitepaper will be released containing the explanation of each functions and the cases handled by the scraper.
