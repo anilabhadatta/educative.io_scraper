@@ -52,22 +52,22 @@
 
 ## To Build the chromdriver and educative-scraper using pyinstaller:
       
+#### Activate the Virtual Environment and Install the required modules for the project (Refer Step 1, 2, 3 above).
+
 #### Install the pyinstaller package and run the following commands.
       
       pip3 install pyinstaller
       
 #### > (For Windows) 
       
-      > For educative_scraper and chromedriver.py (Manual Chromedriver Loader)
       pyinstaller --clean --add-data Chrome-bin;Chrome-bin --onefile -i"icon.ico" educative_scraper.py
       pyinstaller --clean --add-data "Chrome-driver;Chrome-driver" --onefile -i"icon.ico" chromedriver.py
       
 #### > (For MacOS/Linux) 
       
-      > For educative_scraper and chromedriver.py (Manual Chromedriver Loader)
       pyinstaller --clean --add-data Chrome-bin:Chrome-bin --onefile -i"icon.ico" educative_scraper.py
       pyinstaller --clean --add-data "Chrome-driver:Chrome-driver" --onefile -i"icon.ico" chromedriver.py
 
 
-Pyinstaller command for Linux OS may or may not work due to a pyinstaller bug, currently checking for a fix.
-A whitepaper will be released containing the explanation of each functions and the cases handled.
+Pyinstaller command for Linux OS may or may not work due to a pyinstaller bug, currently checking for a fix.__
+A Whitepaper will be released containing the explanation of each functions and the cases handled by the scraper.
