@@ -135,14 +135,21 @@ def remove_nav_tags(driver):
     print("Removing Nav tags from page")
     main_class = "ed-grid"
     sidebar_class = "ed-grid-sidebar"
-    discuss_id = "discourseLink"
+    #discuss_id = "discourseLink"
     nav_node = f"div[class*='{main_class}'] > nav"
     sidebar_nav_node = f"nav[class*='{sidebar_class}']"
-    ask_a_question = f"a[id*='{discuss_id}']"
+    #ask_a_question = f"a[id*='{discuss_id}']"
 
+    # To remove 2 more elements that were observed after exporting the page.
+    ask_class = "tailwind-hidden"
+    ask_a_question = f"div[class*='{ask_class}']"
+    report_an_issue_class = "styles_Footer-sc-1vaynq6-1"
+    report_an_issue = f"div[class*='{report_an_issue_class}']"
+    
     delete_node(driver, nav_node)
     delete_node(driver, sidebar_nav_node)
     delete_node(driver, ask_a_question)
+    delete_node(driver, report_an_issue)
     sleep(2)
 
 
