@@ -171,7 +171,7 @@ def create_html(file_name, base_64_png, html_template):
                 <head>
                     <title>{file_name}</title>
                 </head>
-                <body style="zoom: 100%">
+                <body style="zoom: 80%">
                     <div style="text-align: center">
                         <img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{base_64_png}" alt="">
                         {html_template}
