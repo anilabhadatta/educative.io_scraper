@@ -118,7 +118,7 @@ def get_file_name(driver):
 
 def get_all_topic_links(driver):
     topics_class = "CollectionSidebarLessonTitle"
-    topics = driver.find_elements(By.CLASS_NAME, topics_class)
+    topics = driver.find_elements(By.CSS_SELECTOR, f"a[class*='{topics_class}']")
     topic_links = [topic.get_attribute('href') for topic in topics]
     return topic_links
 
