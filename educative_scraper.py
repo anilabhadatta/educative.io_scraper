@@ -69,18 +69,12 @@ def create_course_folder(driver, url):
     print("Inside Course Folder")
 
 
-def next_page(driver):
+def next_page(driver, file_index, all_topics):
     print("Next Page Function")
-    next_page_class = "outlined-primary m-0"
-
-    if not driver.find_elements(By.CSS_SELECTOR, f"button[class*='{next_page_class}']"):
+    next_page_index = file_index + 1
+    if not next_page_index < len(all_topics):
         return False
-    base_js_cmd = f'''document.getElementsByClassName("{next_page_class}")[0]'''
-    check_next_module = driver.execute_script(
-        '''return ''' + base_js_cmd + '''.innerHTML.slice(0,11);''')
-    if check_next_module == "Next Module":
-        return False
-    driver.execute_script(base_js_cmd + '''.click()''')
+    driver.get(all_topics[next_page_index])
     print("Next Page")
     return True
 
@@ -122,6 +116,13 @@ def get_file_name(driver):
     return slugify(file_name[0].get_attribute('innerHTML')).replace("-", " ")
 
 
+def get_all_topic_links(driver):
+    topics_class = "CollectionSidebarLessonTitle"
+    topics = driver.find_elements(By.CLASS_NAME, topics_class)
+    topic_links = [topic.get_attribute('href') for topic in topics]
+    return topic_links
+
+
 def delete_node(driver, node):
     driver.execute_script(f"""
                             var element = document.querySelector("{node}");
@@ -143,13 +144,18 @@ def remove_nav_tags(driver):
     # To remove 2 more elements that were observed after exporting the page.
     ask_class = "tailwind-hidden"
     ask_a_question = f"div[class*='{ask_class}']"
-    report_an_issue_class = "styles_Footer-sc-1vaynq6-1"
+    report_an_issue_class = "styles__Footer-sc-1vaynq6-1"
     report_an_issue = f"div[class*='{report_an_issue_class}']"
+    back_next_selector = "#handleArticleScroll > div > div > div > div > div.mt-4"
+
+    delete_node(driver, report_an_issue_div)
+
+    #Removing back & next div, as implemented get_all_topic_links fn to get all topic links.
+    delete_node(driver, back_next_selector)
     
     delete_node(driver, nav_node)
     delete_node(driver, sidebar_nav_node)
     delete_node(driver, ask_a_question)
-    delete_node(driver, report_an_issue)
     sleep(2)
 
 
@@ -165,7 +171,7 @@ def create_html(file_name, base_64_png, html_template):
                 <head>
                     <title>{file_name}</title>
                 </head>
-                <body style="zoom: 80%">
+                <body style="zoom: 100%">
                     <div style="text-align: center">
                         <img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{base_64_png}" alt="">
                         {html_template}
@@ -813,7 +819,7 @@ def scroll_page(driver):
     sleep(2)
 
 
-def scrape_page(driver, file_index):
+def scrape_page(driver, file_index, all_topics):
     scroll_page(driver)
     wait_webdriver(driver)
     title = get_file_name(driver)
@@ -833,7 +839,7 @@ def scrape_page(driver, file_index):
     code_container_clipboard_type(driver)
     demark_as_completed(driver)
 
-    if not next_page(driver):
+    if not next_page(driver, file_index, all_topics):
         sleep(5)
         return False
     return True
@@ -873,7 +879,8 @@ def load_webpage(driver, url):
         create_log(file_index, log_url, save_path, "Captcha detected")
         return False
     os.chdir(save_path)
-
+    
+    all_topics = get_all_topic_links(driver)
     create_course_folder(driver, url)
     course_path = os.getcwd()
     while True:
@@ -884,7 +891,7 @@ def load_webpage(driver, url):
             create_log(file_index, log_url, save_path, "Captcha detected")
             return False
         log_url = driver.current_url
-        if not scrape_page(driver, file_index):
+        if not scrape_page(driver, file_index, all_topics):
             break
         print("---------------", file_index, "Complete-------------------")
         file_index += 1
