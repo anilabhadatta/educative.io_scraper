@@ -2,7 +2,7 @@
 ## A Python script that downloads Educative.io courses for offline use using selenium.
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
-Latest Update 06/07/2022 : Various bugs found as educative.io made some changes in their website DOM. Please wait for few days.
+Latest Update 06/07/2022 : Various bugs found as educative.io made some changes in their website DOM. Please wait for few days as i am testing currently.
 
 ## How to use the Scraper?
       1. Create a urls text file and copy the links of the first topic of courses and paste it in text file as shown below.
