@@ -72,17 +72,17 @@ def create_course_folder(driver, url):
 
 def next_page(driver):
     print("Next Page Function")
-    next_page_class = "outlined-primary m-0"
+    next_page_selector = "button[class*='outlined-primary m-0']"
 
-    if not driver.find_elements(By.CSS_SELECTOR, f"button[class*='{next_page_class}']"):
+    if not driver.find_elements(By.CSS_SELECTOR, next_page_selector):
         return False
-    base_js_cmd = f'''document.getElementsByClassName("{next_page_class}")[0]'''
+    base_js_cmd = f'''document.querySelectorAll("{next_page_selector}")[0]'''
     check_next_module = driver.execute_script(
-        '''return ''' + base_js_cmd + '''.innerHTML.slice(0,11);''')
-    if check_next_module == "Next Module":
+        "return " + base_js_cmd + ".innerHTML.slice(0,11);")
+    if "Next Module" in check_next_module:
         return False
-    driver.execute_script(base_js_cmd + '''.click()''')
-    print("Next Page")
+    driver.execute_script(base_js_cmd + ".click()")
+    print("Going Next Page")
     return True
 
 
@@ -233,7 +233,7 @@ def show_hints_answer(driver):
 
 def click_using_driver_js(driver, selector):
     driver.execute_script(f'''
-            return document.querySelector("{selector}").click();
+            document.querySelector("{selector}").click();
         ''')
 
 
@@ -316,12 +316,13 @@ def check_file_in_dir(original_file_name):
 def download_file(driver, element):
     print("Download File Function")
     action = ActionChains(driver)
+    file_name_selector = "div[class*='tooltip-inner']"
 
     original_file_name = element.find_element(
         By.XPATH, "../..").find_element(By.CSS_SELECTOR, "span").get_attribute('innerHTML')
     try:
         hover_file_name = driver.find_element(
-            By.CSS_SELECTOR, "div[class*='tooltip-inner']").get_attribute('innerHTML')
+            By.CSS_SELECTOR, file_name_selector).get_attribute('innerHTML')
     except Exception:
         hover_file_name = original_file_name
 
@@ -345,7 +346,7 @@ def download_file(driver, element):
             original_file_name = check_file_in_dir(original_file_name)
             os.rename(original_file_name, slugify(
                 hover_file_name).replace("-", "."))
-    print(hover_file_name, original_file_name)
+    # print(hover_file_name, original_file_name)
 
 
 def download_code_manually(driver, code):
@@ -418,6 +419,7 @@ def code_container_download_type(driver):
 
 
 def copy_code(container, driver, use_svg=True):
+    print("Copy Code Function")
     clipboard_title_svg = "svg[title='Copy To Clipboard']"
     clipboard_title_button = "button[title='Copy To Clipboard']"
     action = ActionChains(driver)
@@ -445,6 +447,7 @@ def copy_code(container, driver, use_svg=True):
 
 
 def write_code(file_name, content):
+    print("Write Code Function")
     with open(file_name + ".txt", 'w', encoding='utf-8') as f:
         f.write(content)
 
@@ -481,14 +484,18 @@ def iterate_top_nav_bar(code, top_nav_bar_buttons, side_nav_bar_butttons, driver
 
 def iterate_side_nav_bar(code, side_nav_bar_butttons, driver, nav_bar_file_name=""):
     print("Inside iterate_side_nav_bar function")
+    side_nav_bar_butttons_selector = "div[class*='Widget__FilesList'] > div > div"
     action = ActionChains(driver)
 
-    for side_button in side_nav_bar_butttons:
+    for idx in range(len(side_nav_bar_butttons)):
+        side_button = code.find_elements(
+            By.CSS_SELECTOR, side_nav_bar_butttons_selector)[idx]
+        side_button_text = side_button.text
         action.move_to_element(side_button).click().perform()
         sleep(1)
         try:
             returned_code = copy_code(code, driver)
-            file_name = nav_bar_file_name + side_button.text
+            file_name = nav_bar_file_name + side_button_text
             write_code(file_name, returned_code)
         except Exception as e:
             print(e)
@@ -562,8 +569,10 @@ def code_container_clipboard_type(driver):
                 iterate_top_nav_bar(
                     code, top_nav_bar_buttons, side_nav_bar_butttons, driver, folder_index)
             elif not top_nav_bar_buttons and side_nav_bar_butttons:
+                print("Side Nav Bar Found in code container")
                 iterate_side_nav_bar(code, side_nav_bar_butttons, driver)
             elif not top_nav_bar_buttons and not side_nav_bar_butttons:
+                print("General Code Container Found")
                 iterate_general_code(code, driver, str(folder_index))
 
             os.chdir(code_directory_path)
@@ -594,12 +603,14 @@ def code_widget_type(driver):
         code_directory_path = os.getcwd()
         create_temp_textarea(driver)
         for folder_index, container in enumerate(widget_type_containers):
-            # This condition is actually not needed. need some test case where clipboard button is present inside a widget
+            # This condition is actually not needed. Test cases required where clipboard button is present inside a widget
             if not check_widget_svg_clipboard_button(container) or True:
                 create_folder("code_widget_type" + str(folder_index))
                 widget_tabs = container.find_elements(
                     By.CSS_SELECTOR, "ul > li")
-                for tab in widget_tabs:
+                for idx in range(len(widget_tabs)):
+                    tab = container.find_elements(
+                        By.CSS_SELECTOR, "ul > li")[idx]
                     try:
                         file_name = tab.get_attribute('innerHTML')
                         action.move_to_element(tab).click().perform()
@@ -615,12 +626,12 @@ def code_widget_type(driver):
                         pass
                 os.chdir(code_directory_path)
         delete_node(driver, textbox_selector)
-
     else:
         print("No widget container found")
 
 
 def click_on_textbox(driver):
+    print("Click On Textbox Function")
     action = ActionChains(driver)
     textbox_selector = "textarea[class*='temptextarea']"
 
@@ -632,8 +643,10 @@ def click_on_textbox(driver):
 
 
 def copy_from_container(driver, element=""):
+    print("Copy Code From Container Function")
     action = ActionChains(driver)
     sleep(1)
+
     if current_os == "darwin":
         if element:
             element.send_keys(Keys.COMMAND, "a")
@@ -657,6 +670,7 @@ def copy_from_container(driver, element=""):
 
 def extract_zip_files():
     print("Zip File Extraction")
+
     for path in glob.iglob("./**/*educative-code-widget.zip", recursive=True):
         zf = os.path.basename(path)
         zipfile.ZipFile(path, 'r').extractall(path[:-len(zf)])
@@ -664,7 +678,9 @@ def extract_zip_files():
 
 
 def demark_as_completed(driver):
+    print("Remove Mark completed")
     div_selector = "div[class*='styles__Checkbox']"
+
     try:
         driver.execute_script(f'''
             document.querySelector({div_selector}).click();
@@ -689,14 +705,15 @@ def click_option_quiz(driver, quiz_container):
 
 
 def quiz_container_html(driver, quiz_container):
-    container_screenshot = screenshot_as_cdp(
-        driver, quiz_container)
+    print("Take Quiz Screenshot Function")
+
+    container_screenshot = screenshot_as_cdp(driver, quiz_container)
     sleep(1)
     return f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
 
 
 def click_right_button_quiz(driver, quiz_container):
-    print("Clicking on Right button")
+    print("Clicking on Right button in Quiz")
     action = ActionChains(driver)
     right_button_selector = "button[class*='SlideRightButton']"
 
@@ -726,13 +743,14 @@ def click_right_button_quiz(driver, quiz_container):
 
 
 def check_last_right_button(right_button):
+    print("Check Last Right Button in Quiz")
     if right_button[0].find_elements(By.CSS_SELECTOR, "path"):
         return True
     return False
 
 
 def click_on_submit_dialog_if_visible(driver):
-    print("Clicking on Submit dialog")
+    print("Clicking on Submit dialog in Quiz")
     div_selector = "div[class*='ConfirmationModal']"
     button_selector = "button[id*='confirm-button']"
     action = ActionChains(driver)
@@ -751,12 +769,11 @@ def click_on_submit_dialog_if_visible(driver):
 
 
 def click_submit_quiz(driver, quiz_container):
-    print("Inside Submit Quiz Function")
+    print("Inside Submit button Quiz Function")
     action = ActionChains(driver)
 
     try:
-        buttons = quiz_container.find_elements(
-            By.CSS_SELECTOR, "button")
+        buttons = quiz_container.find_elements(By.CSS_SELECTOR, "button")
         action.move_to_element(buttons[-1]).click().perform()
         sleep(1)
     except Exception:
@@ -793,9 +810,9 @@ def mark_down_quiz(driver):
         div_buttons = quiz_container.find_elements(
             By.CSS_SELECTOR, div_buttons_selector)
         for idx in range(len(div_buttons)):
-            div_buttons = quiz_container.find_elements(
-                By.CSS_SELECTOR, div_buttons_selector)
-            action.move_to_element(div_buttons[idx]).click().perform()
+            div_button = quiz_container.find_elements(
+                By.CSS_SELECTOR, div_buttons_selector)[idx]
+            action.move_to_element(div_button).click().perform()
             sleep(1)
     else:
         print("No mark down quiz_container found")
@@ -830,6 +847,7 @@ def wait_webdriver(driver):
 
 def scroll_page(driver):
     print("Scrolling Page")
+
     total_height = int(driver.execute_script(
         "return document.body.scrollHeight"))
     for i in range(1, total_height, 10):
@@ -882,12 +900,14 @@ def check_login(driver):
 
 def check_page(title):
     print("Checking page")
+
     if "something went wrong" == title:
         raise Exception("Something went wrong")
 
 
 def load_webpage(driver, url):
     print("Load Webpage Function")
+
     global file_index
     _, save_path, _ = load_config()
     driver.get(url)
