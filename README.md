@@ -2,7 +2,8 @@
 ## A Python script that downloads Educative.io courses for offline use using selenium.
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
-Latest Update 15/07/2022 : Added support for Linux arm64 architecture.
+I welcome anyone to contribute to this project. A star would help me a lot.\
+Latest Update 15/07/2022 : Added support for Linux arm64 architecture.\
 Latest Update 07/07/2022 : Fixed Multiple Bugs as educative.io made some changes in their DOM.
 
 ## How to use the Scraper?
