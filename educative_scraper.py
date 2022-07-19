@@ -65,7 +65,7 @@ def create_course_folder(driver, url):
         course_name = get_file_name(driver)
     else:
         course_name = slugify(driver.find_element(By.CSS_SELECTOR, course_name_selector).find_element(
-            By.CSS_SELECTOR, "h4").get_attribute('innerHTML')).replace("-", " ")
+            By.CSS_SELECTOR, "h4").get_attribute('innerHTML'), replacements=[['+', 'plus']]).replace("-", " ")
     create_folder(course_name)
     print("Inside Course Folder")
 
@@ -112,7 +112,7 @@ def get_file_name(driver):
         By.XPATH, header_1) or driver.find_elements(
         By.XPATH, header_2)
     print("File Name Found")
-    return slugify(file_name[0].get_attribute('innerHTML')).replace("-", " ")
+    return slugify(file_name[0].get_attribute('innerHTML'), replacements=[['+', 'plus']]).replace("-", " ")
 
 
 def delete_node(driver, node, xpath=False):
@@ -148,8 +148,9 @@ def get_current_height(driver):
     return driver.execute_script('return document.body.parentNode.scrollHeight')
 
 
-def create_html(file_name, base_64_png, html_template):
-    with open(file_name + ".html", "w+") as fh:
+"""
+def create_html_with_image(file_name, base_64_png, quiz_html):
+    with open(file_name + ".html", "w+", encoding="utf-8") as fh:
         fh.write(f'''
                 <!DOCTYPE html>
                 <html lang="en">
@@ -159,12 +160,24 @@ def create_html(file_name, base_64_png, html_template):
                 <body style="zoom: 80%">
                     <div style="text-align: center">
                         <img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{base_64_png}" alt="">
-                        {html_template}
+                        {quiz_html}
                     </div>
                 </body>
                 </html>
             ''')
     sleep(1)
+"""
+
+
+def create_html_with_singleFile(file_name, page_content, quiz_html):
+    print("Creating HTML File")
+    with open(file_name + ".html", "w+", encoding="utf-8") as fh:
+        fh.write(f'''
+                    {page_content}
+                    {quiz_html}
+            ''')
+    sleep(1)
+    print("HTML File Created")
 
 
 def send_command(driver, cmd, params={}):
@@ -197,7 +210,8 @@ def screenshot_as_cdp(driver, ele_to_screenshot):
     return screenshot['data']
 
 
-def take_screenshot(driver, file_name, html_template):
+'''
+def take_screenshot(driver, file_name, quiz_html):
     print("Take Screenshot Function")
     article_page_selector = "div[class*='ArticlePage']"
     project_page_selector = "div[class*='Page']"
@@ -209,8 +223,50 @@ def take_screenshot(driver, file_name, html_template):
 
     base_64_png = screenshot_as_cdp(driver, ele_to_screenshot[0])
     sleep(2)
-    create_html(file_name, base_64_png, html_template)
+    create_html_with_image(file_name, base_64_png, quiz_html)
     print("Screenshot taken and HTML File generated")
+'''
+
+
+def fix_all_svg_tags_inside_object_tags(driver):
+    print("Fixing SVG Tags inside Object Tags")
+    driver.execute_script('''
+                            iframes = document.querySelectorAll("object[aria-label='svg viewer']")
+                            for (var i = 0; i < iframes.length; i++) {
+                                svg_element = iframes[i].contentDocument.documentElement;
+                                iframes[i].parentNode.append(svg_element);
+                                cls_name = iframes[i].className;
+                                svg_element.classList.add(cls_name);
+                            }''')
+
+
+def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
+    print("Get HTML Page Content Using Single File Function")
+
+    # Inject SingleFile JS script
+    driver.execute_script('''
+        inject = document.createElement('script');
+        inject.src = "https://anilabhadatta.github.io/SingleFile/lib/single-file.js";
+        document.getElementsByTagName('head')[0].appendChild(inject);
+    ''')
+    sleep(2)
+    page_content = driver.execute_script('''
+                                            const { content, title, filename } = await singlefile.getPageData({
+                                                removeImports: true,
+                                                removeScripts: true,
+                                                removeAudioSrc: true,
+                                                removeVideoSrc: true,
+                                                removeHiddenElements: true,
+                                                removeUnusedStyles: true,
+                                                removeUnusedFonts: true,
+                                                compressHTML: true,
+                                                blockVideos: true,
+                                                blockScripts: true,
+                                            });
+                                            return content;
+    ''')
+    create_html_with_singleFile(file_name, page_content, quiz_html)
+    print("HTML Page content taken.")
 
 
 def show_hints_answer(driver):
@@ -344,9 +400,8 @@ def download_file(driver, element):
             action.move_to_element(svg_button[-1]).click().perform()
             sleep(2)
             original_file_name = check_file_in_dir(original_file_name)
-            os.rename(original_file_name, slugify(
-                hover_file_name).replace("-", "."))
-    # print(hover_file_name, original_file_name)
+            os.rename(original_file_name, slugify(hover_file_name,
+                      replacements=[['+', 'plus']]).replace("-", "."))
 
 
 def download_code_manually(driver, code):
@@ -448,6 +503,7 @@ def copy_code(container, driver, use_svg=True):
 
 def write_code(file_name, content):
     print("Write Code Function")
+    file_name = slugify(file_name, replacements=[['+', 'plus']])
     with open(file_name + ".txt", 'w', encoding='utf-8') as f:
         f.write(content)
 
@@ -717,7 +773,7 @@ def click_right_button_quiz(driver, quiz_container):
     action = ActionChains(driver)
     right_button_selector = "button[class*='SlideRightButton']"
 
-    html_template = ""
+    quiz_html = ""
     right_button = quiz_container.find_elements(
         By.CSS_SELECTOR, right_button_selector)
 
@@ -729,7 +785,7 @@ def click_right_button_quiz(driver, quiz_container):
     while right_button:
         click_option_quiz(driver, quiz_container)
         click_submit_quiz(driver, quiz_container)
-        html_template += quiz_container_html(driver, quiz_container)
+        quiz_html += quiz_container_html(driver, quiz_container)
         if check_last_right_button(right_button):
             break
         action.move_to_element(right_button[0]).click().perform()
@@ -739,7 +795,7 @@ def click_right_button_quiz(driver, quiz_container):
         right_button = quiz_container.find_elements(
             By.CSS_SELECTOR, right_button_selector)
 
-    return html_template
+    return quiz_html
 
 
 def check_last_right_button(right_button):
@@ -783,17 +839,17 @@ def click_submit_quiz(driver, quiz_container):
 def take_quiz_screenshot(driver):
     print("Inside take_quiz_screenshot function")
     quiz_container_selector = "div[class*='styles__QuizViewMode']"
-    html_template = ""
+    quiz_html = ""
 
     quiz_containers = driver.find_elements(
         By.CSS_SELECTOR, quiz_container_selector)
     if quiz_containers:
         for quiz_container in quiz_containers:
-            html_template += click_right_button_quiz(
+            quiz_html += click_right_button_quiz(
                 driver, quiz_container)
     else:
         print("Quiz not found")
-    return html_template
+    return quiz_html
 
 
 def mark_down_quiz(driver):
@@ -868,8 +924,10 @@ def scrape_page(driver, file_index):
     show_code_box_answer(driver)
     open_slides(driver)
     create_folder(file_name)
-    html_template = take_quiz_screenshot(driver)
-    take_screenshot(driver, file_name, html_template)
+    quiz_html = take_quiz_screenshot(driver)
+    # take_screenshot(driver, file_name, quiz_html)
+    fix_all_svg_tags_inside_object_tags(driver)
+    get_pagecontent_using_singleFile(driver, file_name, quiz_html)
     code_widget_type(driver)
     code_container_download_type(driver)
     code_container_clipboard_type(driver)
@@ -928,7 +986,7 @@ def load_webpage(driver, url):
             create_log(file_index-1, log_url, save_path, "Not logged in")
             return False
         if not check_for_captcha(driver):
-            create_log(file_index, log_url, save_path, "Captcha detected")
+            create_log(file_index-1, log_url, save_path, "Captcha detected")
             return False
         log_url = driver.current_url
         if not scrape_page(driver, file_index):
