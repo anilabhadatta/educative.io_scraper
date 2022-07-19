@@ -231,12 +231,17 @@ def take_screenshot(driver, file_name, quiz_html):
 def fix_all_svg_tags_inside_object_tags(driver):
     print("Fixing SVG Tags inside Object Tags")
     driver.execute_script('''
-                            iframes = document.querySelectorAll("object[aria-label='svg viewer']")
+                            iframes = document.querySelectorAll("object")
                             for (var i = 0; i < iframes.length; i++) {
-                                svg_element = iframes[i].contentDocument.documentElement;
-                                iframes[i].parentNode.append(svg_element);
-                                cls_name = iframes[i].className;
-                                svg_element.classList.add(cls_name);
+                                try{
+                                    svg_element = iframes[i].contentDocument.documentElement;
+                                    iframes[i].parentNode.append(svg_element);
+                                    cls_name = iframes[i].className;
+                                    svg_element.classList.add(cls_name);
+                                }
+                                catch(error){ 
+                                    console.log(error);
+                                }
                             }''')
 
 
