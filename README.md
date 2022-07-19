@@ -3,7 +3,7 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
 I welcome anyone to contribute to this project. A star would help me a lot.\
-Update 19/07/2022 : Added SingleFile HTML page content instead of screenshot.
+Update 19/07/2022 : Added SingleFile HTML page content instead of screenshot.\
 Update 15/07/2022 : Added support for Linux arm64 architecture.\
 Update 07/07/2022 : Fixed Multiple Bugs as educative.io made some changes in their DOM.
 
