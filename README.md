@@ -3,8 +3,9 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
 I welcome anyone to contribute to this project. A star would help me a lot.\
-Latest Update 15/07/2022 : Added support for Linux arm64 architecture.\
-Latest Update 07/07/2022 : Fixed Multiple Bugs as educative.io made some changes in their DOM.
+Update 19/07/2022 : Added SingleFile HTML page content instead of screenshot.
+Update 15/07/2022 : Added support for Linux arm64 architecture.\
+Update 07/07/2022 : Fixed Multiple Bugs as educative.io made some changes in their DOM.
 
 ## How to use the Scraper?
       1. Create a urls text file and copy the links of the first topic of courses and paste it in text file as shown below.
