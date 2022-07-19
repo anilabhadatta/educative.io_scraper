@@ -11,6 +11,7 @@ import glob
 import zipfile
 import json
 import sys
+import base64
 
 
 OS_ROOT = os.path.expanduser('~')
@@ -642,21 +643,74 @@ def code_container_clipboard_type(driver):
         print("No code containers found")
 
 
-def check_widget_svg_clipboard_button(container):
-    clipboard_title = "svg[title='Copy To Clipboard']"
+def widget_tab_container_function(container, driver):
+    print("Widget Tab Container Function")
+    widget_inner_container = "div[class*='Widget__WidgetTabs']"
+    widget_code_selector = "div[class*='styles__CodeEditorStyled']"
+    li_selector = "ul > li[class*='Widget__WidgetTab']"
+    output_selector = "div[class*='HtmlResponsiveViewer']"
+    action = ActionChains(driver)
 
-    if container.find_elements(By.CSS_SELECTOR, clipboard_title):
-        return True
-    return False
+    widget_tabs = container.find_elements(
+        By.CSS_SELECTOR, widget_inner_container)
+    if widget_tabs:
+        widget_tabs = widget_tabs[0].find_elements(
+            By.CSS_SELECTOR, li_selector)
+        for idx in range(len(widget_tabs)):
+            tab = container.find_element(By.CSS_SELECTOR, widget_inner_container).find_elements(
+                By.CSS_SELECTOR, li_selector)[idx]
+            try:
+                file_name = tab.get_attribute('innerHTML')
+                action.move_to_element(tab).click().perform()
+            except Exception as e:
+                pass
+            sleep(2)
+            code_container_inside_tab = container.find_element(By.CSS_SELECTOR, widget_inner_container).find_elements(
+                By.CSS_SELECTOR, widget_code_selector)
+            output_containers_inside_tab = container.find_element(By.CSS_SELECTOR, widget_inner_container).find_elements(
+                By.CSS_SELECTOR, output_selector)
+            try:
+                if code_container_inside_tab:
+                    copy_code_from_widget_container(
+                        code_container_inside_tab[0], driver, file_name)
+                elif output_containers_inside_tab:
+                    take_screenshot_widget_tab(
+                        driver, output_containers_inside_tab[0], file_name, idx)
+            except Exception as e:
+                pass
+
+
+def runjs_container_function(container, driver):
+    print("RunJS Container Function")
+    output_selector = "div[class*='HtmlResponsiveViewer']"
+    runjs_code_selector = "div[class*='styles__CodeEditor']"
+    runjs_selector = "div[class*='runjs-container']"
+
+    runjs_containers = container.find_elements(
+        By.CSS_SELECTOR, runjs_selector)
+    if runjs_containers:
+        code_editors_inside_runjs = runjs_containers[0].find_elements(
+            By.CSS_SELECTOR, runjs_code_selector)
+        for idx, code_editor in enumerate(code_editors_inside_runjs):
+            try:
+                copy_code_from_widget_container(
+                    code_editor, driver, f"code_{idx}")
+            except Exception as e:
+                pass
+        output_containers = runjs_containers[0].find_elements(
+            By.CSS_SELECTOR, output_selector)
+        for idx, output_container in enumerate(output_containers):
+            try:
+                take_screenshot_widget_tab(
+                    driver, output_container, "Output", idx)
+            except Exception as e:
+                pass
 
 
 def code_widget_type(driver):
     print("Inside Widget Container Function")
-    container_selector = "div[class*='Widget__WidgetTabs']"
-    line_div_selector = "div[class*='lines-content']"
-    view_line_div_selector = "div[class*='view-line']"
+    container_selector = "div[class*='Widget__WidgetStyled']"
     textbox_selector = "textarea[class*='temptextarea']"
-    action = ActionChains(driver)
 
     widget_type_containers = driver.find_elements(
         By.CSS_SELECTOR, container_selector)
@@ -664,31 +718,36 @@ def code_widget_type(driver):
         code_directory_path = os.getcwd()
         create_temp_textarea(driver)
         for folder_index, container in enumerate(widget_type_containers):
-            # This condition is actually not needed. Test cases required where clipboard button is present inside a widget
-            if not check_widget_svg_clipboard_button(container) or True:
-                create_folder("code_widget_type" + str(folder_index))
-                widget_tabs = container.find_elements(
-                    By.CSS_SELECTOR, "ul > li")
-                for idx in range(len(widget_tabs)):
-                    tab = container.find_elements(
-                        By.CSS_SELECTOR, "ul > li")[idx]
-                    try:
-                        file_name = tab.get_attribute('innerHTML')
-                        action.move_to_element(tab).click().perform()
-                        sleep(1)
-                        line_div = container.find_element(
-                            By.CSS_SELECTOR, line_div_selector).find_element(By.CSS_SELECTOR, view_line_div_selector)
-                        action.move_to_element(line_div).click().perform()
-                        copy_from_container(driver)
-                        textbox = click_on_textbox(driver)
-                        copy_from_container(driver, textbox)
-                        write_code(file_name, textbox.get_attribute('value'))
-                    except Exception:
-                        pass
-                os.chdir(code_directory_path)
+            create_folder("code_widget_type" + str(folder_index))
+            widget_tab_container_function(container, driver)
+            runjs_container_function(container, driver)
+            os.chdir(code_directory_path)
         delete_node(driver, textbox_selector)
     else:
         print("No widget container found")
+
+
+def copy_code_from_widget_container(code_container_inside_tab, driver, file_name):
+    print("Copying Code From Widget Container Function")
+    line_div_selector = "div[class*='lines-content']"
+    view_line_div_selector = "div[class*='view-line']"
+    action = ActionChains(driver)
+
+    line_div = code_container_inside_tab.find_element(
+        By.CSS_SELECTOR, line_div_selector).find_element(By.CSS_SELECTOR, view_line_div_selector)
+    action.move_to_element(line_div).click().perform()
+    copy_from_container(driver)
+    textbox = click_on_textbox(driver)
+    copy_from_container(driver, textbox)
+    write_code(file_name, textbox.get_attribute('value'))
+
+
+def take_screenshot_widget_tab(driver, output_container, file_name, idx=0):
+    print("Taking Screenshot From Widget Container Function")
+    output_image = screenshot_as_cdp(driver, output_container)
+    file_name = slugify(file_name, replacements=[['+', 'plus'], ['span', '']])
+    with open(f"{file_name}_{idx}.png", "wb") as f:
+        f.write(base64.urlsafe_b64decode(output_image))
 
 
 def click_on_textbox(driver):
