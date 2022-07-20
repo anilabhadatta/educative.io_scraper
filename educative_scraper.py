@@ -255,6 +255,7 @@ def make_code_selectable(driver):
         }
     ''')
 
+
 def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
     print("Get HTML Page Content Using Single File Function")
 
@@ -987,6 +988,26 @@ def scroll_page(driver):
     sleep(2)
 
 
+def add_name_tag_in_next_back_button(driver):
+    print("Adding Name Tag in Next Back Button")
+    next_button_selector = "button[class*='outlined-primary m-0']"
+    back_button_selector = "button[class*='outlined-default m-0']"
+    try:
+        next_button = driver.find_element(
+            By.CSS_SELECTOR, next_button_selector)
+        driver.execute_script(
+            "arguments[0].setAttribute('name', arguments[1]);", next_button, "next")
+    except Exception:
+        pass
+    try:
+        back_button = driver.find_element(
+            By.CSS_SELECTOR, back_button_selector)
+        driver.execute_script(
+            "arguments[0].setAttribute('name', arguments[1]);", back_button, "back")
+    except Exception:
+        pass
+
+
 def scrape_page(driver, file_index):
     scroll_page(driver)
     wait_webdriver(driver)
@@ -1002,6 +1023,7 @@ def scrape_page(driver, file_index):
     create_folder(file_name)
     quiz_html = take_quiz_screenshot(driver)
     # take_screenshot(driver, file_name, quiz_html)
+    add_name_tag_in_next_back_button(driver)
     fix_all_svg_tags_inside_object_tags(driver)
     get_pagecontent_using_singleFile(driver, file_name, quiz_html)
     code_widget_type(driver)
