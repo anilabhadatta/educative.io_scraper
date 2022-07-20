@@ -246,6 +246,15 @@ def fix_all_svg_tags_inside_object_tags(driver):
                             }''')
 
 
+def make_code_selectable(driver):
+    driver.execute_script('''
+        let code_containers = document.getElementsByClassName('monaco-editor');
+        for(let i=0;i<code_containers.length;i++){
+            if ( code_containers[i].classList.contains('no-user-select') )
+        code_containers[i].classList.remove('no-user-select');
+        }
+    ''')
+
 def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
     print("Get HTML Page Content Using Single File Function")
 
@@ -256,6 +265,9 @@ def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
         document.getElementsByTagName('head')[0].appendChild(inject);
     ''')
     sleep(2)
+
+    make_code_selectable(driver)
+
     page_content = driver.execute_script('''
                                             const { content, title, filename } = await singlefile.getPageData({
                                                 removeImports: true,
