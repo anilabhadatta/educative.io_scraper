@@ -3,6 +3,8 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
 I Welcome anyone to contribute to this project. A Star would help me a lot.\
+Update 20/07/2022 : v5.5 Added support to Back, Next button for educative-viewer.\
+Update 20/07/2022 : v5.4 Added support to copy content from Code containers.\
 Update 20/07/2022 : v5.3 Fixed and Added a feature to Code Widget type containers.\
 Update 19/07/2022 : v5.2 Added SingleFile HTML page content instead of screenshot.\
 Update 15/07/2022 : v5.0 Added support for Linux arm64 architecture.\
@@ -22,7 +24,7 @@ Update 07/07/2022 : v4.9 Fixed Multiple Bugs as educative.io made some changes i
       6. Start Scraping by pressing 4.
       7. To return to Main Menu/ Exit Scraper press Ctrl+C / CMD+C.
       
-#####   Note 1: Uncomment line 469 to download the courses having download_button container but download button not working.[This Feature is not added in releases]
+#####   Note 1: Uncomment line 482 to download the courses having download_button container but download button not working.[This Feature is not added in releases]
 #####   Note 2: If the scraper fails or the User Exits in between for any specific reason, a log.txt file will be created in the save directory, containing the last known url while scraping along with the index, copy the {index url} line and replace it in the original urls text file (make sure to delete the urls that are already scraped while replacing) to resume scraping the course where it was stopped previously by restarting the scraper.
 #####   Note 3: If for any reason your system shuts down for power failure or the scraper crashes then you have to manually search the url and index and provide the {index url} in urls text file since the scraper cannot create log.txt for sudden power cut/ crash.      
       
