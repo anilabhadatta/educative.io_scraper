@@ -3,6 +3,7 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
 I Welcome anyone to contribute to this project. A Star would help me a lot.\
+Update 01/08/2022 : v5.6 Fixed a bug related to Script Timeout in Single File.\
 Update 20/07/2022 : v5.5 Added support to Back, Next button for educative-viewer.\
 Update 20/07/2022 : v5.4 Added support to copy content from Code containers.\
 Update 20/07/2022 : v5.3 Fixed and Added a feature to Code Widget type containers.\
