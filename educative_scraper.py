@@ -256,6 +256,25 @@ def make_code_selectable(driver):
     ''')
 
 
+def single_file_js_executer(driver):
+    return driver.execute_script('''
+                                            const { content, title, filename } = await singlefile.getPageData({
+                                                removeImports: true,
+                                                removeScripts: true,
+                                                removeAudioSrc: true,
+                                                removeVideoSrc: true,
+                                                removeHiddenElements: true,
+                                                removeUnusedStyles: true,
+                                                removeUnusedFonts: true,
+                                                compressHTML: true,
+                                                blockVideos: true,
+                                                blockScripts: true,
+                                                networkTimeout: 60000
+                                            });
+                                            return content;
+    ''')
+
+
 def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
     print("Get HTML Page Content Using Single File Function")
 
@@ -268,22 +287,10 @@ def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
     sleep(2)
 
     make_code_selectable(driver)
-
-    page_content = driver.execute_script('''
-                                            const { content, title, filename } = await singlefile.getPageData({
-                                                removeImports: true,
-                                                removeScripts: true,
-                                                removeAudioSrc: true,
-                                                removeVideoSrc: true,
-                                                removeHiddenElements: true,
-                                                removeUnusedStyles: true,
-                                                removeUnusedFonts: true,
-                                                compressHTML: true,
-                                                blockVideos: true,
-                                                blockScripts: true,
-                                            });
-                                            return content;
-    ''')
+    try:
+        page_content = single_file_js_executer(driver)
+    except Exception:
+        page_content = single_file_js_executer(driver)
     create_html_with_singleFile(file_name, page_content, quiz_html)
     print("HTML Page content taken.")
 
@@ -1241,9 +1248,9 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper, made by Anilabha Datta
-                        Project Link: github.com/anilabhadatta/educative.io_scraper
-                        Read the documentation for more information about this project.
+                        Educative Scraper, developed by Anilabha Datta
+                        Project Link: https://github.com/anilabhadatta/educative.io_scraper
+                        Please go through the ReadMe for more information about this project.
 
                         Press 1 and Enter to generate config
                         Press 2 and Enter to select a config [Currently selected config {selected_config}]
