@@ -922,7 +922,7 @@ def click_submit_quiz(driver, quiz_container):
 
 def take_quiz_screenshot(driver):
     print("Inside take_quiz_screenshot function")
-    quiz_container_selector = "div[class*='styles__QuizViewMode']"
+    quiz_container_selector = "div[class*='styles__QuestionSlide']"
     quiz_html = ""
 
     quiz_containers = driver.find_elements(
