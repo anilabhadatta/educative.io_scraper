@@ -764,7 +764,8 @@ def copy_code_from_widget_container(code_container_inside_tab, driver, file_name
 
 def take_screenshot_widget_tab(driver, output_container, file_name, idx=0):
     print("Taking Screenshot From Widget Container Function")
-    output_image = screenshot_as_cdp(driver, output_container)
+    # output_image = screenshot_as_cdp(driver, output_container)
+    output_image = output_container.screenshot_as_base64
     file_name = slugify(file_name, replacements=[['+', 'plus'], ['span', '']])
     with open(f"{file_name}_{idx}.png", "wb") as f:
         f.write(base64.urlsafe_b64decode(output_image))
@@ -846,8 +847,8 @@ def click_option_quiz(driver, quiz_container):
 
 def quiz_container_html(driver, quiz_container):
     print("Take Quiz Screenshot Function")
-
-    container_screenshot = screenshot_as_cdp(driver, quiz_container)
+    # container_screenshot = screenshot_as_cdp(driver, quiz_container)
+    container_screenshot = quiz_container.screenshot_as_base64
     sleep(1)
     return f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
 
