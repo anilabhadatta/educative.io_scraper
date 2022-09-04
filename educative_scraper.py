@@ -104,9 +104,9 @@ def get_file_name(driver, course_folder=False):
     title = driver.find_elements(
         By.CSS_SELECTOR, "title")[0].get_attribute('innerHTML').split("-")
     if course_folder:
-        file_name = title[1]
+        file_name = title[-1]
     else:
-        file_name = title[0]
+        file_name = " ".join(title[:-1])
     print("File Name Found")
     return slugify(file_name, replacements=[['+', 'plus']]).replace("-", " ")
 
@@ -242,6 +242,7 @@ def fix_all_svg_tags_inside_object_tags(driver):
 
 
 def make_code_selectable(driver):
+    print("make_code_selectable function")
     driver.execute_script('''
         let code_containers = document.getElementsByClassName('monaco-editor');
         for(let i=0;i<code_containers.length;i++){
@@ -249,6 +250,7 @@ def make_code_selectable(driver):
         code_containers[i].classList.remove('no-user-select');
         }
     ''')
+    print("make_code_selectable function executed")
 
 
 def single_file_js_executer(driver):
