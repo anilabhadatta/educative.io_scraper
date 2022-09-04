@@ -60,14 +60,6 @@ def load_chrome_driver(headless):
 
 def create_course_folder(driver, url):
     print("Create Course Folder Function")
-    '''
-    course_name_selector = "nav[class*='ed-grid-sidebar']"
-    if "educative.io/page" in url:
-        course_name = get_file_name(driver)
-    else:
-        course_name = slugify(driver.find_element(By.CSS_SELECTOR, course_name_selector).find_element(
-            By.CSS_SELECTOR, "h4").get_attribute('innerHTML'), replacements=[['+', 'plus']]).replace("-", " ")
-    '''
     course_name = get_file_name(driver, True)
     create_folder(course_name)
     print("Inside Course Folder")
@@ -109,13 +101,6 @@ def open_slides(driver):
 
 def get_file_name(driver, course_folder=False):
     print("Getting File Name")
-    '''
-    header_1 = "//h1[text()]"
-    header_2 = "//h2[text()]"
-    file_name = driver.find_elements(
-        By.XPATH, header_1) or driver.find_elements(
-        By.XPATH, header_2)
-    '''
     title = driver.find_elements(
         By.CSS_SELECTOR, "title")[0].get_attribute('innerHTML').split("-")
     if course_folder:
