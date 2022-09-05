@@ -101,8 +101,9 @@ def open_slides(driver):
 
 def get_file_name(driver, course_folder=False):
     print("Getting File Name")
+    meta_title_selector = "meta[property='og:title']"
     title = driver.find_elements(
-        By.CSS_SELECTOR, "title")[0].get_attribute('innerHTML').split("-")
+        By.CSS_SELECTOR, meta_title_selector)[0].get_attribute('content').split("-")
     if course_folder or len(title) == 1:
         file_name = title[-1]
     else:
@@ -941,6 +942,7 @@ def mark_down_quiz(driver):
     div_buttons_selector = "div[role*='button']"
     action = ActionChains(driver)
 
+    '''
     quiz_containers = driver.find_elements(
         By.CSS_SELECTOR, quiz_container_selector)
     if quiz_containers:
@@ -953,6 +955,14 @@ def mark_down_quiz(driver):
                 By.CSS_SELECTOR, div_buttons_selector)[idx]
             action.move_to_element(div_button).click().perform()
             sleep(1)
+    '''
+    quiz_containers = driver.find_elements(
+        By.CSS_SELECTOR, div_buttons_selector)
+    if quiz_containers:
+        for quiz_container in quiz_containers:
+            if quiz_container.find_element(By.CSS_SELECTOR, "span").text == "Show Answer":
+                action.move_to_element(quiz_container).click().perform()
+                sleep(1)
     else:
         print("No mark down quiz_container found")
 
