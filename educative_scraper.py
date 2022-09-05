@@ -103,7 +103,7 @@ def get_file_name(driver, course_folder=False):
     print("Getting File Name")
     title = driver.find_elements(
         By.CSS_SELECTOR, "title")[0].get_attribute('innerHTML').split("-")
-    if course_folder:
+    if course_folder or len(title) == 1:
         file_name = title[-1]
     else:
         file_name = " ".join(title[:-1])
@@ -144,7 +144,6 @@ def get_current_height(driver):
     return driver.execute_script('return document.body.parentNode.scrollHeight')
 
 
-"""
 def create_html_with_image(file_name, base_64_png, quiz_html):
     with open(file_name + ".html", "w+", encoding="utf-8") as fh:
         fh.write(f'''
@@ -162,7 +161,6 @@ def create_html_with_image(file_name, base_64_png, quiz_html):
                 </html>
             ''')
     sleep(1)
-"""
 
 
 def create_html_with_singleFile(file_name, page_content, quiz_html):
@@ -206,7 +204,6 @@ def screenshot_as_cdp(driver, ele_to_screenshot):
     return screenshot['data']
 
 
-'''
 def take_screenshot(driver, file_name, quiz_html):
     print("Take Screenshot Function")
     article_page_selector = "div[class*='ArticlePage']"
@@ -221,7 +218,6 @@ def take_screenshot(driver, file_name, quiz_html):
     sleep(2)
     create_html_with_image(file_name, base_64_png, quiz_html)
     print("Screenshot taken and HTML File generated")
-'''
 
 
 def fix_all_svg_tags_inside_object_tags(driver):
@@ -285,10 +281,14 @@ def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
 
     make_code_selectable(driver)
     try:
-        page_content = single_file_js_executer(driver)
+        try:
+            page_content = single_file_js_executer(driver)
+        except Exception:
+            page_content = single_file_js_executer(driver)
+        create_html_with_singleFile(file_name, page_content, quiz_html)
     except Exception:
-        page_content = single_file_js_executer(driver)
-    create_html_with_singleFile(file_name, page_content, quiz_html)
+        take_screenshot(driver, file_name, quiz_html)
+
     print("HTML Page content taken.")
 
 
