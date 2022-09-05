@@ -821,7 +821,8 @@ def demark_as_completed(driver):
 
     try:
         driver.execute_script(f'''
-            document.querySelector({div_selector}).click();
+            ele = document.querySelectorAll("{div_selector}");
+            ele[ele.length-1].click();
         ''')
     except Exception:
         pass
