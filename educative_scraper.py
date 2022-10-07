@@ -1164,8 +1164,8 @@ def scrape_courses():
 
         print("Script Execution Complete")
     except Exception as e:
-        driver.quit()
         print("Exception, Driver exited", e)
+        driver.quit()
         raise Exception(e)
 
 
