@@ -99,15 +99,38 @@ def open_slides(driver):
         print("No Slides Found")
 
 
+'''
 def get_file_name(driver, course_folder=False):
     print("Getting File Name")
     meta_title_selector = "meta[property='og:title']"
     title = driver.find_elements(
         By.CSS_SELECTOR, meta_title_selector)[0].get_attribute('content').split("-")
-    if course_folder or len(title) == 1:
-        file_name = title[-1]
+    if len(title) == 1:
+        file_name = title[0]
+    elif course_folder:
+        file_name = " ".join(title[1:])
     else:
         file_name = " ".join(title[:-1])
+    print("File Name Found")
+    return slugify(file_name, replacements=[['+', 'plus']]).replace("-", " ")
+'''
+
+
+def get_file_name(driver, course_folder=False):
+    print("Getting File Name")
+    meta_script_selector = "script[type='application/ld+json']"
+    metadata = driver.find_elements(
+        By.CSS_SELECTOR, meta_script_selector)[0].get_attribute('innerHTML')
+    metadata = json.loads(metadata)
+    if course_folder:
+        file_name = metadata['name']
+    else:
+        course_name = metadata['name']
+        headline = metadata['headline']
+        if course_name in headline:
+            file_name = headline[:len(headline)-len(course_name)]
+        else:
+            file_name = headline
     print("File Name Found")
     return slugify(file_name, replacements=[['+', 'plus']]).replace("-", " ")
 
@@ -968,7 +991,7 @@ def mark_down_quiz(driver):
 
 
 def wait_webdriver(driver):
-    article_page_selector = "div[class*='ArticlePage']"
+    article_page_selector = "//*[@id='handleArticleScroll']/div/div/div/div"
     next_button_selector = "div[class*='outlined-primary m-0']"
     header_1 = "//h1[text()]"
     header_2 = "//h2[text()]"
@@ -976,7 +999,7 @@ def wait_webdriver(driver):
     try:
         try:
             WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, article_page_selector)))
+                EC.presence_of_element_located((By.XPATH, article_page_selector)))
         except Exception:
             pass
         try:
