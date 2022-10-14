@@ -207,13 +207,13 @@ def screenshot_as_cdp(driver, ele_to_screenshot):
 
 def take_screenshot(driver, file_name, quiz_html):
     print("Take Screenshot Function")
-    article_page_selector = "div[class*='ArticlePage']"
+    article_page_selector = "//*[@id='handleArticleScroll']/div/div/div/div"
     project_page_selector = "div[class*='Page']"
     general_page_selector = "div[class*='PageContent']"
 
     ele_to_screenshot = driver.find_elements(
         By.CSS_SELECTOR, general_page_selector) or driver.find_element(
-        By.CSS_SELECTOR, article_page_selector).find_elements(By.CSS_SELECTOR, project_page_selector)
+        By.XPATH, article_page_selector)
 
     base_64_png = screenshot_as_cdp(driver, ele_to_screenshot[0])
     sleep(2)
