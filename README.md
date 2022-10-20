@@ -41,14 +41,21 @@
 
 ##### Note 2: If for any reason your system shuts down for power failure or the scraper crashes then you have to manually search the url and index and provide the {index url} in urls text file since the scraper cannot create log.txt for sudden power cut/ crash.
 
-## To Run the project manually:
+## To Run the project manually using git and python:
 
-### Step 1: Install the virtualenv package for python3 and create a virtual environment named "env".
+### Prerequisites:
+      Git
+      Python 3.9+
+      OS: Win(x86)/Mac(x86)/Linux(ARM/AMD)
+      
+### Step 1: Clone the repository and create a terminal inside the cloned directory and run the following commands.
+
+### Step 2: Install the virtualenv package for python3 and create a virtual environment named "env".
 
       pip3 install virtualenv
       virtualenv env
 
-### Step 2: Activate the environment.
+### Step 3: Activate the environment.
 
 #### > (For Windows)
 
@@ -60,26 +67,27 @@
       source env/bin/activate
 
 
-### Step 3: Install the required modules:
+### Step 4: Install the required modules:
 
       pip3 install -r requirements.txt
 
 
-### Step 4: Download, extract and paste the respective Chrome-bin for your OS from the latest releases section inside the Chrome-bin folder.
+### Step 5: Download, extract and paste the respective Chrome-bin for your OS from the latest releases section inside the Chrome-bin folder.
 ![img4](https://user-images.githubusercontent.com/48487849/197014188-3906af24-2297-48a6-9592-b669ac72af53.png)
 
 
-### Step 5: Open up two terminals and run the following commands.
+### Step 6: Open up two terminals and run the following commands in separate terminals.
 
       python3 chromedriver.py
       python3 educative_scraper.py
 
 
-### Step 6: Refer, "How to use the Scraper?" explained above except point 2.
+### Step 7: Refer, "How to use the Scraper?" explained above except point 2.
 
-## To Build the chromdriver and educative-scraper executables using pyinstaller:
 
-#### Activate the Virtual Environment and Install the required modules for the project (Refer Step 1, 2, 3 above).
+## (Optional) To Build the chromedriver and educative-scraper executables using pyinstaller:
+
+#### Activate the Virtual Environment and Install the required modules for the project (Refer Step 2, 3, 4 above).
 
 #### Install the pyinstaller package and run the following commands.
 
