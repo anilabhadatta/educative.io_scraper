@@ -4,7 +4,7 @@
 
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
-I welcome anyone to contribute to this project.
+      I welcome anyone to contribute to this project.
 
 ## How to use the Scraper?
 
