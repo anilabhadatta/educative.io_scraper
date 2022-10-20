@@ -119,14 +119,17 @@ def get_file_name(driver, course_folder=False):
 def get_file_name(driver, course_folder=False):
     print("Getting File Name")
     meta_script_selector = "script[type='application/ld+json']"
-    metadata = driver.find_elements(
-        By.CSS_SELECTOR, meta_script_selector)[0].get_attribute('innerHTML')
-    metadata = json.loads(metadata)
+    metadata_elements = driver.find_elements(
+        By.CSS_SELECTOR, meta_script_selector)
+    for meta_element in metadata_elements:
+        meta_content = json.loads(meta_element.get_attribute('innerHTML'))
+        if "name" in meta_content:
+            break
     if course_folder:
-        file_name = metadata['name']
+        file_name = meta_content['name']
     else:
-        course_name = metadata['name']
-        headline = metadata['headline']
+        course_name = meta_content['name']
+        headline = meta_content['headline']
         if course_name in headline:
             file_name = headline[:len(headline)-len(course_name)]
         else:
