@@ -46,7 +46,7 @@
 ### Prerequisites:
       Git
       Python 3.9+
-      OS: Win(x86)/Mac(x86)/Linux(ARM/AMD)
+      OS: Win/Mac(Intel)/Linux(ARM/AMD)
       
 ### Step 1: Clone the repository and create a terminal inside the cloned directory and run the following commands.
 
@@ -55,7 +55,7 @@
       pip3 install virtualenv
       virtualenv env
 
-### Step 3: Activate the environment.
+### Step 3: Activate the virtual environment.
 
 #### > (For Windows)
 
