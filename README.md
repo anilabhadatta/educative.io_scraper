@@ -8,8 +8,8 @@ I welcome anyone to contribute to this project.
 
 ## How to use the Scraper?
 
-      1. Create a text file and copy the urls of the first topic of any number of courses and 
-         paste it in the text file as shown below.
+      1. Create a text file and copy the urls of the first topic of any number of courses and paste it in the 
+         text file as shown below.
 
 
    ![image](https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png)
@@ -23,7 +23,8 @@ I welcome anyone to contribute to this project.
       3. Select a config if you don't want to use the default config "0" by pressing 2.
          (Make sure to generate the config if it is selected for the first time)
 
-      4. Generate the config (if not created) and provide the urls text file path, save location and headless mode by pressing 1.
+      4. Generate the config (if not created) and provide the urls text file path, save location and headless 
+         mode by pressing 1.
    ![img1](https://user-images.githubusercontent.com/48487849/197013987-e6bccbde-06b5-49de-851c-00575a3f8173.png)
 
 
@@ -36,7 +37,7 @@ I welcome anyone to contribute to this project.
 
 ##### Note 2: If the scraper fails or the User Exits in between for any specific reason, a log.txt file will be created in the save path, containing the index and last known url while scraping, copy the {index url} and replace it in the urls text file to resume scraping the course where it was stopped previously by restarting the scraper.
 
-                (Make sure to delete the urls that are already scraped while replacing in the urls text file)
+      (Make sure to delete the urls that are already scraped while replacing in the urls text file)
    ![img3](https://user-images.githubusercontent.com/48487849/197014154-a7dbd7e4-d398-4076-b0e8-279d9841c8f9.png)
 
 
