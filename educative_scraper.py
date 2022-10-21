@@ -99,26 +99,11 @@ def open_slides(driver):
         print("No Slides Found")
 
 
-'''
-def get_file_name(driver, course_folder=False):
-    print("Getting File Name")
-    meta_title_selector = "meta[property='og:title']"
-    title = driver.find_elements(
-        By.CSS_SELECTOR, meta_title_selector)[0].get_attribute('content').split("-")
-    if len(title) == 1:
-        file_name = title[0]
-    elif course_folder:
-        file_name = " ".join(title[1:])
-    else:
-        file_name = " ".join(title[:-1])
-    print("File Name Found")
-    return slugify(file_name, replacements=[['+', 'plus']]).replace("-", " ")
-'''
-
-
 def get_file_name(driver, course_folder=False):
     print("Getting File Name")
     meta_script_selector = "script[type='application/ld+json']"
+    title_selector = "meta[property='og:title']"
+
     metadata_elements = driver.find_elements(
         By.CSS_SELECTOR, meta_script_selector)
     for meta_element in metadata_elements:
@@ -129,11 +114,12 @@ def get_file_name(driver, course_folder=False):
         file_name = meta_content['name']
     else:
         course_name = meta_content['name']
-        headline = meta_content['headline']
-        if course_name in headline:
-            file_name = headline[:len(headline)-len(course_name)]
+        title = driver.find_element(
+            By.CSS_SELECTOR, title_selector).get_attribute('content')
+        if course_name in title:
+            file_name = title[:len(title)-len(course_name)]
         else:
-            file_name = headline
+            file_name = title
     print("File Name Found")
     return slugify(file_name, replacements=[['+', 'plus']]).replace("-", " ")
 
