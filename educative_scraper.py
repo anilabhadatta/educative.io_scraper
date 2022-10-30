@@ -144,7 +144,7 @@ def get_file_name(driver, course_folder=False):
     canonical_selector = "link[rel='canonical']"
 
     els = driver.find_elements(By.CSS_SELECTOR, canonical_selector)
-    if els:
+    if len(els) > 0:
         print("> This is a module page")
         return get_file_name_from_module(driver, course_folder)
     else:
