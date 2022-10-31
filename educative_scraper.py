@@ -99,8 +99,7 @@ def open_slides(driver):
         print("No Slides Found")
 
 
-def get_file_name(driver, course_folder=False):
-    print("Getting File Name")
+def get_file_name_standard(driver, course_folder=False):
     meta_script_selector = "script[type='application/ld+json']"
     title_selector = "meta[property='og:title']"
 
@@ -122,6 +121,35 @@ def get_file_name(driver, course_folder=False):
             file_name = title
     print("File Name Found")
     return slugify(file_name, replacements=[['+', 'plus']]).replace("-", " ")
+
+
+def get_file_name_from_module(driver, course_folder=False):
+    title_selector = "meta[property='og:title']"
+    els = driver.find_elements(By.CSS_SELECTOR, title_selector)
+
+    assert len(els) == 2, "Expected to find two og:title elements."
+
+    # we're interested in the 2nd og:title, as it contains the course and page names
+    page_name, course_name = els[1].get_attribute('content').split(' - ')
+    assert len(page_name) > 0 and len(course_name) > 0, "page and/or course name not found"
+
+    return course_name if course_folder else page_name
+
+
+def get_file_name(driver, course_folder=False):
+    print("Getting File Name")
+
+    # is that a regular page or module page?
+    # TODO: is there a proper/better way to differentiate?
+    canonical_selector = "link[rel='canonical']"
+
+    els = driver.find_elements(By.CSS_SELECTOR, canonical_selector)
+    if len(els) > 0:
+        print("> This is a module page")
+        return get_file_name_from_module(driver, course_folder)
+    else:
+        print("> This is a regular page")
+        return get_file_name_standard(driver, course_folder)
 
 
 def delete_node(driver, node, xpath=False):
