@@ -46,7 +46,8 @@
 
       Git
       Python 3.9+
-      OS: Win/Mac(Intel)/Linux(ARM/AMD)
+      OS: Win/Mac(Intel)/Linux(ARM/AMD) 64bit
+      Replace the word "python3" with "python" in the following commands for Windows OS only.
 
 
 ### Step 1: Clone the repository and create a terminal inside the cloned directory and run the following commands.
