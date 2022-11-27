@@ -5,7 +5,7 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : 6.6 || Release Version 5.7 (Latest Version TBA)
+      Repo Version : 6.7 || Release Version 5.7 (Latest Version TBA)
 
 ## How to use the Scraper?
 
@@ -48,7 +48,6 @@
       Python 3.9+
       OS: Win/Mac(Intel)/Linux(ARM/AMD) 64bit
       Replace the word "python3" with "python" in the following commands for Windows OS only.
-
 
 ### Step 1: Clone the repository and create a terminal inside the cloned directory and run the following commands.
 

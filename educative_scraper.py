@@ -131,7 +131,8 @@ def get_file_name_from_module(driver, course_folder=False):
 
     # we're interested in the 2nd og:title, as it contains the course and page names
     page_name, course_name = els[1].get_attribute('content').split(' - ')
-    assert len(page_name) > 0 and len(course_name) > 0, "page and/or course name not found"
+    assert len(page_name) > 0 and len(
+        course_name) > 0, "page and/or course name not found"
 
     return course_name if course_folder else page_name
 
@@ -871,7 +872,7 @@ def demark_as_completed(driver):
 
 def click_option_quiz(driver, quiz_container):
     print("Click on Option Quiz")
-    option_selector = "div[class*='styles__CheckBoxIcon'] > svg"
+    option_selector = "div[class*='question-option-view']"
     action = ActionChains(driver)
 
     try:
@@ -887,6 +888,7 @@ def click_option_quiz(driver, quiz_container):
 def quiz_container_html(driver, quiz_container):
     print("Take Quiz Screenshot Function")
     # container_screenshot = screenshot_as_cdp(driver, quiz_container)
+    quiz_container.location_once_scrolled_into_view
     container_screenshot = quiz_container.screenshot_as_base64
     sleep(1)
     return f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
@@ -895,7 +897,7 @@ def quiz_container_html(driver, quiz_container):
 def click_right_button_quiz(driver, quiz_container):
     print("Clicking on Right button in Quiz")
     action = ActionChains(driver)
-    right_button_selector = "button[class*='SlideRightButton']"
+    right_button_selector = "button[class*='Button_quiz-widget-controls']:last-child"
 
     quiz_html = ""
     right_button = quiz_container.find_elements(
@@ -962,7 +964,7 @@ def click_submit_quiz(driver, quiz_container):
 
 def take_quiz_screenshot(driver):
     print("Inside take_quiz_screenshot function")
-    quiz_container_selector = "div[class*='styles__QuestionSlide']"
+    quiz_container_selector = "div[class*='quiz-view-mode']"
     quiz_html = ""
 
     quiz_containers = driver.find_elements(
