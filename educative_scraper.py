@@ -12,6 +12,7 @@ import zipfile
 import json
 import sys
 import base64
+import re
 
 
 OS_ROOT = os.path.expanduser('~')
@@ -100,6 +101,7 @@ def open_slides(driver):
 
 
 def get_file_name_standard(driver, course_folder=False):
+    print("Get File name standard")
     meta_script_selector = "script[type='application/ld+json']"
     title_selector = "meta[property='og:title']"
 
@@ -109,32 +111,39 @@ def get_file_name_standard(driver, course_folder=False):
         meta_content = json.loads(meta_element.get_attribute('innerHTML'))
         if "name" in meta_content:
             break
-    if course_folder:
-        file_name = meta_content['name']
+    course_name = meta_content['name']
+
+    title = driver.find_element(
+        By.CSS_SELECTOR, title_selector).get_attribute('content')
+    if course_name in title:
+        page_name = title[:len(title)-len(course_name)]
     else:
-        course_name = meta_content['name']
-        title = driver.find_element(
-            By.CSS_SELECTOR, title_selector).get_attribute('content')
-        if course_name in title:
-            file_name = title[:len(title)-len(course_name)]
-        else:
-            file_name = title
-    print("File Name Found")
-    return slugify(file_name, replacements=[['+', 'plus']]).replace("-", " ")
+        page_name = title
+
+    return course_name if course_folder else page_name
 
 
 def get_file_name_from_module(driver, course_folder=False):
+    print("Get File name module")
     title_selector = "meta[property='og:title']"
-    els = driver.find_elements(By.CSS_SELECTOR, title_selector)
+    article_selector = "div[id='handleArticleScroll']"
 
-    assert len(els) == 2, "Expected to find two og:title elements."
+    title_els = driver.find_elements(By.CSS_SELECTOR, title_selector)
+    article_ele = driver.find_elements(By.CSS_SELECTOR, article_selector)
 
-    # we're interested in the 2nd og:title, as it contains the course and page names
-    page_name, course_name = els[1].get_attribute('content').split(' - ')
-    assert len(page_name) > 0 and len(
-        course_name) > 0, "page and/or course name not found"
+    assert len(
+        title_els) == 2 and len(article_ele) > 0, "Expected to find two og:title elements."
 
+    title = title_els[1].get_attribute('content')
+    h1_title = article_ele[0].find_element(By.TAG_NAME, 'h1').text
+
+    course_name, page_name = title[len(h1_title):], h1_title
     return course_name if course_folder else page_name
+
+
+def replace_filename(str):
+    numDict = {':': ' ', '?': ' ', '|': ' ', '>': ' ', '<': ' ', '/': ' '}
+    return numDict[str.group()]
 
 
 def get_file_name(driver, course_folder=False):
@@ -147,10 +156,13 @@ def get_file_name(driver, course_folder=False):
     els = driver.find_elements(By.CSS_SELECTOR, canonical_selector)
     if len(els) > 0:
         print("> This is a module page")
-        return get_file_name_from_module(driver, course_folder)
+        file_name = get_file_name_from_module(driver, course_folder)
     else:
         print("> This is a regular page")
-        return get_file_name_standard(driver, course_folder)
+        file_name = get_file_name_standard(driver, course_folder)
+    file_name = slugify(file_name, replacements=[
+                        ['+', 'plus']]).replace("-", " ")
+    return re.sub(r'[:?|></]', replace_filename, file_name)
 
 
 def delete_node(driver, node, xpath=False):
