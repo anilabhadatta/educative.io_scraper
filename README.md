@@ -47,7 +47,7 @@
       Git
       Python 3.9+
       OS: Win/Mac(Intel)/Linux(ARM/AMD) 64bit
-      Replace the word "python3" with "python" in the following commands for Windows OS only.
+      Replace the word "python3" with "python" and "pip3" with "pip" in the following commands for Windows OS only.
 
 ### Step 1: Clone the repository and create a terminal inside the cloned directory and run the following commands.
 
@@ -79,9 +79,9 @@
       python3 chromedriver.py
       python3 educative_scraper.py
 
-### Step 7: Refer, **[How to use the Scraper?](#how-to-use-the-scraper)** explained above except 2nd point.
+### Step 7: Refer, **[How to use the Scraper?](#how-to-use-the-scraper)** explained above, except the 2nd point.
 
-## Disable Chrome Updates for MacOS
+## Disable Chrome Updates for MacOS (Risky Method - Cannot revert back and Enable chrome updates again)
 ![image](https://user-images.githubusercontent.com/48487849/205585669-e8d9d5bd-9d41-405f-84a5-1d571849997c.png)
 
 ## (Optional) To Build the chromedriver and educative-scraper executables using pyinstaller:
