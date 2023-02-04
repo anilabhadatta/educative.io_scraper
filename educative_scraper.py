@@ -990,32 +990,49 @@ def take_quiz_screenshot(driver):
     return quiz_html
 
 
-def mark_down_quiz(driver):
-    print("Inside Mark Down Quiz function")
-    quiz_container_selector = "span[class*='markdownViewerQuiz']"
+def find_mark_down_quiz_containers(driver):
+    print("Inside find_mark_down_quiz_containers function")
+    div_selector = "div[role*='button']"
+    right_button_selector = "button[class*='Button_circle-button']:last-child"
+    action = ActionChains(driver)
+
+    quiz_containers = driver.find_elements(
+        By.CSS_SELECTOR, div_selector)
+    quiz_html = ""
+    if quiz_containers:
+        quiz_container = quiz_containers[0].find_element(
+            By.XPATH, "../../../../..")
+        right_button = quiz_container.find_elements(
+            By.CSS_SELECTOR, right_button_selector)
+        if right_button:
+            while True:
+                click_on_mark_down_quiz(driver, quiz_container)
+                quiz_html += quiz_container_html(driver, quiz_container)
+                if right_button[0].get_attribute("disabled"):
+                    break
+                right_button = quiz_container.find_elements(
+                    By.CSS_SELECTOR, right_button_selector)
+                action.move_to_element(right_button[0]).click().perform()
+                sleep(1)
+        else:
+            print("No right button found in Mark Down Quiz")
+            click_on_mark_down_quiz(driver, quiz_container)
+    else:
+        print("No mark down quiz_container found")
+    return quiz_html
+
+
+def click_on_mark_down_quiz(driver, quiz_container):
+    print("Clicking on Mark Down Quiz function")
     div_buttons_selector = "div[role*='button']"
     action = ActionChains(driver)
 
-    '''
-    quiz_containers = driver.find_elements(
-        By.CSS_SELECTOR, quiz_container_selector)
-    if quiz_containers:
-        quiz_container = quiz_containers[0].find_element(
-            By.XPATH, "../../../../../..")
-        div_buttons = quiz_container.find_elements(
-            By.CSS_SELECTOR, div_buttons_selector)
-        for idx in range(len(div_buttons)):
-            div_button = quiz_container.find_elements(
-                By.CSS_SELECTOR, div_buttons_selector)[idx]
-            action.move_to_element(div_button).click().perform()
-            sleep(1)
-    '''
-    quiz_containers = driver.find_elements(
+    div_containers = quiz_container.find_elements(
         By.CSS_SELECTOR, div_buttons_selector)
-    if quiz_containers:
-        for quiz_container in quiz_containers:
-            if quiz_container.find_element(By.CSS_SELECTOR, "span").text == "Show Answer":
-                action.move_to_element(quiz_container).click().perform()
+    if div_containers:
+        for div_container in div_containers:
+            if div_container.find_element(By.CSS_SELECTOR, "span").text == "Show Answer":
+                action.move_to_element(div_container).click().perform()
                 sleep(1)
     else:
         print("No mark down quiz_container found")
@@ -1079,6 +1096,7 @@ def add_name_tag_in_next_back_button(driver):
 
 
 def scrape_page(driver, file_index):
+    quiz_html = ""
     scroll_page(driver)
     wait_webdriver(driver)
     title = get_file_name(driver)
@@ -1087,11 +1105,11 @@ def scrape_page(driver, file_index):
     driver.set_window_size(1920, get_current_height(driver))
     remove_nav_tags(driver)
     show_hints_answer(driver)
-    mark_down_quiz(driver)
+    quiz_html += find_mark_down_quiz_containers(driver)
     show_code_box_answer(driver)
     open_slides(driver)
     create_folder(file_name)
-    quiz_html = take_quiz_screenshot(driver)
+    quiz_html += take_quiz_screenshot(driver)
     # take_screenshot(driver, file_name, quiz_html)
     add_name_tag_in_next_back_button(driver)
     fix_all_svg_tags_inside_object_tags(driver)
