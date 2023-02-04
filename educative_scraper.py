@@ -149,7 +149,7 @@ def replace_filename(str):
 def get_file_name(driver, course_folder=False):
     print("Getting File Name")
 
-    # is that a regular page or module page?
+    # is that a standard page or module page?
     # TODO: is there a proper/better way to differentiate?
     canonical_selector = "link[rel='canonical']"
 
@@ -158,8 +158,11 @@ def get_file_name(driver, course_folder=False):
         print("> This is a module page")
         file_name = get_file_name_from_module(driver, course_folder)
     else:
-        print("> This is a regular page")
-        file_name = get_file_name_standard(driver, course_folder)
+        print("> This is a standard page")
+        try:
+            file_name = get_file_name_standard(driver, course_folder)
+        except:
+            file_name = get_file_name_from_module(driver, course_folder)
     file_name = slugify(file_name, replacements=[
                         ['+', 'plus']]).replace("-", " ")
     return re.sub(r'[:?|></]', replace_filename, file_name)
@@ -994,11 +997,11 @@ def find_mark_down_quiz_containers(driver):
     print("Inside find_mark_down_quiz_containers function")
     div_selector = "div[role*='button']"
     right_button_selector = "button[class*='Button_circle-button']:last-child"
+    quiz_html = ""
     action = ActionChains(driver)
 
     quiz_containers = driver.find_elements(
         By.CSS_SELECTOR, div_selector)
-    quiz_html = ""
     if quiz_containers:
         quiz_container = quiz_containers[0].find_element(
             By.XPATH, "../../../../..")
