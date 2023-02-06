@@ -91,12 +91,9 @@ def open_slides(driver):
         By.CSS_SELECTOR, svg_label)
     if slides:
         while slides:
-            try:
-                action.move_to_element(slides[0]).click().perform()
-                sleep(1)
-                print("Slides opened")
-            except:
-                pass
+            action.move_to_element(slides[0]).click().perform()
+            sleep(1)
+            print("Slides opened")
             slides = driver.find_elements(By.CSS_SELECTOR, svg_label)
         sleep(10)
     else:
