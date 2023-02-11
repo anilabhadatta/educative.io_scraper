@@ -512,8 +512,8 @@ def download_code_manually(driver, code):
 
 def code_container_download_type(driver):
     print("Code Container Download Type Function")
-    code_container_selector = "div[class*='styles__Spa_Container']"
-    div_class_selector = "div[class*='styles__Buttons']"
+    code_container_selector = "div[class*='code-tabs-code-wrapper']"
+    div_class_selector = "div[aria-label*='webpackbin-tabs']"
     download_svg_selector = "svg:not([title])"
     action = ActionChains(driver)
 
@@ -529,7 +529,7 @@ def code_container_download_type(driver):
                 buttons = code.find_elements(
                     By.CSS_SELECTOR, div_class_selector)
             if buttons:
-                download_button = buttons[0].find_elements(
+                download_button = code.find_elements(
                     By.CSS_SELECTOR, download_svg_selector)
                 if download_button:
                     create_folder("code_downloaded" + str(folder_index))
@@ -591,7 +591,7 @@ def write_code(file_name, content):
 def iterate_top_nav_bar(code, top_nav_bar_buttons, side_nav_bar_butttons, driver, folder_index):
     print('Inside iterate_top_nav_bar function')
     nav_bar_tab_title = "span[id*='tab-title']"
-    side_nav_bar_butttons_selector = "div[class*='Widget__FilesList'] > div > div"
+    side_nav_bar_butttons_selector = "div[class*='Widget_multi-files'] > div > div > div > :not(div[class*='monaco-editor'])"
 
     for idx in range(len(top_nav_bar_buttons)):
         nav_bar_tab = find_nav_bar_buttons(driver, folder_index)
@@ -620,7 +620,7 @@ def iterate_top_nav_bar(code, top_nav_bar_buttons, side_nav_bar_butttons, driver
 
 def iterate_side_nav_bar(code, side_nav_bar_butttons, driver, nav_bar_file_name=""):
     print("Inside iterate_side_nav_bar function")
-    side_nav_bar_butttons_selector = "div[class*='Widget__FilesList'] > div > div"
+    side_nav_bar_butttons_selector = "div[class*='Widget_multi-files'] > div > div > div > :not(div[class*='monaco-editor'])"
     action = ActionChains(driver)
 
     for idx in range(len(side_nav_bar_butttons)):
@@ -643,7 +643,7 @@ def iterate_side_nav_bar(code, side_nav_bar_butttons, driver, nav_bar_file_name=
 
 def find_and_write_code_solutions(driver, code, file_index):
     print("Solution copying Function")
-    solution_code_selector = "div[class*='styles__Buttons_Wrapper']"
+    solution_code_selector = "div[class*='runnable-enter-done']"
 
     code = code.find_element(By.XPATH, "../..").find_elements(
         By.CSS_SELECTOR, solution_code_selector)
@@ -682,7 +682,7 @@ def find_nav_bar_buttons(driver, folder_index):
 def code_container_clipboard_type(driver):
     print("Code Container Clipboard Type Function")
     code_container_selector = "div[class*='code-container']"
-    side_nav_bar_butttons_selector = "div[class*='Widget__FilesList'] > div > div"
+    side_nav_bar_butttons_selector = "div[class*='Widget_multi-files'] > div > div > div > :not(div[class*='monaco-editor'])"
     textbox_selector = "textarea[class*='temptextarea']"
 
     code_containers = driver.find_elements(
@@ -1332,7 +1332,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 7.0), developed by Anilabha Datta
+                        Educative Scraper (version 7.1), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
