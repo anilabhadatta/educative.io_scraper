@@ -85,10 +85,6 @@
 
 ### Step 7: Refer, **[How to use the Scraper?](#how-to-use-the-scraper)** explained above, except the 2nd point.
 
-## Disable Chrome Updates for MacOS (Risky Method - Cannot revert back and Enable chrome updates again)
-
-![image](https://user-images.githubusercontent.com/48487849/205585669-e8d9d5bd-9d41-405f-84a5-1d571849997c.png)
-
 ## (Optional) To Build the chromedriver and educative-scraper executables using pyinstaller:
 
 #### Activate the Virtual Environment and Install the required modules for the project (Refer Step 2, 3, 4 above).
