@@ -9,6 +9,7 @@
       Update 6.9: Added support for scraping a special type of quiz container (Mark Down Quiz) in the course.
       Update 7.0: Fixed File name where "name" is not present in meta property og:title.
       Update 7.1: Various bug fixes related to code containers and improvements.
+      Update 7.2: Added Chromedriver(v98) for Mac M1, if there is a different chrome binary for M1 chip, please do inform me.
 
 ## How to use the Scraper?
 

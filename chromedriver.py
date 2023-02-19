@@ -8,7 +8,10 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 def get_binary_path():
     current_os = sys.platform
     if current_os.startswith('darwin'):
-        chromedriver = r'mac/chromedriver'
+        if platform.machine() == 'x86_64':
+            chromedriver = r'mac_x86/chromedriver'
+        else:
+            chromedriver = r'mac_arm64/chromedriver'
     elif current_os.startswith('linux'):
         if platform.machine() == 'aarch64':
              chromedriver = r'linux_arm64/chromedriver'
