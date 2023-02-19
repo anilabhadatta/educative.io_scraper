@@ -9,7 +9,7 @@ def get_binary_path():
     current_os = sys.platform
     if current_os.startswith('darwin'):
         if platform.machine() == 'x86_64':
-            chromedriver = r'mac_x86/chromedriver'
+            chromedriver = r'mac_x86_64/chromedriver'
         else:
             chromedriver = r'mac_arm64/chromedriver'
     elif current_os.startswith('linux'):
