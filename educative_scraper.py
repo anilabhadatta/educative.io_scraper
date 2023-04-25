@@ -1034,9 +1034,12 @@ def click_on_mark_down_quiz(driver, quiz_container):
         By.CSS_SELECTOR, div_buttons_selector)
     if div_containers:
         for div_container in div_containers:
-            if div_container.find_element(By.CSS_SELECTOR, "span").text == "Show Answer":
-                action.move_to_element(div_container).click().perform()
-                sleep(1)
+            try:
+                if div_container.find_element(By.CSS_SELECTOR, "span").text == "Show Answer":
+                    action.move_to_element(div_container).click().perform()
+                    sleep(1)
+            except:
+                pass
     else:
         print("No mark down quiz_container found")
 
@@ -1282,7 +1285,7 @@ def select_config():
     base_config_path = create_base_config_dir()
     print("\nIf you are creating a new config, please select 1 in main menu to generate the new config and also you must login your educative account.\n")
 
-    if len(os.listdir(base_config_path)) > 1:
+    if len(os.listdir(base_config_path)) > 0:
         for configs in os.listdir(base_config_path):
             if ".json" in configs:
                 print(configs)
