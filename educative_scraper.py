@@ -85,16 +85,17 @@ def next_page(driver):
 def open_slides(driver):
     print("Finding Slides Function")
     svg_label = "svg[aria-label*='view all slides']"
-    action = ActionChains(driver)
 
     slides = driver.find_elements(
         By.CSS_SELECTOR, svg_label)
     if slides:
-        while slides:
-            action.move_to_element(slides[0]).click().perform()
-            sleep(1)
-            print("Slides opened")
-            slides = driver.find_elements(By.CSS_SELECTOR, svg_label)
+        print("Slides Found")
+        driver.execute_script('''
+        ele = document.querySelectorAll("svg[aria-label*='view all slides']");
+        for(i=0;i<ele.length;i++){
+            ele[i].parentNode.click();
+        }
+        ''')
         sleep(10)
     else:
         print("No Slides Found")
@@ -353,16 +354,16 @@ def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
 def show_hints_answer(driver):
     print("Show Hints Function")
     hints_g_id_selector = "g[id*='noun_lightbulb']"
-    action = ActionChains(driver)
 
     hints_list = driver.find_elements(
         By.CSS_SELECTOR, hints_g_id_selector)
     if hints_list:
-        for idx in range(len(hints_list)):
-            hints_list = driver.find_elements(
-                By.CSS_SELECTOR, hints_g_id_selector)
-            action.move_to_element(hints_list[idx]).click().perform()
-            sleep(1)
+        driver.execute_script('''
+            ele = document.querySelectorAll("g[id*='noun_lightbulb']");
+            for(i=0;i<ele.length;i++){
+            ele[i].closest('svg').parentNode.click();
+            }
+        ''')
         print("Show Hints Complete")
     else:
         print("No hints found")
