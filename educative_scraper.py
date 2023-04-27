@@ -63,7 +63,7 @@ def create_course_folder(driver, url):
     print("Create Course Folder Function")
     course_name = get_file_name(driver, True)
     create_folder(course_name)
-    print("Inside Course Folder")
+    print("Inside Course Folder", course_name)
 
 
 def next_page(driver):
@@ -134,9 +134,10 @@ def get_file_name_from_module(driver, course_folder=False):
     assert len(
         title_els) == 2 and len(article_ele) > 0, "Expected to find two og:title elements."
 
-    title = title_els[1].get_attribute('content')
-    h1_title = article_ele[0].find_element(By.TAG_NAME, 'h1').text
-
+    title = title_els[0].get_attribute('content').strip()
+    h1_title = article_ele[0].find_element(By.TAG_NAME, 'h1').text.strip()
+    if title == h1_title:
+        title = title_els[1].get_attribute('content').strip()
     course_name, page_name = title[len(h1_title):], h1_title
     return course_name if course_folder else page_name
 
