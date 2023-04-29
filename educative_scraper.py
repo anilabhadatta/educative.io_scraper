@@ -78,8 +78,21 @@ def next_page(driver):
     if "Next Module" in check_next_module:
         return False
     driver.execute_script(base_js_cmd + ".click()")
+    check_for_streaks_modal(driver)
     print("Going Next Page")
     return True
+
+
+def check_for_streaks_modal(driver):
+    print("Check for streaks modal")
+    streaks_modal_selector = "div[aria-labelledby*='simple-modal-title']"
+    streaks_modal = driver.find_elements(
+        By.CSS_SELECTOR, streaks_modal_selector)
+    if streaks_modal:
+        print("Streaks modal found")
+        streaks_modal[0].find_element(By.CSS_SELECTOR, 'button').click()
+    else:
+        print("No Streaks modal found")
 
 
 def open_slides(driver):
@@ -191,11 +204,13 @@ def delete_node(driver, node, xpath=False):
 def remove_nav_tags(driver):
     print("Removing Nav tags from page")
     nav_node = f"div[class*='ed-grid'] > nav"
+    privacy_div = "div[aria-label*='Your Privacy']"
     ask_a_question_xpath = "//*[@id='ReaderPreferencesButton']/parent::div"
 
     delete_node(driver, nav_node)
     delete_node(driver, nav_node)
-    # delete_node(driver, ask_a_question_xpath, True)
+    delete_node(driver, privacy_div)
+    delete_node(driver, ask_a_question_xpath, True)
     sleep(2)
 
 
@@ -893,6 +908,8 @@ def click_option_quiz(driver, quiz_container):
     action = ActionChains(driver)
 
     try:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, option_selector)))
         option = quiz_container.find_element(
             By.CSS_SELECTOR, option_selector)
         option.location_once_scrolled_into_view
@@ -905,6 +922,8 @@ def click_option_quiz(driver, quiz_container):
 def quiz_container_html(driver, quiz_container):
     print("Take Quiz Screenshot Function")
     # container_screenshot = screenshot_as_cdp(driver, quiz_container)
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.CSS_SELECTOR, "div[class*='question-option-view']")))
     quiz_container.location_once_scrolled_into_view
     container_screenshot = quiz_container.screenshot_as_base64
     sleep(1)
@@ -933,7 +952,6 @@ def click_right_button_quiz(driver, quiz_container):
             break
         action.move_to_element(right_button[0]).click().perform()
         print("Clicking on Right button")
-        sleep(1)
         click_on_submit_dialog_if_visible(driver)
         right_button = quiz_container.find_elements(
             By.CSS_SELECTOR, right_button_selector)
