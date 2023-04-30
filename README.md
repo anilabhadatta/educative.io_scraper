@@ -5,7 +5,7 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : 7.6 (latest) || Release Version 6.8
+      Repo Version : 7.7 (latest) || Release Version 6.8
       Update 6.9: Added support for scraping a special type of quiz container (Mark Down Quiz) in the course.
       Update 7.0: Fixed File name where "name" is not present in meta property og:title.
       Update 7.1: Various bug fixes related to code containers and improvements.
@@ -13,6 +13,7 @@
       Update 7.4: Fixed File Name for Modules
       Update 7.5: Fixed Slides Opening and Hints Opening issue
       Update 7.6: Fixed Quiz Questions skipped issue
+      Update 7.7: Fixed removing of unecessary tags
 
 ## How to use the Scraper?
 

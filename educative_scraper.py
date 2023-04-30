@@ -196,21 +196,23 @@ def delete_node(driver, node, xpath=False):
         driver.execute_script(f"""
                                 var element = document.querySelectorAll("{node}");
                                 if (element.length > 0)
-                                    element[element.length - 1].parentNode.removeChild(element[element.length - 1]);
+                                    for(i=0; i<element.length; i++){{
+                                        element[i].remove();
+                                    }}
                                 """)
     sleep(1)
 
 
-def remove_nav_tags(driver):
-    print("Removing Nav tags from page")
+def remove_tags(driver):
+    print("Removing Unnecessary Tags from page")
     nav_node = f"div[class*='ed-grid'] > nav"
     privacy_div = "div[aria-label*='Your Privacy']"
-    ask_a_question_xpath = "//*[@id='ReaderPreferencesButton']/parent::div"
+    ask_a_question_and_dark_mode_toolbar = "div[id*='view-collection-article-content-root']> :not(#handleArticleScroll) > *"
 
     delete_node(driver, nav_node)
     delete_node(driver, nav_node)
     delete_node(driver, privacy_div)
-    delete_node(driver, ask_a_question_xpath, True)
+    delete_node(driver, ask_a_question_and_dark_mode_toolbar)
     sleep(2)
 
 
@@ -280,7 +282,7 @@ def screenshot_as_cdp(driver, ele_to_screenshot):
 
 def take_screenshot(driver, file_name, quiz_html):
     print("Take Screenshot Function")
-    article_page_selector = "//*[@id='handleArticleScroll']/div/div/div/div"
+    article_page_selector = "(//div[@id='handleArticleScroll']//div[count(div)>=2])[1]"
     project_page_selector = "div[class*='Page']"
     general_page_selector = "div[class*='PageContent']"
 
@@ -325,20 +327,20 @@ def make_code_selectable(driver):
 
 def single_file_js_executer(driver):
     return driver.execute_script('''
-                                            const { content, title, filename } = await singlefile.getPageData({
-                                                removeImports: true,
-                                                removeScripts: true,
-                                                removeAudioSrc: true,
-                                                removeVideoSrc: true,
-                                                removeHiddenElements: true,
-                                                removeUnusedStyles: true,
-                                                removeUnusedFonts: true,
-                                                compressHTML: true,
-                                                blockVideos: true,
-                                                blockScripts: true,
-                                                networkTimeout: 60000
-                                            });
-                                            return content;
+                                    const { content, title, filename } = await singlefile.getPageData({
+                                        removeImports: true,
+                                        removeScripts: true,
+                                        removeAudioSrc: true,
+                                        removeVideoSrc: true,
+                                        removeHiddenElements: true,
+                                        removeUnusedStyles: true,
+                                        removeUnusedFonts: true,
+                                        compressHTML: true,
+                                        blockVideos: true,
+                                        blockScripts: true,
+                                        networkTimeout: 60000
+                                    });
+                                    return content;
     ''')
 
 
@@ -1129,7 +1131,7 @@ def scrape_page(driver, file_index):
     check_page(title)
     file_name = str(file_index) + "-" + title
     driver.set_window_size(1920, get_current_height(driver))
-    remove_nav_tags(driver)
+    remove_tags(driver)
     show_hints_answer(driver)
     quiz_html += find_mark_down_quiz_containers(driver)
     show_code_box_answer(driver)
