@@ -127,7 +127,7 @@ def get_file_name_standard(driver, course_folder=False):
 def get_file_name_from_module(driver, course_folder=False):
     print("Get File name module")
     title_selector = "meta[property='og:title']"
-    article_selector = "div[id='handleArticleScroll']"
+    article_selector = "div[id='view-collection-article-content-root']"
 
     title_els = driver.find_elements(By.CSS_SELECTOR, title_selector)
     article_ele = driver.find_elements(By.CSS_SELECTOR, article_selector)
@@ -1122,30 +1122,38 @@ def add_name_tag_in_next_back_button(driver):
         pass
 
 
+def check_for_project(driver):
+    print("Skipping", driver.current_url)
+    if "project" in driver.current_url:
+        return True
+    return False
+
+
 def scrape_page(driver, file_index):
     quiz_html = ""
     scroll_page(driver)
     wait_webdriver(driver)
-    title = get_file_name(driver)
-    check_page(title)
-    file_name = str(file_index) + "-" + title
-    driver.set_window_size(1920, get_current_height(driver))
-    remove_tags(driver)
-    add_style_tag_with_filter(driver)
-    show_hints_answer(driver)
-    quiz_html += find_mark_down_quiz_containers(driver)
-    show_solutions(driver)
-    open_slides(driver)
-    create_folder(file_name)
-    quiz_html += take_quiz_screenshot(driver)
-    # take_full_html_screenshot(driver, file_name, quiz_html)
-    add_name_tag_in_next_back_button(driver)
-    fix_all_svg_tags_inside_object_tags(driver)
-    get_pagecontent_using_singleFile(driver, file_name, quiz_html)
-    code_widget_type(driver)
-    code_container_download_type(driver)
-    code_container_clipboard_type(driver)
-    demark_as_completed(driver)
+    if not check_for_project(driver):
+        title = get_file_name(driver)
+        check_page(title)
+        file_name = str(file_index) + "-" + title
+        driver.set_window_size(1920, get_current_height(driver))
+        remove_tags(driver)
+        add_style_tag_with_filter(driver)
+        show_hints_answer(driver)
+        quiz_html += find_mark_down_quiz_containers(driver)
+        show_solutions(driver)
+        open_slides(driver)
+        create_folder(file_name)
+        quiz_html += take_quiz_screenshot(driver)
+        # take_full_html_screenshot(driver, file_name, quiz_html)
+        add_name_tag_in_next_back_button(driver)
+        fix_all_svg_tags_inside_object_tags(driver)
+        get_pagecontent_using_singleFile(driver, file_name, quiz_html)
+        code_widget_type(driver)
+        code_container_download_type(driver)
+        code_container_clipboard_type(driver)
+        demark_as_completed(driver)
 
     if not next_page(driver):
         sleep(5)
@@ -1184,6 +1192,10 @@ def load_webpage(driver, url):
     _, save_path, _ = load_config()
     driver.get(url)
     sleep(10)
+    while check_for_project(driver):
+        if not next_page(driver):
+            break
+        sleep(5)
     log_url = url
     if not check_login(driver):
         create_log(file_index, log_url, save_path, "Not logged in")
@@ -1357,7 +1369,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 7.9), developed by Anilabha Datta
+                        Educative Scraper (version 8.0), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
