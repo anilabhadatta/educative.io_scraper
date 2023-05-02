@@ -78,21 +78,8 @@ def next_page(driver):
     if "Next Module" in check_next_module:
         return False
     driver.execute_script(base_js_cmd + ".click()")
-    check_for_streaks_modal(driver)
     print("Going Next Page")
     return True
-
-
-def check_for_streaks_modal(driver):
-    print("Check for streaks modal")
-    streaks_modal_selector = "div[aria-labelledby*='simple-modal-title']"
-    streaks_modal = driver.find_elements(
-        By.CSS_SELECTOR, streaks_modal_selector)
-    if streaks_modal:
-        print("Streaks modal found")
-        streaks_modal[0].find_element(By.CSS_SELECTOR, 'button').click()
-    else:
-        print("No Streaks modal found")
 
 
 def open_slides(driver):
@@ -148,7 +135,9 @@ def get_file_name_from_module(driver, course_folder=False):
     assert len(
         title_els) == 2 and len(article_ele) > 0, "Expected to find two og:title elements."
 
-    title = title_els[0].get_attribute('content').strip()
+    titles = [title_el.get_attribute('content').strip()
+              for title_el in title_els]
+    title = max(titles, key=len)
     h1_title = article_ele[0].find_element(By.TAG_NAME, 'h1').text.strip()
     if title == h1_title:
         title = title_els[1].get_attribute('content').strip()
@@ -186,14 +175,7 @@ def get_file_name(driver, course_folder=False):
 def delete_node(driver, node, xpath=False):
     print("Node deleted", node)
 
-    if xpath:
-        driver.execute_script(f"""
-                            var element = document.evaluate("{node}", document, null, XPathResult.ANY_UNORDERED_NODE_TYPE, null).singleNodeValue;
-                            if (element)
-                                element.parentNode.removeChild(element);
-                            """)
-    else:
-        driver.execute_script(f"""
+    driver.execute_script(f"""
                                 var element = document.querySelectorAll("{node}");
                                 if (element.length > 0)
                                     for(i=0; i<element.length; i++){{
@@ -208,11 +190,12 @@ def remove_tags(driver):
     nav_node = f"div[class*='ed-grid'] > nav"
     privacy_div = "div[aria-label*='Your Privacy']"
     ask_a_question_and_dark_mode_toolbar = "div[id*='view-collection-article-content-root']> :not(#handleArticleScroll) > *"
+    streak_div = "div[aria-labelledby*='simple-modal-title']"
 
-    delete_node(driver, nav_node)
     delete_node(driver, nav_node)
     delete_node(driver, privacy_div)
     delete_node(driver, ask_a_question_and_dark_mode_toolbar)
+    delete_node(driver, streak_div)
     sleep(2)
 
 
@@ -258,7 +241,7 @@ def send_command(driver, cmd, params={}):
     return response.get('value')
 
 
-def screenshot_as_cdp(driver, ele_to_screenshot):
+def screenshot_as_cdp(driver, ele_to_screenshot, scale=0.8):
 
     sleep(1)
     size, location = ele_to_screenshot.size, ele_to_screenshot.location
@@ -273,24 +256,23 @@ def screenshot_as_cdp(driver, ele_to_screenshot):
             "height": height,
             "x": x,
             "y": y,
-            "scale": 1
+            "scale": scale
         }
     }
     screenshot = send_command(driver, "Page.captureScreenshot", params)
     return screenshot['data']
 
 
-def take_screenshot(driver, file_name, quiz_html):
+def take_full_html_screenshot(driver, file_name, quiz_html):
     print("Take Screenshot Function")
     article_page_selector = "(//div[@id='handleArticleScroll']//div[count(div)>=2])[1]"
-    project_page_selector = "div[class*='Page']"
-    general_page_selector = "div[class*='PageContent']"
+    general_page_selector = "(//div[@id='view-collection-article-content-root']//div[count(div)>=2])[1]"
 
     ele_to_screenshot = driver.find_elements(
-        By.CSS_SELECTOR, general_page_selector) or driver.find_elements(
-        By.XPATH, article_page_selector)
+        By.XPATH, article_page_selector) or driver.find_elements(
+        By.CSS_SELECTOR, general_page_selector)
 
-    base_64_png = screenshot_as_cdp(driver, ele_to_screenshot[0])
+    base_64_png = screenshot_as_cdp(driver, ele_to_screenshot[0], 1)
     sleep(2)
     create_html_with_image(file_name, base_64_png, quiz_html)
     print("Screenshot taken and HTML File generated")
@@ -298,19 +280,25 @@ def take_screenshot(driver, file_name, quiz_html):
 
 def fix_all_svg_tags_inside_object_tags(driver):
     print("Fixing SVG Tags inside Object Tags")
-    driver.execute_script('''
-                            iframes = document.querySelectorAll("object")
-                            for (var i = 0; i < iframes.length; i++) {
-                                try{
+    object_tag_selector = "object[role='img']"
+    driver.execute_script(f'''
+                            iframes = document.querySelectorAll("{object_tag_selector}")
+                            for (var i = 0; i < iframes.length; i++) {{
+                                try{{
                                     svg_element = iframes[i].contentDocument.documentElement;
-                                    iframes[i].parentNode.append(svg_element);
                                     cls_name = iframes[i].className;
+                                    parent_tag = iframes[i].parentNode;
+                                    children_tags = iframes[i].parentNode.children;
+                                    for(j=0;j<children_tags.length;j++){{
+                                        children_tags[j].remove();
+                                        }}
+                                    parent_tag.append(svg_element);
                                     svg_element.classList.add(cls_name);
-                                }
-                                catch(error){ 
+                                }}
+                                catch(error){{
                                     console.log(error);
-                                }
-                            }''')
+                                }}
+                            }}''')
 
 
 def make_code_selectable(driver):
@@ -363,7 +351,7 @@ def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
             page_content = single_file_js_executer(driver)
         create_html_with_singleFile(file_name, page_content, quiz_html)
     except Exception:
-        take_screenshot(driver, file_name, quiz_html)
+        take_full_html_screenshot(driver, file_name, quiz_html)
 
     print("HTML Page content taken.")
 
@@ -392,26 +380,22 @@ def click_using_driver_js(driver, selector):
         ''')
 
 
-def show_code_box_answer(driver):
-    print("Show Codebox Answers Function")
-    solution_button_selectors = ["button[aria-label*='olution']",
-                                 "button[arialabel*='olution']"]
-    show_solution_button = "button[aria-label*='confirm']"
-    action = ActionChains(driver)
+def show_solutions(driver):
+    print("Show Solution Function")
+    solution_button = "//button[contains(text(),'olution')]"
+    confirm_button = "button[aria-label*='confirm']"
 
-    answer_list = []
-    for selectors in solution_button_selectors:
-        answer_list += driver.find_elements(By.CSS_SELECTOR, selectors)
+    answer_list = driver.find_elements(By.XPATH, solution_button)
     if answer_list:
-        for answer_button in answer_list:
-            answer_button.location_once_scrolled_into_view
-            action.move_to_element(answer_button).click().perform()
-            sleep(1)
-            click_using_driver_js(driver, show_solution_button)
-            sleep(1)
-        print("Show Codebox Answers Complete")
+        driver.execute_script(f'''
+                        var nodesSnapshot = document.evaluate("{solution_button}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                        for(i=0;i<nodesSnapshot.snapshotLength;i++){{
+                            nodesSnapshot.snapshotItem(i).click();
+                            document.querySelector("{confirm_button}").click();
+                        }}''')
+        print("Show Solution Complete")
     else:
-        print("No Codebox answers found")
+        print("No Solution found")
 
 
 def create_temp_textarea(driver):
@@ -921,13 +905,13 @@ def click_option_quiz(driver, quiz_container):
         pass
 
 
-def quiz_container_html(driver, quiz_container):
+def quiz_container_html(driver, quiz_container, markdown=False):
     print("Take Quiz Screenshot Function")
-    # container_screenshot = screenshot_as_cdp(driver, quiz_container)
-    WebDriverWait(driver, 10).until(
-        EC.visibility_of_element_located((By.CSS_SELECTOR, "div[class*='question-option-view']")))
+    if not markdown:
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "div[class*='question-option-view']")))
     quiz_container.location_once_scrolled_into_view
-    container_screenshot = quiz_container.screenshot_as_base64
+    container_screenshot = screenshot_as_cdp(driver, quiz_container)
     sleep(1)
     return f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
 
@@ -1017,31 +1001,31 @@ def take_quiz_screenshot(driver):
 
 def find_mark_down_quiz_containers(driver):
     print("Inside find_mark_down_quiz_containers function")
-    div_selector = "div[role*='button']"
+    div_selector = "//span[contains(@class, 'markdown')]/ancestor::div[contains(@id, 'widget-parent')]"
     right_button_selector = "button[class*='Button_circle-button']:last-child"
     quiz_html = ""
     action = ActionChains(driver)
 
     quiz_containers = driver.find_elements(
-        By.CSS_SELECTOR, div_selector)
+        By.XPATH, div_selector)
     if quiz_containers:
-        quiz_container = quiz_containers[0].find_element(
-            By.XPATH, "../../../../..")
-        right_button = quiz_container.find_elements(
-            By.CSS_SELECTOR, right_button_selector)
-        if right_button:
-            while True:
+        for quiz_container in quiz_containers:
+            right_button = quiz_container.find_elements(
+                By.CSS_SELECTOR, right_button_selector)
+            if right_button:
+                while True:
+                    click_on_mark_down_quiz(driver, quiz_container)
+                    quiz_html += quiz_container_html(driver,
+                                                     quiz_container, True)
+                    if right_button[0].get_attribute("disabled"):
+                        break
+                    right_button = quiz_container.find_elements(
+                        By.CSS_SELECTOR, right_button_selector)
+                    action.move_to_element(right_button[0]).click().perform()
+                    sleep(1)
+            else:
+                print("No right button found in Mark Down Quiz")
                 click_on_mark_down_quiz(driver, quiz_container)
-                quiz_html += quiz_container_html(driver, quiz_container)
-                if right_button[0].get_attribute("disabled"):
-                    break
-                right_button = quiz_container.find_elements(
-                    By.CSS_SELECTOR, right_button_selector)
-                action.move_to_element(right_button[0]).click().perform()
-                sleep(1)
-        else:
-            print("No right button found in Mark Down Quiz")
-            click_on_mark_down_quiz(driver, quiz_container)
     else:
         print("No mark down quiz_container found")
     return quiz_html
@@ -1049,25 +1033,22 @@ def find_mark_down_quiz_containers(driver):
 
 def click_on_mark_down_quiz(driver, quiz_container):
     print("Clicking on Mark Down Quiz function")
-    div_buttons_selector = "div[role*='button']"
-    action = ActionChains(driver)
+    show_answer_button = "//div[@role='button']/span[text()='Show Answer']"
 
-    div_containers = quiz_container.find_elements(
-        By.CSS_SELECTOR, div_buttons_selector)
-    if div_containers:
-        for div_container in div_containers:
-            try:
-                if div_container.find_element(By.CSS_SELECTOR, "span").text == "Show Answer":
-                    action.move_to_element(div_container).click().perform()
-                    sleep(1)
-            except:
-                pass
+    show_answer_buttons = quiz_container.find_elements(
+        By.XPATH, show_answer_button)
+    if show_answer_buttons:
+        driver.execute_script(f'''
+                        var nodesSnapshot = document.evaluate("{show_answer_button}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                        for(i=0;i<nodesSnapshot.snapshotLength;i++){{
+                            nodesSnapshot.snapshotItem(i).click();
+                        }}''')
     else:
         print("No mark down quiz_container found")
 
 
 def wait_webdriver(driver):
-    article_page_selector = "//*[@id='handleArticleScroll']/div/div/div/div"
+    article_page_selector = "(//div[@id='handleArticleScroll']//div[count(div)>=2])[1]"
     next_button_selector = "div[class*='outlined-primary m-0']"
     header_1 = "//h1[text()]"
     header_2 = "//h2[text()]"
@@ -1134,11 +1115,11 @@ def scrape_page(driver, file_index):
     remove_tags(driver)
     show_hints_answer(driver)
     quiz_html += find_mark_down_quiz_containers(driver)
-    show_code_box_answer(driver)
+    show_solutions(driver)
     open_slides(driver)
     create_folder(file_name)
     quiz_html += take_quiz_screenshot(driver)
-    # take_screenshot(driver, file_name, quiz_html)
+    # take_full_html_screenshot(driver, file_name, quiz_html)
     add_name_tag_in_next_back_button(driver)
     fix_all_svg_tags_inside_object_tags(driver)
     get_pagecontent_using_singleFile(driver, file_name, quiz_html)
@@ -1272,7 +1253,7 @@ def scrape_courses():
 def generate_config():
     clear()
     print('''
-        Leave Blank and press Enter if you don't want to overwrite Previous Values
+        Leave Blank and Press Enter if you don't want to overwrite Previous Values
     ''')
     try:
         url_text_file, save_path, headless = load_config()
@@ -1357,7 +1338,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 7.2), developed by Anilabha Datta
+                        Educative Scraper (version 7.8), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
