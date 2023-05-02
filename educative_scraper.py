@@ -199,6 +199,24 @@ def remove_tags(driver):
     sleep(2)
 
 
+def add_style_tag_with_filter(driver):
+    print("Adding Style Tag with Filter")
+    driver.execute_script("""
+                            var head = document.getElementsByTagName('head')[0];
+
+                                var style = document.createElement('style');
+                                style.type = 'text/css';
+
+                                var css = '*{filter: none !important;}';
+                                if (style.styleSheet){
+                                style.styleSheet.cssText = css;
+                                } else {
+                                style.appendChild(document.createTextNode(css));
+                                }
+                                head.appendChild(style);
+                            """)
+
+
 def get_current_height(driver):
     return driver.execute_script('return document.body.parentNode.scrollHeight')
 
@@ -1113,6 +1131,7 @@ def scrape_page(driver, file_index):
     file_name = str(file_index) + "-" + title
     driver.set_window_size(1920, get_current_height(driver))
     remove_tags(driver)
+    add_style_tag_with_filter(driver)
     show_hints_answer(driver)
     quiz_html += find_mark_down_quiz_containers(driver)
     show_solutions(driver)
@@ -1338,7 +1357,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 7.8), developed by Anilabha Datta
+                        Educative Scraper (version 7.9), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
