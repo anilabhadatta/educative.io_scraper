@@ -412,9 +412,7 @@ def show_solutions(driver):
                             hint_element = element.querySelectorAll("g[id*='noun_lightbulb']")
                             if (hint_element.length <= 0){{
                                 element.click();
-                                setTimeout(function() {{
                                 document.querySelector("{confirm_button}").click();
-                                }}, 2000);
                             }}                           
                         }}''')
         print("Show Solution Complete")
@@ -1025,7 +1023,7 @@ def take_quiz_screenshot(driver):
 
 def find_mark_down_quiz_containers(driver):
     print("Inside find_mark_down_quiz_containers function")
-    div_selector = "//span[contains(@class, 'markdown')]/ancestor::div[contains(@id, 'widget-parent')]"
+    div_selector = "//div[@role='button']/span[text()='Show Answer']/ancestor::div[contains(@id, 'widget-parent')]"
     right_button_selector = "button[class*='Button_circle-button']:last-child"
     quiz_html = ""
     action = ActionChains(driver)
@@ -1146,12 +1144,12 @@ def scrape_page(driver, file_index):
         driver.set_window_size(1920, get_current_height(driver))
         remove_tags(driver)
         add_style_tag_with_filter(driver)
-        show_hints_answer(driver)
         quiz_html += find_mark_down_quiz_containers(driver)
+        quiz_html += take_quiz_screenshot(driver)
         show_solutions(driver)
         open_slides(driver)
+        show_hints_answer(driver)
         create_folder(file_name)
-        quiz_html += take_quiz_screenshot(driver)
         # take_full_html_screenshot(driver, file_name, quiz_html)
         add_name_tag_in_next_back_button(driver)
         fix_all_svg_tags_inside_object_tags(driver)
@@ -1375,7 +1373,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 8.2), developed by Anilabha Datta
+                        Educative Scraper (version 8.3), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
