@@ -1122,9 +1122,9 @@ def add_name_tag_in_next_back_button(driver):
         pass
 
 
-def check_for_project(driver):
+def check_for_project_and_assessment(driver):
     print("Skipping", driver.current_url)
-    if "project" in driver.current_url:
+    if "project" in driver.current_url or "assessment" in driver.current_url:
         return True
     return False
 
@@ -1133,7 +1133,7 @@ def scrape_page(driver, file_index):
     quiz_html = ""
     scroll_page(driver)
     wait_webdriver(driver)
-    if not check_for_project(driver):
+    if not check_for_project_and_assessment(driver):
         title = get_file_name(driver)
         check_page(title)
         file_name = str(file_index) + "-" + title
@@ -1192,7 +1192,7 @@ def load_webpage(driver, url):
     _, save_path, _ = load_config()
     driver.get(url)
     sleep(10)
-    while check_for_project(driver):
+    while check_for_project_and_assessment(driver):
         if not next_page(driver):
             break
         sleep(5)
@@ -1369,7 +1369,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 8.0), developed by Anilabha Datta
+                        Educative Scraper (version 8.1), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 

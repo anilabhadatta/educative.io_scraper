@@ -5,7 +5,7 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : 8.0 (latest) || Release Version 6.8
+      Repo Version : 8.1 (latest) || Release Version 6.8
       Update 6.9: Added support for scraping a special type of quiz container (Mark Down Quiz) in the course.
       Update 7.0: Fixed File name where "name" is not present in meta property og:title.
       Update 7.1: Various bug fixes related to code containers and improvements.
@@ -17,10 +17,12 @@
       Update 7.8: Fixed Multple Bugs and Improvements
       Update 7.9: Added Style tag with filter:none
       Update 8.0: Skipped Projects if it is in current page
+      Update 8.1: Skipped Assessments
 
 ## How to use the Scraper?
 
 > 1.  Create a text file and copy the urls of the first topic of any number of courses and paste it in the
+
       text file as shown below.
 
 <img src="https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png" width="820" height="300">
@@ -43,13 +45,11 @@
 > 6.  Start Scraping by pressing 4.
 > 7.  To return to Main Menu/ Exit Scraper press Ctrl+C / CMD+C.
 
-
 #### Note 1: If the scraper fails or the User Exits in between for any specific reason, a log.txt file will be created in the save path, containing the index and last known url while scraping, copy the {index url} and replace it in the urls text file to resume scraping the course where it was stopped previously by restarting the scraper.
 
 #### Note 2: Make sure to delete the urls that are already scraped while replacing in the urls text file.
 
 <img src="https://user-images.githubusercontent.com/48487849/197014154-a7dbd7e4-d398-4076-b0e8-279d9841c8f9.png" width="820" height="300">
-
 
 #### Note 3: If for any reason your system shuts down for power failure or the scraper crashes then you have to manually search the url and index and provide the {index url} in urls text file since the scraper cannot create log.txt for sudden power cut/ crash.
 
