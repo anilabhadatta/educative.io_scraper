@@ -5,7 +5,7 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : 8.1 (latest) || Release Version 6.8
+      Repo Version : 8.2 (latest) || Release Version 6.8
       Update 6.9: Added support for scraping a special type of quiz container (Mark Down Quiz) in the course.
       Update 7.0: Fixed File name where "name" is not present in meta property og:title.
       Update 7.1: Various bug fixes related to code containers and improvements.
@@ -18,12 +18,11 @@
       Update 7.9: Added Style tag with filter:none
       Update 8.0: Skipped Projects if it is in current page
       Update 8.1: Skipped Assessments
+      Update 8.2: Fixed Puzzle Javascript error
 
 ## How to use the Scraper?
 
-> 1.  Create a text file and copy the urls of the first topic of any number of courses and paste it in the
-
-      text file as shown below.
+> 1.  Create a text file and copy the urls of the first topic of any number of courses and paste it in the text file as shown below.
 
 <img src="https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png" width="820" height="300">
 <img src="https://user-images.githubusercontent.com/48487849/197013915-1320da6b-d2c2-4239-b1f7-d95450f8fabb.png" width="820" height="180">

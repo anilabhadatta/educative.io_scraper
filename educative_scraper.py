@@ -408,8 +408,14 @@ def show_solutions(driver):
         driver.execute_script(f'''
                         var nodesSnapshot = document.evaluate("{solution_button}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
                         for(i=0;i<nodesSnapshot.snapshotLength;i++){{
-                            nodesSnapshot.snapshotItem(i).click();
-                            document.querySelector("{confirm_button}").click();
+                            element = nodesSnapshot.snapshotItem(i)
+                            hint_element = element.querySelectorAll("g[id*='noun_lightbulb']")
+                            if (hint_element.length <= 0){{
+                                element.click();
+                                setTimeout(function() {{
+                                document.querySelector("{confirm_button}").click();
+                                }}, 2000);
+                            }}                           
                         }}''')
         print("Show Solution Complete")
     else:
@@ -1369,7 +1375,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 8.1), developed by Anilabha Datta
+                        Educative Scraper (version 8.2), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
