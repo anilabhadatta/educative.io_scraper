@@ -25,8 +25,8 @@
 
 > 1.  Create a text file and copy the urls of the first topic of any number of courses and paste it in the text file as shown below.
 
-<img src="https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png" width="820" height="300">
-<img src="https://user-images.githubusercontent.com/48487849/197013915-1320da6b-d2c2-4239-b1f7-d95450f8fabb.png" width="820" height="180">
+<img src="https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png" width="620" height="300">
+<img src="https://user-images.githubusercontent.com/48487849/197013915-1320da6b-d2c2-4239-b1f7-d95450f8fabb.png" width="720" height="160">
 
 > 2.  Run both the executables chromedriver and educative_scraper by downloading them from latest releases.
 
@@ -39,7 +39,7 @@
 
 > 4.  Generate the config (if not created) and provide the urls text file path, save location and headless mode by pressing 1.
 
-<img src="https://user-images.githubusercontent.com/48487849/197013987-e6bccbde-06b5-49de-851c-00575a3f8173.png" width="820" height="150">
+<img src="https://user-images.githubusercontent.com/48487849/197013987-e6bccbde-06b5-49de-851c-00575a3f8173.png" width="720" height="150">
 
 > 5.  Login your educative account by pressing 3.
 > 6.  Start Scraping by pressing 4.
@@ -49,7 +49,7 @@
 
 #### Note 2: Make sure to delete the urls that are already scraped while replacing in the urls text file.
 
-<img src="https://user-images.githubusercontent.com/48487849/197014154-a7dbd7e4-d398-4076-b0e8-279d9841c8f9.png" width="820" height="300">
+<img src="https://user-images.githubusercontent.com/48487849/197014154-a7dbd7e4-d398-4076-b0e8-279d9841c8f9.png" width="720" height="300">
 
 #### Note 3: If for any reason your system shuts down for power failure or the scraper crashes then you have to manually search the url and index and provide the {index url} in urls text file since the scraper cannot create log.txt for sudden power cut/ crash.
 
