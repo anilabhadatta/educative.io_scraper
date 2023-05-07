@@ -1108,20 +1108,19 @@ def scroll_page(driver):
 
 def add_name_tag_in_next_back_button(driver):
     print("Adding Name Tag in Next Back Button")
-    next_button_selector = "button[class*='outlined-primary m-0']"
-    back_button_selector = "button[class*='outlined-default m-0']"
+    next_button_selector = "svg[class*='icon-right']"
+    back_button_selector = "svg[class*='icon-left']"
     try:
-        next_button = driver.find_element(
-            By.CSS_SELECTOR, next_button_selector)
-        driver.execute_script(
-            "arguments[0].setAttribute('name', arguments[1]);", next_button, "next")
-    except Exception:
-        pass
-    try:
-        back_button = driver.find_element(
-            By.CSS_SELECTOR, back_button_selector)
-        driver.execute_script(
-            "arguments[0].setAttribute('name', arguments[1]);", back_button, "back")
+        driver.execute_script(f'''
+                                var next_button = document.querySelectorAll("{next_button_selector}");
+                                var back_button = document.querySelectorAll("{back_button_selector}");
+                                if (next_button.length > 0){{
+                                    next_button[0].parentNode.setAttribute('name', 'next');
+                                }}
+                                if (back_button.length > 0){{
+                                    back_button[0].parentNode.setAttribute('name', 'back');
+                                }}
+        ''')
     except Exception:
         pass
 
@@ -1373,7 +1372,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 8.3), developed by Anilabha Datta
+                        Educative Scraper (version 8.4), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
