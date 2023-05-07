@@ -1,11 +1,13 @@
 # Educative.io Scraper / Educative.io Downloader
 
 ## An Automation tool built using python, selenium and chrome that scrapes Educative.io courses for offline use.
+
 ### Disclaimer: I am not responsible for any misuse of this scraper, I made this for my personal use.
+
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : 8.4 (latest) || Release Version 6.8
+      Repo Version : 8.5 (latest) || Release Version 6.8
       Update 6.9: Added support for scraping a special type of quiz container (Mark Down Quiz) in the course.
       Update 7.0: Fixed File name where "name" is not present in meta property og:title.
       Update 7.1: Various bug fixes related to code containers and improvements.
@@ -21,6 +23,7 @@
       Update 8.2: Fixed Puzzle Javascript error
       Update 8.3: Fixed Quiz Container and show solution bug
       Update 8.4: Fixed Pagination buttons
+      Update 8.5: Fixed Multiple Issues
 
 ## How to use the Scraper?
 

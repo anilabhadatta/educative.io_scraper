@@ -384,7 +384,11 @@ def show_hints_answer(driver):
         driver.execute_script('''
             ele = document.querySelectorAll("g[id*='noun_lightbulb']");
             for(i=0;i<ele.length;i++){
-            ele[i].closest('svg').parentNode.click();
+                var button = ele[i].closest('svg').parentNode;
+                if (button.disabled == false){{
+                    button.click();
+                }}
+                button.disabled = true;
             }
         ''')
         print("Show Hints Complete")
@@ -400,22 +404,27 @@ def click_using_driver_js(driver, selector):
 
 def show_solutions(driver):
     print("Show Solution Function")
-    solution_button = "//button[contains(text(),'olution')]"
+    solution_button = "//button[contains(text(), 'olution') or contains(text(), 'Show')]"
     confirm_button = "button[aria-label*='confirm']"
 
-    answer_list = driver.find_elements(By.XPATH, solution_button)
-    if answer_list:
+    solution_list = driver.find_elements(By.XPATH, solution_button)
+    if solution_list:
         driver.execute_script(f'''
                         var nodesSnapshot = document.evaluate("{solution_button}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
                         for(i=0;i<nodesSnapshot.snapshotLength;i++){{
-                            element = nodesSnapshot.snapshotItem(i)
-                            hint_element = element.querySelectorAll("g[id*='noun_lightbulb']")
-                            if (hint_element.length <= 0){{
-                                element.click();
-                                document.querySelector("{confirm_button}").click();
+                            button = nodesSnapshot.snapshotItem(i)
+                            if (button.disabled == false){{
+                                button.click();
+                                try {{
+                                    document.querySelector("{confirm_button}").click();
+                                }} catch (error) {{
+                                    console.log(error);
+                                }}
+                                button.disabled = true;
                             }}                           
                         }}''')
         print("Show Solution Complete")
+        sleep(5)
     else:
         print("No Solution found")
 
@@ -899,12 +908,19 @@ def extract_zip_files():
 
 def demark_as_completed(driver):
     print("Remove Mark completed")
-    div_selector = "div[class*='styles__Checkbox']"
+    mark_as_completed_button = "//span[contains(text(),'Completed')]"
 
     try:
         driver.execute_script(f'''
-            ele = document.querySelectorAll("{div_selector}");
-            ele[ele.length-1].click();
+                        var nodesSnapshot = document.evaluate("{mark_as_completed_button}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                        for(i=0;i<nodesSnapshot.snapshotLength;i++){{
+                            element = nodesSnapshot.snapshotItem(i)
+                            try{{
+                                element.parentNode.click();
+                            }}catch(error){{
+                                console.log(error);
+                            }}                       
+                        }}
         ''')
     except Exception:
         pass
@@ -1145,6 +1161,7 @@ def scrape_page(driver, file_index):
         add_style_tag_with_filter(driver)
         quiz_html += find_mark_down_quiz_containers(driver)
         quiz_html += take_quiz_screenshot(driver)
+        demark_as_completed(driver)
         show_solutions(driver)
         open_slides(driver)
         show_hints_answer(driver)
@@ -1156,7 +1173,6 @@ def scrape_page(driver, file_index):
         code_widget_type(driver)
         code_container_download_type(driver)
         code_container_clipboard_type(driver)
-        demark_as_completed(driver)
 
     if not next_page(driver):
         sleep(5)
@@ -1372,7 +1388,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 8.4), developed by Anilabha Datta
+                        Educative Scraper (version 8.5), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
