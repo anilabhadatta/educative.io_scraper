@@ -1,7 +1,7 @@
 # Educative.io Scraper / Educative.io Downloader
 
 ## An Automation tool built using python, selenium and chrome that scrapes Educative.io courses for offline use.
-
+### Disclaimer: I am not responsible for any misuse of this scraper, I made this for my personal use.
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
