@@ -25,6 +25,7 @@
       Update 8.4: Fixed Pagination buttons
       Update 8.5: Fixed Multiple Issues
       Update 8.6: Fixed Next Button, Background Style for Iframes, Demark Button
+      Update 8.7: Added driver refresh for every page.
 
 ## How to use the Scraper?
 

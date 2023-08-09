@@ -85,6 +85,9 @@ def next_page(driver):
                                 return false;
 ''')
     print("Next Page", next_page_result)
+    sleep(2)
+    driver.refresh()
+    sleep(2)
     return next_page_result
 
 
@@ -1389,7 +1392,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 8.6), developed by Anilabha Datta
+                        Educative Scraper (version 8.7), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
