@@ -68,18 +68,24 @@ def create_course_folder(driver, url):
 
 def next_page(driver):
     print("Next Page Function")
-    next_page_selector = "button[class*='outlined-primary m-0']"
-
-    if not driver.find_elements(By.CSS_SELECTOR, next_page_selector):
-        return False
-    base_js_cmd = f'''document.querySelectorAll("{next_page_selector}")[0]'''
-    check_next_module = driver.execute_script(
-        "return " + base_js_cmd + ".innerHTML.slice(0,11);")
-    if "Next Module" in check_next_module:
-        return False
-    driver.execute_script(base_js_cmd + ".click()")
-    print("Going Next Page")
-    return True
+    next_page_result = driver.execute_script('''
+                                var svg_icon_right = document.querySelectorAll("svg[class*='icon-right']")
+                                for(i=0;i<svg_icon_right.length;i++){
+                                    next_button = svg_icon_right[i].parentNode;
+                                    nextModule = document.evaluate("//span[contains(text(), 'Next')]/following-sibling::span[contains(text(), 'Module')]", next_button , null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                                    if(nextModule.snapshotLength > 0){
+                                        return false;
+                                    }
+                                    next = document.evaluate("//span[contains(text(), 'Next')]", next_button , null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                                    if(next.snapshotLength > 0){
+                                        next_button.click();
+                                        return true;
+                                    }
+                                }
+                                return false;
+''')
+    print("Next Page", next_page_result)
+    return next_page_result
 
 
 def open_slides(driver):
@@ -304,6 +310,7 @@ def fix_all_svg_tags_inside_object_tags(driver):
                             for (var i = 0; i < iframes.length; i++) {{
                                 try{{
                                     svg_element = iframes[i].contentDocument.documentElement;
+                                    svg_element.style.backgroundColor = "white";
                                     cls_name = iframes[i].className;
                                     parent_tag = iframes[i].parentNode;
                                     children_tags = iframes[i].parentNode.children;
@@ -908,19 +915,13 @@ def extract_zip_files():
 
 def demark_as_completed(driver):
     print("Remove Mark completed")
-    mark_as_completed_button = "//span[contains(text(),'Completed')]"
+    mark_as_completed_button = "//span[normalize-space() = 'Mark As Completed']"
 
     try:
         driver.execute_script(f'''
                         var nodesSnapshot = document.evaluate("{mark_as_completed_button}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-                        for(i=0;i<nodesSnapshot.snapshotLength;i++){{
-                            element = nodesSnapshot.snapshotItem(i)
-                            try{{
-                                element.parentNode.click();
-                            }}catch(error){{
-                                console.log(error);
-                            }}                       
-                        }}
+                        element = nodesSnapshot.snapshotItem(0);
+                        element.parentNode.click();
         ''')
     except Exception:
         pass
@@ -1130,11 +1131,11 @@ def add_name_tag_in_next_back_button(driver):
         driver.execute_script(f'''
                                 var next_button = document.querySelectorAll("{next_button_selector}");
                                 var back_button = document.querySelectorAll("{back_button_selector}");
-                                if (next_button.length > 0){{
-                                    next_button[0].parentNode.setAttribute('name', 'next');
+                                for (i=0; i<next_button.length; i++){{
+                                    next_button[i].parentNode.setAttribute('name', 'next');
                                 }}
-                                if (back_button.length > 0){{
-                                    back_button[0].parentNode.setAttribute('name', 'back');
+                                if (i=0; i<back_button.length; i++){{
+                                    back_button[i].parentNode.setAttribute('name', 'back');
                                 }}
         ''')
     except Exception:
@@ -1142,8 +1143,8 @@ def add_name_tag_in_next_back_button(driver):
 
 
 def check_for_project_and_assessment(driver):
-    print("Skipping", driver.current_url)
     if "project" in driver.current_url or "assessment" in driver.current_url:
+        print("Skipping", driver.current_url)
         return True
     return False
 
@@ -1388,7 +1389,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 8.5), developed by Anilabha Datta
+                        Educative Scraper (version 8.6), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
