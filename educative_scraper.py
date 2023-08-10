@@ -90,8 +90,10 @@ def next_page(driver):
             body.send_keys(Keys.COMMAND, ">")
         else:
             body.send_keys(Keys.CONTROL, ">")
-        sleep(3)
+        # error free scraping url
+        sleep(4)
         driver.refresh()
+        sleep(3)
     return next_page_result
 
 
