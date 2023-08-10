@@ -318,6 +318,7 @@ def fix_all_svg_tags_inside_object_tags(driver):
                                 try{{
                                     svg_element = iframes[i].contentDocument.documentElement;
                                     svg_element.style.backgroundColor = "white";
+                                    svg_element.style.backgroundColor = "white";
                                     cls_name = iframes[i].className;
                                     parent_tag = iframes[i].parentNode;
                                     children_tags = iframes[i].parentNode.children;
@@ -1151,7 +1152,11 @@ def add_name_tag_in_next_back_button(driver):
                                 var back_button = document.querySelectorAll("{back_button_selector}");
                                 for (i=0; i<next_button.length; i++){{
                                     next_button[i].parentNode.setAttribute('name', 'next');
+                                for (i=0; i<next_button.length; i++){{
+                                    next_button[i].parentNode.setAttribute('name', 'next');
                                 }}
+                                if (i=0; i<back_button.length; i++){{
+                                    back_button[i].parentNode.setAttribute('name', 'back');
                                 if (i=0; i<back_button.length; i++){{
                                     back_button[i].parentNode.setAttribute('name', 'back');
                                 }}
@@ -1162,6 +1167,7 @@ def add_name_tag_in_next_back_button(driver):
 
 def check_for_project_and_assessment(driver):
     if "project" in driver.current_url or "assessment" in driver.current_url:
+        print("Skipping", driver.current_url)
         print("Skipping", driver.current_url)
         return True
     return False
