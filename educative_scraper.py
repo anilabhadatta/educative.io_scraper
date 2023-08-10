@@ -78,13 +78,20 @@ def next_page(driver):
                                     }
                                     next = document.evaluate("//span[contains(text(), 'Next')]", next_button , null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
                                     if(next.snapshotLength > 0){
-                                        next_button.click();
                                         return true;
                                     }
                                 }
                                 return false;
 ''')
     print("Next Page", next_page_result)
+    if next_page_result:
+        body = driver.find_element(By.CSS_SELECTOR, "body")
+        if current_os == "darwin":
+            body.send_keys(Keys.COMMAND, ">")
+        else:
+            body.send_keys(Keys.CONTROL, ">")
+        sleep(3)
+        driver.refresh()
     return next_page_result
 
 
@@ -915,13 +922,21 @@ def extract_zip_files():
 
 def demark_as_completed(driver):
     print("Remove Mark completed")
-    mark_as_completed_button = "//span[normalize-space() = 'Mark As Completed']"
 
     try:
-        driver.execute_script(f'''
-                        var nodesSnapshot = document.evaluate("{mark_as_completed_button}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-                        element = nodesSnapshot.snapshotItem(0);
-                        element.parentNode.click();
+        driver.execute_script('''
+                        var markAsCompleted = document.evaluate("//span[normalize-space() = 'Mark As Completed']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                        var completed = document.evaluate("//span[normalize-space() = 'Completed']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+
+                        var elements = [];
+
+                        for (var i = 0; i < markAsCompleted.snapshotLength; i++) {
+                            markAsCompleted.snapshotItem(i).parentNode.click();
+                        }
+
+                        for (var i = 0; i < completed.snapshotLength; i++) {
+                            completed.snapshotItem(i).parentNode.click();
+                        }
         ''')
     except Exception:
         pass
@@ -975,7 +990,9 @@ def click_right_button_quiz(driver, quiz_container):
         quiz_html += quiz_container_html(driver, quiz_container)
         if check_last_right_button(right_button):
             break
-        action.move_to_element(right_button[0]).click().perform()
+        right_button = quiz_container.find_elements(
+            By.CSS_SELECTOR, right_button_selector)
+        right_button[-1].click()
         print("Clicking on Right button")
         click_on_submit_dialog_if_visible(driver)
         right_button = quiz_container.find_elements(
@@ -1018,6 +1035,7 @@ def click_submit_quiz(driver, quiz_container):
         buttons = quiz_container.find_elements(By.CSS_SELECTOR, "button")
         action.move_to_element(buttons[-1]).click().perform()
         sleep(1)
+        print("Clicked on Submit button")
     except Exception:
         pass
 
@@ -1389,7 +1407,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 8.6), developed by Anilabha Datta
+                        Educative Scraper (version 8.8), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
