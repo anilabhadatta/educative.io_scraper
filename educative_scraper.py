@@ -370,25 +370,6 @@ def single_file_js_executer(driver):
 
 def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
     print("Get HTML Page Content Using Single File Function")
-    # Inject Meta and Script Tag
-    driver.execute_script('''
-                            // Create a CSP meta tag with domain restrictions
-                            var cspMeta = document.createElement('meta');
-                            cspMeta.setAttribute('http-equiv', 'Content-Security-Policy');
-                            cspMeta.setAttribute('content', "default-src 'self' https://anilabhadatta.github.io blob: data: gap:; style-src 'self' 'unsafe-inline' blob: data: gap:; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://anilabhadatta.github.io blob: data: gap:; object-src 'self' https://anilabhadatta.github.io blob: data: gap:; img-src 'self' https://anilabhadatta.github.io blob: data: gap:; connect-src 'self' https://anilabhadatta.github.io blob: data: gap:; frame-src 'self' https://anilabhadatta.github.io blob: data: gap:;");
-
-                            // Append the CSP meta tag to the head of the document
-                            document.head.appendChild(cspMeta);
-
-                            // Create a script element to load https://anilabhadatta.github.io/SingleFile/lib/single-file.js
-                            var scriptElement = document.createElement('script');
-                            scriptElement.src = 'https://anilabhadatta.github.io/SingleFile/lib/single-file.js';
-
-                            // Append the script element to the body of the document
-                            document.body.appendChild(scriptElement);
-                          ''')
-    sleep(2)
-
     make_code_selectable(driver)
     try:
         try:
@@ -939,17 +920,20 @@ def demark_as_completed(driver):
 
     try:
         driver.execute_script('''
-                        var markAsCompleted = document.evaluate("//span[normalize-space() = 'Mark As Completed']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-                        var completed = document.evaluate("//span[normalize-space() = 'Completed']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                        try{
+                                var markAsCompleted = document.evaluate("//span[normalize-space() = 'Mark As Completed']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                                var completed = document.evaluate("//span[normalize-space() = 'Completed']", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                                    
+                                for (var i = 0; i < markAsCompleted.snapshotLength; i++) {
+                                    markAsCompleted.snapshotItem(i).parentNode.click();
+                                }
 
-                        var elements = [];
-
-                        for (var i = 0; i < markAsCompleted.snapshotLength; i++) {
-                            markAsCompleted.snapshotItem(i).parentNode.click();
+                                for (var i = 0; i < completed.snapshotLength; i++) {
+                                    completed.snapshotItem(i).parentNode.click();
+                                }
                         }
-
-                        for (var i = 0; i < completed.snapshotLength; i++) {
-                            completed.snapshotItem(i).parentNode.click();
+                        catch(error){
+                            console.log(error);
                         }
         ''')
     except Exception:
@@ -973,15 +957,46 @@ def click_option_quiz(driver, quiz_container):
         pass
 
 
+def inject_script_Tags(driver):
+    print("Inject Meta and Script Tag")
+    driver.execute_script('''
+                            var cspMeta = document.createElement('meta');
+                            cspMeta.setAttribute('http-equiv', 'Content-Security-Policy');
+                            cspMeta.setAttribute('content', "default-src 'self' https://anilabhadatta.github.io blob: data: gap:; style-src 'self' 'unsafe-inline' blob: data: gap:; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://anilabhadatta.github.io https://cdnjs.cloudflare.com blob: data: gap:; object-src 'self' https://anilabhadatta.github.io blob: data: gap:; img-src 'self' https://anilabhadatta.github.io blob: data: gap:; connect-src 'self' https://anilabhadatta.github.io blob: data: gap:; frame-src 'self' https://anilabhadatta.github.io blob: data: gap:;");
+                            document.head.appendChild(cspMeta);
+
+
+                            var scriptElement = document.createElement('script');
+                            scriptElement.src = 'https://anilabhadatta.github.io/SingleFile/lib/single-file.js';
+                            document.body.appendChild(scriptElement);
+                          
+                            var scriptElement = document.createElement('script');
+                            scriptElement.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js';
+                            document.body.appendChild(scriptElement);
+                          ''')
+    sleep(2)
+
+
 def quiz_container_html(driver, quiz_container, markdown=False):
     print("Take Quiz Screenshot Function")
     if not markdown:
         WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located((By.CSS_SELECTOR, "div[class*='question-option-view']")))
     quiz_container.location_once_scrolled_into_view
-    container_screenshot = screenshot_as_cdp(driver, quiz_container)
-    sleep(1)
-    return f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
+    # container_screenshot = screenshot_as_cdp(driver, quiz_container)
+    container_screenshot = driver.execute_script(
+        '''
+        targetElement = arguments[0];
+        targetElement.style.backgroundColor = 'rgb(21, 21, 30)';
+        async function captureAndModifyElement(targetElement) {
+            const canvas = await html2canvas(targetElement);
+            const dataURL = canvas.toDataURL();
+            return dataURL;
+        }
+
+        return await captureAndModifyElement(targetElement);
+    ''', quiz_container)
+    return f'''<img style="display: block;margin-left: auto; margin-right: auto; transform: scale(0.8);" src="{container_screenshot}" alt="">'''
 
 
 def getQuizContainer_getRightButton(driver, quiz_container_selector, quizIdx):
@@ -1165,18 +1180,11 @@ def scroll_page(driver):
 
 def add_name_tag_in_next_back_button(driver):
     print("Adding Name Tag in Next Back Button")
-    next_button_selector = "svg[class*='icon-right']"
-    back_button_selector = "svg[class*='icon-left']"
+
     try:
         driver.execute_script(f'''
-                                var next_button = document.querySelectorAll("{next_button_selector}");
-                                var back_button = document.querySelectorAll("{back_button_selector}");
-                                for (i=0; i<next_button.length; i++){{
-                                    next_button[i].parentNode.setAttribute('name', 'next');
-                                }}
-                                if (i=0; i<back_button.length; i++){{
-                                    back_button[i].parentNode.setAttribute('name', 'back');
-                                }}
+                                var next_button = document.querySelectorAll("svg[class*='icon-right']")[-1].parentNode.setAttribute('name', 'next');
+                                var back_button = document.querySelectorAll("svg[class*='icon-left']")[-1].parentNode.setAttribute('name', 'back');
         ''')
     except Exception:
         pass
@@ -1200,6 +1208,7 @@ def scrape_page(driver, file_index):
         driver.set_window_size(1920, get_current_height(driver))
         remove_tags(driver)
         add_style_tag_with_filter(driver)
+        inject_script_Tags(driver)
         quiz_html += find_mark_down_quiz_containers(driver)
         quiz_html += take_quiz_screenshot(driver)
         demark_as_completed(driver)
@@ -1429,7 +1438,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 9.0), developed by Anilabha Datta
+                        Educative Scraper (version 9.1), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 

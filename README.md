@@ -29,6 +29,7 @@
       Update 8.8: Fixed Next page button issue and Quiz Right Button.
       Update 8.9: Fixed Quiz Screenshot Issues
       Update 9.0: Fixed Quiz Screenshot Issues and Minor fix for singleFile
+      Update 9.1: Fixed Quiz Screenshot Issues and Implemented Html2Canvas for Quiz Screenshot
 
 ## How to use the Scraper?
 
