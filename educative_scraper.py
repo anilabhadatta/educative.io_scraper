@@ -971,7 +971,7 @@ def inject_script_Tags(driver):
                             document.body.appendChild(scriptElement);
                           
                             var scriptElement = document.createElement('script');
-                            scriptElement.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.3.2/html2canvas.min.js';
+                            scriptElement.src = 'https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js';
                             document.body.appendChild(scriptElement);
                           ''')
     sleep(2)
@@ -986,15 +986,22 @@ def quiz_container_html(driver, quiz_container, markdown=False):
     # container_screenshot = screenshot_as_cdp(driver, quiz_container)
     container_screenshot = driver.execute_script(
         '''
-        targetElement = arguments[0];
-        targetElement.style.backgroundColor = 'rgb(21, 21, 30)';
-        async function captureAndModifyElement(targetElement) {
-            const canvas = await html2canvas(targetElement);
-            const dataURL = canvas.toDataURL();
-            return dataURL;
+        function changeTextColor(element, color) {
+            var textElements = element.querySelectorAll('*');
+            for (var i = 0; i < textElements.length; i++) {
+                var style = window.getComputedStyle(textElements[i]);
+                console.log(style.color);
+                if (style.color !== color && style.color !== 'rgb(80, 204, 47)' && style.color !== 'rgb(248, 186, 203)') {
+                    textElements[i].style.color = color;
+                }
+            }
         }
 
-        return await captureAndModifyElement(targetElement);
+        targetElement = arguments[0];
+        changeTextColor(targetElement, 'white');
+        targetElement.style.backgroundColor = 'rgb(21, 21, 30)';
+        
+        return await domtoimage.toPng(targetElement);
     ''', quiz_container)
     return f'''<img style="display: block;margin-left: auto; margin-right: auto; transform: scale(0.8);" src="{container_screenshot}" alt="">'''
 
@@ -1438,7 +1445,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 9.1), developed by Anilabha Datta
+                        Educative Scraper (version 9.2), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 

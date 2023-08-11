@@ -7,7 +7,7 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : 9.0 (latest) || Release Version 6.8
+      Repo Version : 9.2 (latest) || Release Version 6.8
       Update 6.9: Added support for scraping a special type of quiz container (Mark Down Quiz) in the course.
       Update 7.0: Fixed File name where "name" is not present in meta property og:title.
       Update 7.1: Various bug fixes related to code containers and improvements.
@@ -30,6 +30,7 @@
       Update 8.9: Fixed Quiz Screenshot Issues
       Update 9.0: Fixed Quiz Screenshot Issues and Minor fix for singleFile
       Update 9.1: Fixed Quiz Screenshot Issues and Implemented Html2Canvas for Quiz Screenshot
+      Update 9.2: Fixed Quiz Screenshot Issues and Implemented DOM2PNG for Quiz Screenshot
 
 ## How to use the Scraper?
 
