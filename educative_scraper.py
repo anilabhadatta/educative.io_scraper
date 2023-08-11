@@ -46,6 +46,8 @@ def load_chrome_driver(headless):
     options.add_argument('--disable-gpu')
     options.add_argument('--no-sandbox')
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-web-security")
+    options.add_argument('--allow-running-insecure-content')
     options.add_argument('--log-level=3')
     userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.56 Safari/537.36"
     options.add_argument(f'user-agent={userAgent}')
@@ -274,7 +276,7 @@ def send_command(driver, cmd, params={}):
     return response.get('value')
 
 
-def screenshot_as_cdp(driver, ele_to_screenshot, scale=0.8):
+def screenshot_as_cdp(driver, ele_to_screenshot, scale=1):
 
     sleep(1)
     size, location = ele_to_screenshot.size, ele_to_screenshot.location
@@ -368,13 +370,23 @@ def single_file_js_executer(driver):
 
 def get_pagecontent_using_singleFile(driver, file_name, quiz_html):
     print("Get HTML Page Content Using Single File Function")
-
-    # Inject SingleFile JS script
+    # Inject Meta and Script Tag
     driver.execute_script('''
-        inject = document.createElement('script');
-        inject.src = "https://anilabhadatta.github.io/SingleFile/lib/single-file.js";
-        document.getElementsByTagName('head')[0].appendChild(inject);
-    ''')
+                            // Create a CSP meta tag with domain restrictions
+                            var cspMeta = document.createElement('meta');
+                            cspMeta.setAttribute('http-equiv', 'Content-Security-Policy');
+                            cspMeta.setAttribute('content', "default-src 'self' https://anilabhadatta.github.io blob: data: gap:; style-src 'self' 'unsafe-inline' blob: data: gap:; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://anilabhadatta.github.io blob: data: gap:; object-src 'self' https://anilabhadatta.github.io blob: data: gap:; img-src 'self' https://anilabhadatta.github.io blob: data: gap:; connect-src 'self' https://anilabhadatta.github.io blob: data: gap:; frame-src 'self' https://anilabhadatta.github.io blob: data: gap:;");
+
+                            // Append the CSP meta tag to the head of the document
+                            document.head.appendChild(cspMeta);
+
+                            // Create a script element to load https://anilabhadatta.github.io/SingleFile/lib/single-file.js
+                            var scriptElement = document.createElement('script');
+                            scriptElement.src = 'https://anilabhadatta.github.io/SingleFile/lib/single-file.js';
+
+                            // Append the script element to the body of the document
+                            document.body.appendChild(scriptElement);
+                          ''')
     sleep(2)
 
     make_code_selectable(driver)
@@ -1417,7 +1429,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 8.9), developed by Anilabha Datta
+                        Educative Scraper (version 9.0), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
