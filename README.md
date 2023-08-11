@@ -7,7 +7,7 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : 8.8 (latest) || Release Version 6.8
+      Repo Version : 8.9 (latest) || Release Version 6.8
       Update 6.9: Added support for scraping a special type of quiz container (Mark Down Quiz) in the course.
       Update 7.0: Fixed File name where "name" is not present in meta property og:title.
       Update 7.1: Various bug fixes related to code containers and improvements.
@@ -27,6 +27,7 @@
       Update 8.6: Fixed Next Button, Background Style for Iframes, Demark Button
       Update 8.7: Added driver refresh for every page.
       Update 8.8: Fixed Next page button issue and Quiz Right Button.
+      Update 8.9: Fixed Quiz Screenshot Issues
 
 ## How to use the Scraper?
 

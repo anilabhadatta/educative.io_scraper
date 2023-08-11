@@ -972,14 +972,22 @@ def quiz_container_html(driver, quiz_container, markdown=False):
     return f'''<img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{container_screenshot}" alt="">'''
 
 
-def click_right_button_quiz(driver, quiz_container):
-    print("Clicking on Right button in Quiz")
-    action = ActionChains(driver)
+def getQuizContainer_getRightButton(driver, quiz_container_selector, quizIdx):
+    print("Get Quiz Container and Right Button Function")
     right_button_selector = "button[class*='Button_quiz-widget-controls']:last-child"
-
-    quiz_html = ""
+    quiz_container = driver.find_elements(
+        By.CSS_SELECTOR, quiz_container_selector)[quizIdx]
     right_button = quiz_container.find_elements(
         By.CSS_SELECTOR, right_button_selector)
+    return quiz_container, right_button
+
+
+def click_right_button_quiz(driver, quiz_container_selector, quizIdx):
+    print("Clicking on Right button in Quiz")
+    quiz_html = ""
+
+    quiz_container, right_button = getQuizContainer_getRightButton(
+        driver, quiz_container_selector, quizIdx)
 
     if not right_button:
         click_option_quiz(driver, quiz_container)
@@ -992,14 +1000,14 @@ def click_right_button_quiz(driver, quiz_container):
         quiz_html += quiz_container_html(driver, quiz_container)
         if check_last_right_button(right_button):
             break
-        right_button = quiz_container.find_elements(
-            By.CSS_SELECTOR, right_button_selector)
-        right_button[-1].click()
+        quiz_container, right_button = getQuizContainer_getRightButton(
+            driver, quiz_container_selector, quizIdx)
         print("Clicking on Right button")
+        right_button[-1].click()
+        sleep(1)
         click_on_submit_dialog_if_visible(driver)
-        right_button = quiz_container.find_elements(
-            By.CSS_SELECTOR, right_button_selector)
-
+        quiz_container, right_button = getQuizContainer_getRightButton(
+            driver, quiz_container_selector, quizIdx)
     return quiz_html
 
 
@@ -1050,9 +1058,9 @@ def take_quiz_screenshot(driver):
     quiz_containers = driver.find_elements(
         By.CSS_SELECTOR, quiz_container_selector)
     if quiz_containers:
-        for quiz_container in quiz_containers:
+        for quizIdx, _ in enumerate(quiz_containers):
             quiz_html += click_right_button_quiz(
-                driver, quiz_container)
+                driver, quiz_container_selector, quizIdx)
     else:
         print("Quiz not found")
     return quiz_html
@@ -1409,7 +1417,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 8.8), developed by Anilabha Datta
+                        Educative Scraper (version 8.9), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
