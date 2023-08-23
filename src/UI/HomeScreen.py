@@ -1,5 +1,7 @@
 import os
 import shutil
+import subprocess
+import sys
 import tkinter as tk
 import tkinter.filedialog
 
@@ -11,6 +13,7 @@ from src.Utility.FileUtility import FileUtility
 class HomeScreen:
     def __init__(self):
         self.configJson = None
+        self.current_os = sys.platform
         self.app = tk.Tk()
         self.app.geometry("600x600")
         self.app.title("Educative Scraper")
@@ -90,18 +93,24 @@ class HomeScreen:
         saveDirectoryButton.grid(row=2, column=2, padx=2)
         entriesFrame.pack(pady=10, padx=10, anchor="w")
 
-        buttonFrame = tk.Frame(self.app)
-        startScraperButton = tk.Button(buttonFrame, text="Start Scraper", command=self.startScraper)
-        updateConfigButton = tk.Button(buttonFrame, text="Update Config", command=self.updateConfig)
-        exportConfigButton = tk.Button(buttonFrame, text="Export Config", command=self.exportConfig)
-        deleteUserDataButton = tk.Button(buttonFrame, text="Delete User Data", command=self.deleteUserData)
+        buttonConfigFrame = tk.Frame(self.app)
+        updateConfigButton = tk.Button(buttonConfigFrame, text="Update Config", command=self.updateConfig)
+        exportConfigButton = tk.Button(buttonConfigFrame, text="Export Config", command=self.exportConfig)
+        deleteUserDataButton = tk.Button(buttonConfigFrame, text="Delete User Data", command=self.deleteUserData)
 
-        startScraperButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         updateConfigButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         exportConfigButton.grid(row=0, column=2, sticky="w", padx=2, pady=2)
         deleteUserDataButton.grid(row=0, column=3, sticky="w", padx=2, pady=2)
-        buttonFrame.pack(pady=20, padx=100, anchor="w")
+        buttonConfigFrame.pack(pady=20, padx=100, anchor="w")
 
+        buttonScraperFrame = tk.Frame(self.app)
+        startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
+                                            command=self.startChromeDriver)
+        startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper)
+
+        startScraperButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
+        startChromeDriverButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        buttonScraperFrame.pack(pady=20, padx=100, anchor="w")
         self.app.mainloop()
 
 
@@ -180,6 +189,16 @@ class HomeScreen:
         print(f"Scrape Codes: {self.configJson['scrapeCodes']}")
         print(f"Logger: {self.configJson['logger']}")
         print("Scraper started")
+
+
+    def startChromeDriver(self):
+        python_executable = sys.executable  # Get the path to the Python executable in the virtual environment
+        if self.current_os.startswith('darwin'):
+            subprocess.Popen(["open", "-a", "Terminal", python_executable, "chromedriver.py"])
+        elif self.current_os.startswith('linux'):
+            subprocess.Popen(["gnome-terminal", "--", python_executable, "chromedriver.py"])
+        else:
+            subprocess.Popen(["start", "cmd", "/k", python_executable, "chromedriver.py"], shell=True)
 
 
     def deleteUserData(self):
