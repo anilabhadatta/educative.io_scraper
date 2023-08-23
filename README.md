@@ -7,7 +7,7 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : v3.0.0 Development Branch
+      Repo Version : v3.0.1 Development Branch
 
 ## How to use the Scraper?
 
