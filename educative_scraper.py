@@ -48,6 +48,8 @@ def load_chrome_driver(headless):
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-web-security")
     options.add_argument('--allow-running-insecure-content')
+    options.add_argument("--disable-site-isolation-trials")
+    options.add_argument("--disable-features=IsolateOrigins,site-per-process")
     options.add_argument('--log-level=3')
     userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.56 Safari/537.36"
     options.add_argument(f'user-agent={userAgent}')
@@ -189,7 +191,7 @@ def get_file_name(driver, course_folder=False):
     return re.sub(r'[:?|></]', replace_filename, file_name)
 
 
-def delete_node(driver, node, xpath=False):
+def delete_node(driver, node):
     print("Node deleted", node)
 
     driver.execute_script(f"""
@@ -317,24 +319,7 @@ def fix_all_svg_tags_inside_object_tags(driver):
     print("Fixing SVG Tags inside Object Tags")
     object_tag_selector = "object[role='img']"
     driver.execute_script(f'''
-                            iframes = document.querySelectorAll("{object_tag_selector}")
-                            for (var i = 0; i < iframes.length; i++) {{
-                                try{{
-                                    svg_element = iframes[i].contentDocument.documentElement;
-                                    svg_element.style.backgroundColor = "white";
-                                    cls_name = iframes[i].className;
-                                    parent_tag = iframes[i].parentNode;
-                                    children_tags = iframes[i].parentNode.children;
-                                    for(j=0;j<children_tags.length;j++){{
-                                        children_tags[j].remove();
-                                        }}
-                                    parent_tag.append(svg_element);
-                                    svg_element.classList.add(cls_name);
-                                }}
-                                catch(error){{
-                                    console.log(error);
-                                }}
-                            }}''')
+                            document.querySelectorAll("{object_tag_selector}").forEach(node => node.type = "image/svg+xml")''')
 
 
 def make_code_selectable(driver):
@@ -351,19 +336,26 @@ def make_code_selectable(driver):
 
 def single_file_js_executer(driver):
     return driver.execute_script('''
-                                    const { content, title, filename } = await singlefile.getPageData({
-                                        removeImports: true,
-                                        removeScripts: true,
-                                        removeAudioSrc: true,
-                                        removeVideoSrc: true,
+                                 singlefile.init();
+
+                                const { content, title, filename } = await window.singlefile.getPageData({
                                         removeHiddenElements: true,
                                         removeUnusedStyles: true,
                                         removeUnusedFonts: true,
-                                        compressHTML: true,
-                                        blockVideos: true,
+                                        removeImports: true,
                                         blockScripts: true,
-                                        networkTimeout: 60000
-                                    });
+                                        blockAudios: true,
+                                        blockVideos: true,
+                                        compressHTML: true,
+                                        removeAlternativeFonts: true,
+                                        removeAlternativeMedias: true,
+                                        removeAlternativeImages: true,
+                                        groupDuplicateImages: true,
+                                        insertMetaCSP: true,
+                                        networkTimeout: 30000,
+                                        shadowEnabled: true,
+                                        });
+
                                     return content;
     ''')
 
@@ -946,7 +938,7 @@ def click_option_quiz(driver, quiz_container):
     action = ActionChains(driver)
 
     try:
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 2).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, option_selector)))
         option = quiz_container.find_element(
             By.CSS_SELECTOR, option_selector)
@@ -960,19 +952,46 @@ def click_option_quiz(driver, quiz_container):
 def inject_script_Tags(driver):
     print("Inject Meta and Script Tag")
     driver.execute_script('''
-                            var cspMeta = document.createElement('meta');
-                            cspMeta.setAttribute('http-equiv', 'Content-Security-Policy');
-                            cspMeta.setAttribute('content', "default-src 'self' https://anilabhadatta.github.io blob: data: gap:; style-src 'self' 'unsafe-inline' blob: data: gap:; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://anilabhadatta.github.io https://cdnjs.cloudflare.com blob: data: gap:; object-src 'self' https://anilabhadatta.github.io blob: data: gap:; img-src 'self' https://anilabhadatta.github.io blob: data: gap:; connect-src 'self' https://anilabhadatta.github.io blob: data: gap:; frame-src 'self' https://anilabhadatta.github.io blob: data: gap:;");
-                            document.head.appendChild(cspMeta);
+                            function injectScriptToHTML(url, location) {
+                                const script = document.createElement("script");
+                                script.src = url;
+                                if (location === "iframe") {
+                                    const frames = document.querySelectorAll('frame, iframe, object');
+                                    for (let i = 0; i < frames.length; i++) {
+                                            const frame = frames[i];
+                                            const frameDocument = frame.contentDocument || frame.contentWindow.document;
+                                            const targetElement = frameDocument.head || frameDocument.body || frameDocument.documentElement;
+                                            targetElement.appendChild(script.cloneNode(true));
+                                    }
+                                }   else {
+                                    document.head.appendChild(script);
+                                }
+                            }
 
+                            const baseurl = 'https://anilabhadatta.github.io/SingleFile/';
+                            const urls = [
+                            'lib/single-file-bootstrap.js',
+                            'lib/single-file-hooks-frames.js',
+                            'lib/single-file-frames.js',
+                            'lib/single-file.js'
+                            ];
 
-                            var scriptElement = document.createElement('script');
-                            scriptElement.src = 'https://anilabhadatta.github.io/SingleFile/lib/single-file.js';
-                            document.body.appendChild(scriptElement);
-                          
-                            var scriptElement = document.createElement('script');
-                            scriptElement.src = 'https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js';
-                            document.body.appendChild(scriptElement);
+                            const additionalUrl = 'https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js';
+                            const fullUrls = urls.map(url => baseurl + url);
+                            fullUrls.push(additionalUrl);
+
+                            injectScriptToHTML(fullUrls[0], "top");
+                            try{
+                                    injectScriptToHTML(fullUrls[1], "iframe");
+                                    injectScriptToHTML(fullUrls[2], "iframe");
+                                }
+                            catch(error){
+                                console.log(error);
+                            }
+                            injectScriptToHTML(fullUrls[1], "top");
+                            injectScriptToHTML(fullUrls[2], "top");
+                            injectScriptToHTML(fullUrls[3], "top");
+                            injectScriptToHTML(fullUrls[4], "top");
                           ''')
     sleep(2)
 
@@ -980,20 +999,27 @@ def inject_script_Tags(driver):
 def quiz_container_html(driver, quiz_container, markdown=False):
     print("Take Quiz Screenshot Function")
     if not markdown:
-        WebDriverWait(driver, 10).until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR, "div[class*='question-option-view']")))
+        try:
+            WebDriverWait(driver, 2).until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, "div[class*='question-option-view']")))
+        except:
+            pass
     quiz_container.location_once_scrolled_into_view
     # container_screenshot = screenshot_as_cdp(driver, quiz_container)
     container_screenshot = driver.execute_script(
         '''
         function changeTextColor(element, color) {
-            var textElements = element.querySelectorAll('*');
-            for (var i = 0; i < textElements.length; i++) {
-                var style = window.getComputedStyle(textElements[i]);
-                console.log(style.color);
-                if (style.color !== color && style.color !== 'rgb(80, 204, 47)' && style.color !== 'rgb(248, 186, 203)') {
-                    textElements[i].style.color = color;
+            try{
+                var textElements = element.querySelectorAll('*');
+                for (var i = 0; i < textElements.length; i++) {
+                    var style = window.getComputedStyle(textElements[i]);
+                    if (style.color !== color && style.color !== 'rgb(80, 204, 47)' && style.color !== 'rgb(248, 186, 203)') {
+                        textElements[i].style.color = color;
+                    }
                 }
+            }
+            catch(error){
+                console.log(error);
             }
         }
 
@@ -1445,7 +1471,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 9.2), developed by Anilabha Datta
+                        Educative Scraper (version 9.3), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
