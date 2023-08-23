@@ -196,7 +196,13 @@ class HomeScreen:
         if self.current_os.startswith('darwin'):
             subprocess.Popen(["open", "-a", "Terminal", python_executable, "chromedriver.py"])
         elif self.current_os.startswith('linux'):
-            subprocess.Popen(["gnome-terminal", "--", python_executable, "chromedriver.py"])
+            try:
+                try:
+                    subprocess.Popen(["xterm", "-e", python_executable, "chromedriver.py"])
+                except:
+                    subprocess.Popen(["uxterm", "-e", python_executable, "chromedriver.py"])
+            except:
+                subprocess.Popen(["gnome-terminal", "--", python_executable, "chromedriver.py"])
         else:
             subprocess.Popen(["start", "cmd", "/k", python_executable, "chromedriver.py"], shell=True)
 
