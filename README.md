@@ -35,27 +35,29 @@
 
 ## How to use the Scraper?
 
-> 1.  Create a text file and copy the urls of the first topic of any number of courses and paste it in the text file as shown below.
+> 1. Create a text file and copy the urls of the first topic of any number of courses and paste it in the text file as
+     shown below.
 
 <img src="https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png" width="620" height="300">
 <img src="https://user-images.githubusercontent.com/48487849/197013915-1320da6b-d2c2-4239-b1f7-d95450f8fabb.png" width="720" height="160">
 
-> 2.  Run both the executables chromedriver and educative_scraper by downloading them from latest releases.
+> 2. Run both the executables chromedriver and educative_scraper by downloading them from latest releases.
 
       Note: If the executable release version is older than the current github repo version then run the
             project manually explained below.
 
-> 3.  Select a config if you don't want to use the default config "0" by pressing 2.
+> 3. Select a config if you don't want to use the default config "0" by pressing 2.
 
       Note: Make sure to generate the config if it is selected for the first time.
 
-> 4.  Generate the config (if not created) and provide the urls text file path, save location and headless mode by pressing 1.
+> 4. Generate the config (if not created) and provide the urls text file path, save location and headless mode by
+     pressing 1.
 
 <img src="https://user-images.githubusercontent.com/48487849/197013987-e6bccbde-06b5-49de-851c-00575a3f8173.png" width="720" height="150">
 
-> 5.  Login your educative account by pressing 3.
-> 6.  Start Scraping by pressing 4.
-> 7.  To return to Main Menu/ Exit Scraper press Ctrl+C / CMD+C.
+> 5. Login your educative account by pressing 3.
+> 6. Start Scraping by pressing 4.
+> 7. To return to Main Menu/ Exit Scraper press Ctrl+C / CMD+C.
 
 #### Note 1: If the scraper fails or the User Exits in between for any specific reason, a log.txt file will be created in the save path, containing the index and last known url while scraping, copy the {index url} and replace it in the urls text file to resume scraping the course where it was stopped previously by restarting the scraper.
 
