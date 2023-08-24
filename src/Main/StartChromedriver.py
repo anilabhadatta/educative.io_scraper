@@ -32,4 +32,5 @@ class StartChromedriver:
             if self.currentOS.startswith('darwin'):
                 subprocess.Popen(["open", "-a", "Terminal", constants.chromeDriverPath])
             elif self.currentOS.startswith('linux'):
+                self.getDefaultTerminal()
                 subprocess.Popen([self.linuxTerminal, "-e", constants.chromeDriverPath])
