@@ -17,7 +17,7 @@ class HomeScreen:
         self.configJson = None
         self.currentOS = sys.platform
         self.app = tk.Tk()
-        self.app.geometry("600x600")
+        self.app.geometry("600x650")
         self.app.title("Educative Scraper")
         self.configFilePath = tk.StringVar()
         self.configFilePath.set(constants.defaultConfigPath)
@@ -49,7 +49,7 @@ class HomeScreen:
     def createHomeScreen(self):
         configFilePathFrame = tk.Frame(self.app)
         configFilePathLabel = tk.Label(configFilePathFrame, text="Config File Path:")
-        configFileTextBox = tk.Entry(configFilePathFrame, textvariable=self.configFilePath, width=75)
+        configFileTextBox = tk.Entry(configFilePathFrame, textvariable=self.configFilePath, width=50)
         browseConfigFileButton = tk.Button(configFilePathFrame, text="...", command=self.browseConfigFile)
 
         configFilePathLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
@@ -80,12 +80,12 @@ class HomeScreen:
 
         entriesFrame = tk.Frame(self.app)
         userDataDirLabel = tk.Label(entriesFrame, text="User Data Directory:")
-        userDataDirEntry = tk.Entry(entriesFrame, textvariable=self.userDataDirVar, width=70)
+        userDataDirEntry = tk.Entry(entriesFrame, textvariable=self.userDataDirVar, width=45)
         courseUrlsFilePathLabel = tk.Label(entriesFrame, text="Course URLs File Path:")
-        courseUrlsFilePathEntry = tk.Entry(entriesFrame, textvariable=self.courseUrlsFilePathVar, width=70)
+        courseUrlsFilePathEntry = tk.Entry(entriesFrame, textvariable=self.courseUrlsFilePathVar, width=45)
         courseUrlsFilePathButton = tk.Button(entriesFrame, text="...", command=self.browseCourseUrlsFile)
         saveDirectoryLabel = tk.Label(entriesFrame, text="Save Directory:")
-        saveDirectoryEntry = tk.Entry(entriesFrame, textvariable=self.saveDirectoryVar, width=70)
+        saveDirectoryEntry = tk.Entry(entriesFrame, textvariable=self.saveDirectoryVar, width=45)
         saveDirectoryButton = tk.Button(entriesFrame, text="...", command=self.browseSaveDirectory)
 
         userDataDirLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
@@ -121,11 +121,11 @@ class HomeScreen:
 
         downloadChromeDriverButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         downloadChromeBinaryButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        startChromeDriverButton.grid(row=0, column=2, sticky="w", padx=2, pady=2)
-        startScraperButton.grid(row=0, column=3, sticky="w", padx=2, pady=2)
-        buttonScraperFrame.pack(pady=20, padx=20, anchor="w")
+        startChromeDriverButton.grid(row=1, column=0, sticky="w", padx=2, pady=2)
+        startScraperButton.grid(row=1, column=1, sticky="w", padx=2, pady=2)
+        buttonScraperFrame.pack(pady=20, padx=100, anchor="w")
 
-        progressBar = ttk.Progressbar(self.app, length=300, mode="determinate", variable=self.progressVar)
+        progressBar = ttk.Progressbar(self.app, length=550, mode="determinate", variable=self.progressVar)
         progressBar.pack(pady=5)
         self.app.mainloop()
 
@@ -200,6 +200,7 @@ class HomeScreen:
                  constants.chromeDriverPath])
         elif self.currentOS.startswith('linux'):
             try:
+                subprocess.check_call(['chmod','u+x',constants.chromeDriverPath])
                 try:
                     subprocess.Popen(
                         ["xterm", "-e", self.pythonExecutable, "src/Main/StartChromedriver.py",
