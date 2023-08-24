@@ -106,7 +106,7 @@ class HomeScreen:
         updateConfigButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         exportConfigButton.grid(row=0, column=2, sticky="w", padx=2, pady=2)
         deleteUserDataButton.grid(row=0, column=3, sticky="w", padx=2, pady=2)
-        buttonConfigFrame.pack(pady=20, padx=100, anchor="w")
+        buttonConfigFrame.pack(pady=20, padx=100, anchor="center")
 
         buttonScraperFrame = tk.Frame(self.app)
         downloadChromeDriverButton = tk.Button(buttonScraperFrame, text="Download Chrome Driver",
@@ -123,7 +123,7 @@ class HomeScreen:
         downloadChromeBinaryButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         startChromeDriverButton.grid(row=1, column=0, sticky="w", padx=2, pady=2)
         startScraperButton.grid(row=1, column=1, sticky="w", padx=2, pady=2)
-        buttonScraperFrame.pack(pady=20, padx=100, anchor="w")
+        buttonScraperFrame.pack(pady=20, padx=100, anchor="center")
 
         progressBarFrame = tk.Frame(self.app)
         downloadProgressLabel = tk.Label(progressBarFrame, text="Download Progress:")
