@@ -30,6 +30,7 @@ class StartChromedriver:
                 ["start", "cmd", "/k", constants.chromeDriverPath], shell=True)
         else:
             subprocess.check_call(['chmod', 'u+x', constants.chromeDriverPath])
+            subprocess.check_call(['chmod', 'u+x', constants.chromeBinaryPath])
             if self.currentOS.startswith('darwin'):
                 subprocess.Popen(["open", "-a", "Terminal", constants.chromeDriverPath])
             elif self.currentOS.startswith('linux'):
