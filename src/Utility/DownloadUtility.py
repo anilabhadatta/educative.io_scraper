@@ -1,4 +1,5 @@
 import os
+import ssl
 import zipfile
 
 import wget
@@ -7,6 +8,8 @@ from src.Common.Constants import constants
 from src.Utility.ConfigUtility import ConfigUtility
 from src.Utility.FileUtility import FileUtility
 from src.Utility.OSUtility import OSUtility
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
 class DownloadUtility:

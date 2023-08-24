@@ -194,13 +194,14 @@ class HomeScreen:
 
 
     def startChromeDriver(self):
+        print("Starting Chrome Driver", constants.chromeDriverPath)
         if self.currentOS.startswith('darwin'):
             subprocess.Popen(
                 ["open", "-a", "Terminal", self.pythonExecutable, "src/Main/StartChromedriver.py",
                  constants.chromeDriverPath])
         elif self.currentOS.startswith('linux'):
             try:
-                subprocess.check_call(['chmod','u+x',constants.chromeDriverPath])
+                subprocess.check_call(['chmod', 'u+x', constants.chromeDriverPath])
                 try:
                     subprocess.Popen(
                         ["xterm", "-e", self.pythonExecutable, "src/Main/StartChromedriver.py",
