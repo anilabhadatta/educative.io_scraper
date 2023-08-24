@@ -1,4 +1,5 @@
 import os
+import shutil
 
 
 class FileUtility:
@@ -23,3 +24,13 @@ class FileUtility:
     def createFolderIfNotExists(self, folderPath):
         if not self.checkIfDirectoryExists(folderPath):
             os.mkdir(folderPath)
+
+
+    def deleteFileIfExists(self, filePath):
+        if self.checkIfFileExists(filePath):
+            os.remove(filePath)
+
+
+    def deleteFolderIfExists(self, folderPath):
+        if self.checkIfDirectoryExists(folderPath):
+            shutil.rmtree(folderPath)

@@ -147,3 +147,10 @@ Chrome-bin-linux.zip
 Chrome-bin-win.zip
 Chrome-bin-osx.zip
 .idea
+/src/ChromeBinary/win/
+/src/ChromeBinary/mac/
+/src/ChromeBinary/linux/
+/src/ChromeDrivers/win/
+/src/ChromeDrivers/linux/
+/src/ChromeDrivers/mac/
+

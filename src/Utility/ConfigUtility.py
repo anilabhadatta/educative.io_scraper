@@ -1,5 +1,4 @@
 import configparser
-import os
 import shutil
 
 from src.Common.Constants import constants
@@ -16,15 +15,12 @@ class ConfigUtility:
         print("Creating default config")
 
         if not self.fileUtil.checkIfFileExists(constants.defaultConfigPath):
-            defaultConfigPath = os.path.join(constants.OS_ROOT, 'config.ini')
-            commonConfigPath = os.path.join(constants.ROOT_DIR, 'src', 'Common', 'config.ini')
-            print(constants.OS_ROOT, constants.ROOT_DIR, commonConfigPath)
-            shutil.copy(commonConfigPath, defaultConfigPath)
+            shutil.copy(constants.commonConfigPath, constants.defaultConfigPath)
 
 
     def loadConfig(self, path=constants.defaultConfigPath):
         self.config.read(path)
-        return self.config['ScraperConfig']
+        return self.config
 
 
     def updateConfig(self, configJson, path=constants.defaultConfigPath):

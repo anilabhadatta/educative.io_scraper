@@ -4,16 +4,18 @@ import subprocess
 import sys
 import tkinter as tk
 import tkinter.filedialog
+from tkinter import ttk
 
 from src.Common.Constants import constants
 from src.Utility.ConfigUtility import ConfigUtility
+from src.Utility.DownloadUtility import DownloadUtility
 from src.Utility.FileUtility import FileUtility
 
 
 class HomeScreen:
     def __init__(self):
         self.configJson = None
-        self.current_os = sys.platform
+        self.currentOS = sys.platform
         self.app = tk.Tk()
         self.app.geometry("600x600")
         self.app.title("Educative Scraper")
@@ -34,11 +36,14 @@ class HomeScreen:
         self.scrapeQuizVar = tk.BooleanVar(value=True)
         self.scrapeCodesVar = tk.BooleanVar(value=True)
         self.loggerVar = tk.BooleanVar(value=True)
+        self.progressVar = tk.DoubleVar()
 
         self.configUtil = ConfigUtility()
-        self.config = self.configUtil.loadConfig()
+        self.config = self.configUtil.loadConfig()['ScraperConfig']
         self.mapConfigValues()
         self.fileUtil = FileUtility()
+        self.downloadUtil = DownloadUtility()
+        self.pythonExecutable = sys.executable
 
 
     def createHomeScreen(self):
@@ -104,13 +109,24 @@ class HomeScreen:
         buttonConfigFrame.pack(pady=20, padx=100, anchor="w")
 
         buttonScraperFrame = tk.Frame(self.app)
+        downloadChromeDriverButton = tk.Button(buttonScraperFrame, text="Download Chrome Driver",
+                                               command=lambda: self.downloadUtil.downloadChromeDriver(self.app,
+                                                                                                      self.progressVar))
+        downloadChromeBinaryButton = tk.Button(buttonScraperFrame, text="Download Chrome Binary",
+                                               command=lambda: self.downloadUtil.downloadChromeBinary(self.app,
+                                                                                                      self.progressVar))
         startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
                                             command=self.startChromeDriver)
         startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper)
 
-        startScraperButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
-        startChromeDriverButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        buttonScraperFrame.pack(pady=20, padx=100, anchor="w")
+        downloadChromeDriverButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
+        downloadChromeBinaryButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        startChromeDriverButton.grid(row=0, column=2, sticky="w", padx=2, pady=2)
+        startScraperButton.grid(row=0, column=3, sticky="w", padx=2, pady=2)
+        buttonScraperFrame.pack(pady=20, padx=20, anchor="w")
+
+        progressBar = ttk.Progressbar(self.app, length=300, mode="determinate", variable=self.progressVar)
+        progressBar.pack(pady=5)
         self.app.mainloop()
 
 
@@ -132,7 +148,7 @@ class HomeScreen:
             filetypes=[("INI Files", "*.ini")])
         if configFilePath:
             self.configFilePath.set(configFilePath)
-            self.config = self.configUtil.loadConfig(configFilePath)
+            self.config = self.configUtil.loadConfig(configFilePath)['ScraperConfig']
             self.mapConfigValues()
 
 
@@ -174,37 +190,33 @@ class HomeScreen:
 
     def startScraper(self):
         self.createConfigJson()
-        print(f"User Data Directory: {self.configJson['userDataDir']}", type(self.configJson['userDataDir']))
-        print(f"Headless: {self.configJson['headless']}", type(self.configJson['headless']))
-        print(f"Course URLs File Path: {self.configJson['courseUrlsFilePath']}")
-        print(f"Save Directory: {self.configJson['saveDirectory']}")
-        print(f"Single File HTML: {self.configJson['singleFileHTML']}")
-        print(f"Full Page Screenshot HTML: {self.configJson['fullPageScreenshotHTML']}")
-        print(f"Open Slides: {self.configJson['openSlides']}")
-        print(f"Open Markdown Quiz: {self.configJson['openMarkdownQuiz']}")
-        print(f"Open Hints: {self.configJson['openHints']}")
-        print(f"Open Solutions: {self.configJson['openSolutions']}")
-        print(f"Unmark as Completed: {self.configJson['unMarkAsCompleted']}")
-        print(f"Scrape Quiz: {self.configJson['scrapeQuiz']}")
-        print(f"Scrape Codes: {self.configJson['scrapeCodes']}")
-        print(f"Logger: {self.configJson['logger']}")
-        print("Scraper started")
+        print(self.createConfigJson())
 
 
     def startChromeDriver(self):
-        python_executable = sys.executable  # Get the path to the Python executable in the virtual environment
-        if self.current_os.startswith('darwin'):
-            subprocess.Popen(["open", "-a", "Terminal", python_executable, "chromedriver.py"])
-        elif self.current_os.startswith('linux'):
+        if self.currentOS.startswith('darwin'):
+            subprocess.Popen(
+                ["open", "-a", "Terminal", self.pythonExecutable, "src/Main/StartChromedriver.py",
+                 constants.chromeDriverPath])
+        elif self.currentOS.startswith('linux'):
             try:
                 try:
-                    subprocess.Popen(["xterm", "-e", python_executable, "chromedriver.py"])
+                    subprocess.Popen(
+                        ["xterm", "-e", self.pythonExecutable, "src/Main/StartChromedriver.py",
+                         constants.chromeDriverPath])
                 except:
-                    subprocess.Popen(["uxterm", "-e", python_executable, "chromedriver.py"])
+                    subprocess.Popen(
+                        ["uxterm", "-e", self.pythonExecutable, "src/Main/StartChromedriver.py",
+                         constants.chromeDriverPath])
             except:
-                subprocess.Popen(["gnome-terminal", "--", python_executable, "chromedriver.py"])
+                subprocess.Popen(
+                    ["gnome-terminal", "--", self.pythonExecutable, "src/Main/StartChromedriver.py",
+                     constants.chromeDriverPath])
         else:
-            subprocess.Popen(["start", "cmd", "/k", python_executable, "chromedriver.py"], shell=True)
+            subprocess.Popen(
+                ["start", "cmd", "/k", self.pythonExecutable, "src/Main/StartChromedriver.py",
+                 constants.chromeDriverPath],
+                shell=True)
 
 
     def deleteUserData(self):

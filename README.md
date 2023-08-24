@@ -7,7 +7,7 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : v3.0.1 Development Branch
+      Repo Version : v3.0.2 Development Branch
 
 ## How to use the Scraper?
 
@@ -27,6 +27,7 @@
       Note: Make sure to generate the config if it is selected for the first time.
 
 > 4. Generate the config (if not created) and provide the urls text file path, save location and headless mode by
+
      pressing 1.
 
 <img src="https://user-images.githubusercontent.com/48487849/197013987-e6bccbde-06b5-49de-851c-00575a3f8173.png" width="720" height="150">

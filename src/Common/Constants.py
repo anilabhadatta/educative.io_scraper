@@ -1,4 +1,7 @@
+import configparser
 import os
+
+from src.Utility.OSUtility import OSUtility
 
 
 class Constants:
@@ -6,6 +9,19 @@ class Constants:
         self.OS_ROOT = os.path.join(os.path.expanduser('~'), 'EducativeScraper')
         self.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
         self.defaultConfigPath = os.path.join(self.OS_ROOT, 'config.ini')
+        self.commonConfigPath = os.path.join(self.ROOT_DIR, 'src', 'Common', 'config.ini')
+        self.osUtil = OSUtility()
+        self.chromedriverConfigKey = "chromedriver_" + self.osUtil.getCurrentOSConfigKey()
+        self.chromebinaryConfigKey = "chromebinary_" + self.osUtil.getCurrentOSConfigKey()
+        self.chromeDriverFolderPath = os.path.join(self.ROOT_DIR, 'src', 'ChromeDrivers')
+        self.chromeBinaryFolderPath = os.path.join(self.ROOT_DIR, 'src', 'ChromeBinary')
+
+        config = configparser.ConfigParser()
+        config.read(self.commonConfigPath)
+        self.chromeDriverPath = os.path.join(self.chromeDriverFolderPath,
+                                             config["ChromeDriverPath"][self.chromedriverConfigKey])
+        self.chromeBinaryPath = os.path.join(self.chromeBinaryFolderPath,
+                                             config["ChromeBinaryPath"][self.chromebinaryConfigKey])
 
 
 constants = Constants()
