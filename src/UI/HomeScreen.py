@@ -17,7 +17,7 @@ class HomeScreen:
         self.configJson = None
         self.currentOS = sys.platform
         self.app = tk.Tk()
-        self.app.geometry("600x650")
+        self.app.geometry("400x400")
         self.app.title("Educative Scraper")
         self.configFilePath = tk.StringVar()
         self.configFilePath.set(constants.defaultConfigPath)
@@ -49,7 +49,7 @@ class HomeScreen:
     def createHomeScreen(self):
         configFilePathFrame = tk.Frame(self.app)
         configFilePathLabel = tk.Label(configFilePathFrame, text="Config File Path:")
-        configFileTextBox = tk.Entry(configFilePathFrame, textvariable=self.configFilePath, width=50)
+        configFileTextBox = tk.Entry(configFilePathFrame, textvariable=self.configFilePath, width=60)
         browseConfigFileButton = tk.Button(configFilePathFrame, text="...", command=self.browseConfigFile)
 
         configFilePathLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
@@ -80,12 +80,12 @@ class HomeScreen:
 
         entriesFrame = tk.Frame(self.app)
         userDataDirLabel = tk.Label(entriesFrame, text="User Data Directory:")
-        userDataDirEntry = tk.Entry(entriesFrame, textvariable=self.userDataDirVar, width=45)
+        userDataDirEntry = tk.Entry(entriesFrame, textvariable=self.userDataDirVar, width=55)
         courseUrlsFilePathLabel = tk.Label(entriesFrame, text="Course URLs File Path:")
-        courseUrlsFilePathEntry = tk.Entry(entriesFrame, textvariable=self.courseUrlsFilePathVar, width=45)
+        courseUrlsFilePathEntry = tk.Entry(entriesFrame, textvariable=self.courseUrlsFilePathVar, width=55)
         courseUrlsFilePathButton = tk.Button(entriesFrame, text="...", command=self.browseCourseUrlsFile)
         saveDirectoryLabel = tk.Label(entriesFrame, text="Save Directory:")
-        saveDirectoryEntry = tk.Entry(entriesFrame, textvariable=self.saveDirectoryVar, width=45)
+        saveDirectoryEntry = tk.Entry(entriesFrame, textvariable=self.saveDirectoryVar, width=55)
         saveDirectoryButton = tk.Button(entriesFrame, text="...", command=self.browseSaveDirectory)
 
         userDataDirLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
@@ -116,8 +116,8 @@ class HomeScreen:
                                                command=lambda: self.downloadUtil.downloadChromeBinary(self.app,
                                                                                                       self.progressVar))
         startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
-                                            command=self.startChromeDriver)
-        startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper)
+                                            command=self.startChromeDriver, width=19)
+        startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper, width=20)
 
         downloadChromeDriverButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         downloadChromeBinaryButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
@@ -125,9 +125,27 @@ class HomeScreen:
         startScraperButton.grid(row=1, column=1, sticky="w", padx=2, pady=2)
         buttonScraperFrame.pack(pady=20, padx=100, anchor="w")
 
-        progressBar = ttk.Progressbar(self.app, length=550, mode="determinate", variable=self.progressVar)
-        progressBar.pack(pady=5)
+        progressBarFrame = tk.Frame(self.app)
+        downloadProgressLabel = tk.Label(progressBarFrame, text="Download Progress:")
+        progressBar = ttk.Progressbar(progressBarFrame, length=380, mode="determinate", variable=self.progressVar)
+        downloadProgressLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
+        progressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        progressBarFrame.pack(pady=2)
+
+        self.fixGeometry()
         self.app.mainloop()
+
+
+    def fixGeometry(self):
+        self.app.update_idletasks()
+        width = self.app.winfo_reqwidth()
+        height = self.app.winfo_reqheight()
+
+        screen_width = self.app.winfo_screenwidth()
+        screen_height = self.app.winfo_screenheight()
+        x = (screen_width - width) // 2
+        y = (screen_height - height) // 2
+        self.app.geometry(f"{width}x{height}+{x}+{y}")
 
 
     def browseCourseUrlsFile(self):
@@ -193,7 +211,8 @@ class HomeScreen:
         print(self.createConfigJson())
 
 
-    def startChromeDriver(self):
+    @staticmethod
+    def startChromeDriver():
         print("Starting Chrome Driver", constants.chromeDriverPath)
         StartChromedriver().loadChromeDriver()
 
