@@ -1,12 +1,12 @@
 import os
 import shutil
-import subprocess
 import sys
 import tkinter as tk
 import tkinter.filedialog
 from tkinter import ttk
 
 from src.Common.Constants import constants
+from src.Main.StartChromedriver import StartChromedriver
 from src.Utility.ConfigUtility import ConfigUtility
 from src.Utility.DownloadUtility import DownloadUtility
 from src.Utility.FileUtility import FileUtility
@@ -195,30 +195,7 @@ class HomeScreen:
 
     def startChromeDriver(self):
         print("Starting Chrome Driver", constants.chromeDriverPath)
-        if self.currentOS.startswith('darwin'):
-            subprocess.Popen(
-                ["open", "-a", "Terminal", self.pythonExecutable, "src/Main/StartChromedriver.py",
-                 constants.chromeDriverPath])
-        elif self.currentOS.startswith('linux'):
-            try:
-                subprocess.check_call(['chmod', 'u+x', constants.chromeDriverPath])
-                try:
-                    subprocess.Popen(
-                        ["xterm", "-e", self.pythonExecutable, "src/Main/StartChromedriver.py",
-                         constants.chromeDriverPath])
-                except:
-                    subprocess.Popen(
-                        ["uxterm", "-e", self.pythonExecutable, "src/Main/StartChromedriver.py",
-                         constants.chromeDriverPath])
-            except:
-                subprocess.Popen(
-                    ["gnome-terminal", "--", self.pythonExecutable, "src/Main/StartChromedriver.py",
-                     constants.chromeDriverPath])
-        else:
-            subprocess.Popen(
-                ["start", "cmd", "/k", self.pythonExecutable, "src/Main/StartChromedriver.py",
-                 constants.chromeDriverPath],
-                shell=True)
+        StartChromedriver().loadChromeDriver()
 
 
     def deleteUserData(self):
