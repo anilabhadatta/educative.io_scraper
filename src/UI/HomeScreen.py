@@ -1,12 +1,16 @@
+import asyncio
 import os
 import shutil
 import sys
+import threading
 import tkinter as tk
 import tkinter.filedialog
 from tkinter import ttk
 
 from src.Common.Constants import constants
+from src.Main.LoginAccount import LoginAccount
 from src.Main.StartChromedriver import StartChromedriver
+from src.Main.StartScraper import StartScraper
 from src.Utility.ConfigUtility import ConfigUtility
 from src.Utility.DownloadUtility import DownloadUtility
 from src.Utility.FileUtility import FileUtility
@@ -14,6 +18,9 @@ from src.Utility.FileUtility import FileUtility
 
 class HomeScreen:
     def __init__(self):
+        self.loop = None
+        self.mainScraper = None
+        self.scraperThread = None
         self.configJson = None
         self.currentOS = sys.platform
         self.app = tk.Tk()
@@ -109,20 +116,29 @@ class HomeScreen:
         buttonConfigFrame.pack(pady=20, padx=100, anchor="center")
 
         buttonScraperFrame = tk.Frame(self.app)
-        downloadChromeDriverButton = tk.Button(buttonScraperFrame, text="Download Chrome Driver",
-                                               command=lambda: self.downloadUtil.downloadChromeDriver(self.app,
-                                                                                                      self.progressVar))
-        downloadChromeBinaryButton = tk.Button(buttonScraperFrame, text="Download Chrome Binary",
-                                               command=lambda: self.downloadUtil.downloadChromeBinary(self.app,
-                                                                                                      self.progressVar))
-        startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
-                                            command=self.startChromeDriver, width=19)
-        startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper, width=20)
+        self.downloadChromeDriverButton = tk.Button(buttonScraperFrame, text="Download Chrome Driver",
+                                                    command=lambda: self.downloadUtil.downloadChromeDriver(self.app,
+                                                                                                           self.progressVar),
+                                                    width=19)
+        self.downloadChromeBinaryButton = tk.Button(buttonScraperFrame, text="Download Chrome Binary",
+                                                    command=lambda: self.downloadUtil.downloadChromeBinary(self.app,
+                                                                                                           self.progressVar),
+                                                    width=20)
+        self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
+                                                 command=self.startChromeDriver, width=19)
+        self.loginAccountButton = tk.Button(buttonScraperFrame, text="Login Account", command=self.loginAccount,
+                                            width=20)
+        self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper,
+                                            width=19)
+        self.stopScraperButton = tk.Button(buttonScraperFrame, text="Stop Scraper", command=self.stopScraper,
+                                           width=20)
 
-        downloadChromeDriverButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
-        downloadChromeBinaryButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        startChromeDriverButton.grid(row=1, column=0, sticky="w", padx=2, pady=2)
-        startScraperButton.grid(row=1, column=1, sticky="w", padx=2, pady=2)
+        self.downloadChromeDriverButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
+        self.downloadChromeBinaryButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        self.startChromeDriverButton.grid(row=1, column=0, sticky="w", padx=2, pady=2)
+        self.loginAccountButton.grid(row=1, column=1, sticky="w", padx=2, pady=2)
+        self.startScraperButton.grid(row=2, column=0, sticky="w", padx=2, pady=2)
+        self.stopScraperButton.grid(row=2, column=1, sticky="w", padx=2, pady=2)
         buttonScraperFrame.pack(pady=20, padx=100, anchor="center")
 
         progressBarFrame = tk.Frame(self.app)
@@ -133,6 +149,7 @@ class HomeScreen:
         progressBarFrame.pack(pady=2)
 
         self.fixGeometry()
+        print("Back To Main Loop")
         self.app.mainloop()
 
 
@@ -208,7 +225,43 @@ class HomeScreen:
 
     def startScraper(self):
         self.createConfigJson()
-        print(self.createConfigJson())
+        self.mainScraper = StartScraper(self.configJson)
+        self.scraperThread = threading.Thread(target=lambda: self.startLoop(self.mainScraper))
+        self.scraperThread.start()
+
+
+    def stopScraper(self):
+        print("Stopping Scraper")
+        if self.scraperThread and self.scraperThread.is_alive():
+            self.mainScraper.stop()  # Signal the scraper to stop
+            self.scraperThread.join()  # Wait for the scraper thread to finish
+            self.scraperThread = None
+            if self.loop.is_running():
+                self.loop.call_soon_threadsafe(self.loop.stop)
+
+
+    def startLoop(self, function):
+        self.EnableDisableButtons("disabled")
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_until_complete(function.start())
+        self.loop.close()
+        self.EnableDisableButtons("normal")
+
+
+    def EnableDisableButtons(self, state):
+        self.downloadChromeDriverButton.config(state=state)
+        self.downloadChromeBinaryButton.config(state=state)
+        self.startChromeDriverButton.config(state=state)
+        self.startScraperButton.config(state=state)
+        self.loginAccountButton.config(state=state)
+
+
+    def loginAccount(self):
+        self.createConfigJson()
+        loginAccount = LoginAccount(self.configJson)
+        thread = threading.Thread(target=lambda: self.startLoop(loginAccount))
+        thread.start()
 
 
     @staticmethod
