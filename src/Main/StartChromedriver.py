@@ -7,10 +7,10 @@ from src.Common.Constants import constants
 class StartChromedriver:
     def __init__(self):
         self.currentOS = sys.platform
-        self.linuxTerminal = None
 
 
-    def getDefaultTerminal(self):
+    @staticmethod
+    def getDefaultLinuxTerminal():
         terminals = ['gnome-terminal', 'xfce4-terminal', 'konsole', 'xterm', 'lxterminal', 'mate-terminal', 'urxvt',
                      'alacritty', 'termite']
 
@@ -18,9 +18,10 @@ class StartChromedriver:
             try:
                 subprocess.run(['which', terminal], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                text=True)
-                self.linuxTerminal = terminal
+                return terminal
             except subprocess.CalledProcessError:
                 pass
+        return None
 
 
     def loadChromeDriver(self):
@@ -32,5 +33,4 @@ class StartChromedriver:
             if self.currentOS.startswith('darwin'):
                 subprocess.Popen(["open", "-a", "Terminal", constants.chromeDriverPath])
             elif self.currentOS.startswith('linux'):
-                self.getDefaultTerminal()
-                subprocess.Popen([self.linuxTerminal, "-e", constants.chromeDriverPath])
+                subprocess.Popen([self.getDefaultLinuxTerminal(), "-e", constants.chromeDriverPath])
