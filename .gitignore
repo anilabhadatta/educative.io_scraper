@@ -154,3 +154,4 @@ Chrome-bin-osx.zip
 /src/ChromeDrivers/linux/
 /src/ChromeDrivers/mac/
 
+/temp.py
