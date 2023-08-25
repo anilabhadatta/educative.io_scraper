@@ -1,5 +1,7 @@
+import json
 import os
 
+import websockets
 from selenium import webdriver
 
 from src.Common.Constants import constants
@@ -9,6 +11,7 @@ class BrowserUtility:
     def __init__(self, configJson):
         self.browser = None
         self.configJson = configJson
+        self.devToolUrl = None
 
 
     def loadBrowser(self):
@@ -38,3 +41,27 @@ class BrowserUtility:
             "POST", '/session/$sessionId/chromium/send_command')
         print("Driver Loaded")
         return self.browser
+
+
+    def getDevToolsUrl(self):
+        devToolsFilePath = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], "DevToolsActivePort")
+        with open(devToolsFilePath) as f:
+            devToolsFile = f.readlines()
+            devToolsPort = devToolsFile[0].split("\n")[0]
+            devToolsId = devToolsFile[1].split("\n")[0]
+        self.devToolUrl = f"ws://127.0.0.1:{devToolsPort}{devToolsId}"
+
+
+    async def shutdownChrome(self):
+        try:
+            self.getDevToolsUrl()
+            async with websockets.connect(self.devToolUrl) as websocket:
+                message = {
+                    "id": 1,
+                    "method": "Browser.close"
+                }
+                await websocket.send(json.dumps(message))
+                response = await websocket.recv()
+                print("Response:", response)
+        except Exception as e:
+            print("No Browser was open")

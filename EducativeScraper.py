@@ -1,3 +1,5 @@
+import tkinter as tk
+
 from src.Common.Constants import constants
 from src.UI.HomeScreen import HomeScreen
 from src.Utility.ConfigUtility import ConfigUtility
@@ -11,7 +13,7 @@ class EducativeScraper:
         self.fileUtil = FileUtility()
         self.configUtil = ConfigUtility()
         self.loadBasicUtility()
-        self.homeScreen = HomeScreen()
+        self.root = tk.Tk()
         self.run()
 
 
@@ -21,7 +23,8 @@ class EducativeScraper:
 
 
     def run(self):
-        self.homeScreen.createHomeScreen()
+        HomeScreen(self.root).createHomeScreen()
+        self.root.mainloop()
 
 
 if __name__ == '__main__':
