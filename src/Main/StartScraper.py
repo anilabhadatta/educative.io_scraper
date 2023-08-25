@@ -11,8 +11,15 @@ class StartScraper:
 
 
     def start(self):
-        i = 0
-        while True:
-            print("Starting scraper...", i)
-            i += 1
-            time.sleep(1)
+        try:
+            i = 0
+            while True:
+                print("Starting scraper...", i)
+                i += 1
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("Keyboard Interrupt occurred. Exiting...")
+        except Exception:
+            pass
+        finally:
+            print("Terminated")

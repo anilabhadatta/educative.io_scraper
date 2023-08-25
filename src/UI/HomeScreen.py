@@ -7,6 +7,8 @@ import tkinter as tk
 import tkinter.filedialog
 from tkinter import ttk
 
+import psutil
+
 from src.Common.Constants import constants
 from src.Main.LoginAccount import LoginAccount
 from src.Main.StartChromedriver import StartChromedriver
@@ -20,6 +22,7 @@ from src.Utility.FileUtility import FileUtility
 class HomeScreen:
     def __init__(self, app):
         self.process = None
+        self.processes = []
         self.configJson = None
         self.currentOS = sys.platform
         self.app = app
@@ -56,7 +59,7 @@ class HomeScreen:
     def createHomeScreen(self):
         configFilePathFrame = tk.Frame(self.app)
         configFilePathLabel = tk.Label(configFilePathFrame, text="Config File Path:")
-        configFileTextBox = tk.Entry(configFilePathFrame, textvariable=self.configFilePath, width=60)
+        configFileTextBox = tk.Entry(configFilePathFrame, textvariable=self.configFilePath, width=70)
         browseConfigFileButton = tk.Button(configFilePathFrame, text="...", command=self.browseConfigFile)
 
         configFilePathLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
@@ -87,12 +90,12 @@ class HomeScreen:
 
         entriesFrame = tk.Frame(self.app)
         userDataDirLabel = tk.Label(entriesFrame, text="User Data Directory:")
-        userDataDirEntry = tk.Entry(entriesFrame, textvariable=self.userDataDirVar, width=55)
+        userDataDirEntry = tk.Entry(entriesFrame, textvariable=self.userDataDirVar, width=65)
         courseUrlsFilePathLabel = tk.Label(entriesFrame, text="Course URLs File Path:")
-        courseUrlsFilePathEntry = tk.Entry(entriesFrame, textvariable=self.courseUrlsFilePathVar, width=55)
+        courseUrlsFilePathEntry = tk.Entry(entriesFrame, textvariable=self.courseUrlsFilePathVar, width=65)
         courseUrlsFilePathButton = tk.Button(entriesFrame, text="...", command=self.browseCourseUrlsFile)
         saveDirectoryLabel = tk.Label(entriesFrame, text="Save Directory:")
-        saveDirectoryEntry = tk.Entry(entriesFrame, textvariable=self.saveDirectoryVar, width=55)
+        saveDirectoryEntry = tk.Entry(entriesFrame, textvariable=self.saveDirectoryVar, width=65)
         saveDirectoryButton = tk.Button(entriesFrame, text="...", command=self.browseSaveDirectory)
 
         userDataDirLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
@@ -106,10 +109,13 @@ class HomeScreen:
         entriesFrame.pack(pady=10, padx=10, anchor="w")
 
         buttonConfigFrame = tk.Frame(self.app)
+        loadDefaultConfigButton = tk.Button(buttonConfigFrame, text="Default Config",
+                                            command=self.loadDefaultConfig)
         updateConfigButton = tk.Button(buttonConfigFrame, text="Update Config", command=self.updateConfig)
         exportConfigButton = tk.Button(buttonConfigFrame, text="Export Config", command=self.exportConfig)
         deleteUserDataButton = tk.Button(buttonConfigFrame, text="Delete User Data", command=self.deleteUserData)
 
+        loadDefaultConfigButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         updateConfigButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         exportConfigButton.grid(row=0, column=2, sticky="w", padx=2, pady=2)
         deleteUserDataButton.grid(row=0, column=3, sticky="w", padx=2, pady=2)
@@ -227,6 +233,7 @@ class HomeScreen:
         startScraper = StartScraper(self.configJson)
         self.process = multiprocessing.Process(target=startScraper.start)
         self.process.start()
+        self.processes.append(self.process)
         self.updateButtonState()
 
 
@@ -235,16 +242,21 @@ class HomeScreen:
         loginAccount = LoginAccount(self.configJson)
         self.process = multiprocessing.Process(target=loginAccount.start)
         self.process.start()
+        self.processes.append(self.process)
         self.updateButtonState()
 
 
     def terminateProcess(self):
         print("Terminating Process")
         self.browserUtil.configJson = self.configJson
-        self.process.terminate()
-        self.process.join()
+        for process in self.processes:
+            try:
+                process.terminate()
+                process.join()
+            except psutil.NoSuchProcess:
+                pass
         asyncio.get_event_loop().run_until_complete(self.browserUtil.shutdownChrome())
-        self.process = None
+        self.processes = []
         self.updateButtonState()
 
 
@@ -272,6 +284,12 @@ class HomeScreen:
     def startChromeDriver():
         print("Starting Chrome Driver", constants.chromeDriverPath)
         StartChromedriver().loadChromeDriver()
+
+
+    def loadDefaultConfig(self):
+        self.configFilePath.set(constants.defaultConfigPath)
+        self.config = self.configUtil.loadConfig(constants.defaultConfigPath)['ScraperConfig']
+        self.mapConfigValues()
 
 
     def deleteUserData(self):

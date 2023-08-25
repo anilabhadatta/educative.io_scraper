@@ -14,11 +14,22 @@ class LoginAccount:
         try:
             self.browser = self.browserUtil.loadBrowser()
             self.browser.get("https://educative.io/login")
-            # input("Press Enter to exit after login is over...")
-            time.sleep(5)
+            # self.browser.find_element(By.CSS_SELECTOR, "hello").click()
+            time.sleep(20)
         except KeyboardInterrupt:
+            self.saveUrlLog()
             print("Keyboard Interrupt occurred. Exiting...")
         except Exception as e:
             print("Error occurred while starting scraper: ", e)
-        self.browser.quit()
+            # self.saveUrlLog()
+        finally:
+            print("Terminated")
+            self.browser.quit()
         print("Exiting...")
+
+
+    def saveUrlLog(self):
+        current_url = self.browser.current_url
+        print(current_url)
+        with open("url_log.txt", "a") as log_file:
+            log_file.write(current_url + "\n")
