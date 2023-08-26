@@ -10,6 +10,7 @@ from tkinter import ttk
 import psutil
 
 from src.Common.Constants import constants
+from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
 from src.Main.StartChromedriver import StartChromedriver
 from src.Main.StartScraper import StartScraper
@@ -21,6 +22,8 @@ from src.Utility.FileUtility import FileUtility
 
 class HomeScreen:
     def __init__(self, app):
+        self.config = None
+        self.logger = None
         self.process = None
         self.processes = []
         self.configJson = None
@@ -29,8 +32,6 @@ class HomeScreen:
         self.app.geometry("400x400")
         self.app.title("Educative Scraper")
         self.configFilePath = tk.StringVar()
-        self.configFilePath.set(constants.defaultConfigPath)
-
         self.userDataDirVar = tk.StringVar()
         self.headlessVar = tk.BooleanVar(value=False)
         self.courseUrlsFilePathVar = tk.StringVar()
@@ -44,19 +45,38 @@ class HomeScreen:
         self.unMarkAsCompletedVar = tk.BooleanVar(value=True)
         self.scrapeQuizVar = tk.BooleanVar(value=True)
         self.scrapeCodesVar = tk.BooleanVar(value=True)
-        self.loggerVar = tk.BooleanVar(value=True)
+        self.loggingLevelVar = tk.StringVar()
+        self.loggingLevels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "NOTSET"]
+        self.logLevelDesc = {
+            "DEBUG": "Detailed info for debugging.",
+            "INFO": "Confirmation of expected functionality.",
+            "WARNING": "Indication of unexpected events.",
+            "ERROR": "Software can't perform a function.",
+            "CRITICAL": "Program can't continue running.",
+            "NOTSET": "Lowest level, turns off logging."
+        }
         self.progressVar = tk.DoubleVar()
-
         self.configUtil = ConfigUtility()
-        self.config = self.configUtil.loadConfig()['ScraperConfig']
-        self.mapConfigValues()
+        self.loadDefaultConfig()
+        self.logLevelDescVar = tk.StringVar(value=self.configJson['logger'])
+        self.logDescriptionLabel = None
         self.fileUtil = FileUtility()
         self.downloadUtil = DownloadUtility()
-        self.pythonExecutable = sys.executable
-        self.browserUtil = BrowserUtility(self.configJson)
+
+
+    def onConfigChange(self, *args):
+        self.createConfigJson()
+        self.logger = Logger(self.configJson, "HomeScreen").logger
+        self.logLevelDescVar.set(self.configJson['logger'])
+        self.logDescriptionLabel.config(text=self.logLevelDesc[self.logLevelDescVar.get()])
 
 
     def createHomeScreen(self):
+        self.logger = Logger(self.configJson, "HomeScreen").logger
+        self.loggingLevelVar.trace("w", self.onConfigChange)
+        self.saveDirectoryVar.trace("w", self.onConfigChange)
+        self.logLevelDescVar.trace("w", self.onConfigChange)
+
         configFilePathFrame = tk.Frame(self.app)
         configFilePathLabel = tk.Label(configFilePathFrame, text="Config File Path:")
         configFileTextBox = tk.Entry(configFilePathFrame, textvariable=self.configFilePath, width=70)
@@ -67,7 +87,10 @@ class HomeScreen:
         browseConfigFileButton.grid(row=0, column=2, padx=2)
         configFilePathFrame.pack(pady=10, padx=10, anchor="w")
 
-        checkboxesFrame = tk.Frame(self.app)
+        containerFrame = tk.Frame(self.app)
+        containerFrame.pack(pady=10, padx=10, anchor="w")
+
+        checkboxesFrame = tk.Frame(containerFrame)
         optionCheckboxes = [
             ("Headless", self.headlessVar),
             ("Single File HTML", self.singleFileHTMLVar),
@@ -79,14 +102,21 @@ class HomeScreen:
             ("Unmark As Completed", self.unMarkAsCompletedVar),
             ("Scrape Quiz", self.scrapeQuizVar),
             ("Scrape Codes", self.scrapeCodesVar),
-            ("Logger", self.loggerVar)
         ]
 
-        for optionText, optionVar in optionCheckboxes:
+        for i, (optionText, optionVar) in enumerate(optionCheckboxes):
             checkbox = tk.Checkbutton(checkboxesFrame, text=optionText, variable=optionVar, wraplength=400, anchor="w")
-            checkbox.pack(anchor="w", padx=10)
+            checkbox.grid(row=int(i), column=0, sticky="w", padx=0, pady=2)
 
-        checkboxesFrame.pack(pady=10, padx=10, anchor="w")
+        loggerLevelLabel = tk.Label(checkboxesFrame, text="Logger Level:")
+        loggerLevelLabel.grid(row=len(optionCheckboxes), column=0, sticky="w", padx=2, pady=0)
+        loggingLevelCombobox = ttk.Combobox(checkboxesFrame, textvariable=self.loggingLevelVar,
+                                            values=self.loggingLevels, state="readonly")
+        loggingLevelCombobox.grid(row=len(optionCheckboxes), column=1, sticky="w", padx=0, pady=5)
+        self.logDescriptionLabel = tk.Label(checkboxesFrame, text=self.logLevelDesc[self.logLevelDescVar.get()])
+        self.logDescriptionLabel.grid(row=len(optionCheckboxes), column=2, sticky="w", padx=2, pady=2)
+
+        checkboxesFrame.grid(row=0, column=0, padx=0, pady=10, sticky="nw")
 
         entriesFrame = tk.Frame(self.app)
         userDataDirLabel = tk.Label(entriesFrame, text="User Data Directory:")
@@ -97,6 +127,8 @@ class HomeScreen:
         saveDirectoryLabel = tk.Label(entriesFrame, text="Save Directory:")
         saveDirectoryEntry = tk.Entry(entriesFrame, textvariable=self.saveDirectoryVar, width=65)
         saveDirectoryButton = tk.Button(entriesFrame, text="...", command=self.browseSaveDirectory)
+        logPathLabel = tk.Label(entriesFrame,
+                                text="Logs are saved in Save Directory Path with name 'EducativeScraper.log")
 
         userDataDirLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         userDataDirEntry.grid(row=0, column=1, sticky="w", padx=2, pady=2)
@@ -106,6 +138,7 @@ class HomeScreen:
         saveDirectoryLabel.grid(row=2, column=0, sticky="w", padx=2, pady=2)
         saveDirectoryEntry.grid(row=2, column=1, sticky="w", padx=2, pady=2)
         saveDirectoryButton.grid(row=2, column=2, padx=2)
+        logPathLabel.grid(row=3, column=1, sticky="w", padx=2, pady=2)
         entriesFrame.pack(pady=10, padx=10, anchor="w")
 
         buttonConfigFrame = tk.Frame(self.app)
@@ -122,14 +155,14 @@ class HomeScreen:
         buttonConfigFrame.pack(pady=20, padx=100, anchor="center")
 
         buttonScraperFrame = tk.Frame(self.app)
-        self.downloadChromeDriverButton = tk.Button(buttonScraperFrame, text="Download Chrome Driver",
+        self.downloadChromeDriverButton = tk.Button(buttonScraperFrame, text="Download Chrome Driver", width=19,
                                                     command=lambda: self.downloadUtil.downloadChromeDriver(self.app,
-                                                                                                           self.progressVar),
-                                                    width=19)
-        self.downloadChromeBinaryButton = tk.Button(buttonScraperFrame, text="Download Chrome Binary",
+                                                                                                           self.progressVar,
+                                                                                                           self.configJson))
+        self.downloadChromeBinaryButton = tk.Button(buttonScraperFrame, text="Download Chrome Binary", width=20,
                                                     command=lambda: self.downloadUtil.downloadChromeBinary(self.app,
-                                                                                                           self.progressVar),
-                                                    width=20)
+                                                                                                           self.progressVar,
+                                                                                                           self.configJson))
         self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
                                                  command=self.startChromeDriver, width=19)
         self.loginAccountButton = tk.Button(buttonScraperFrame, text="Login Account", command=self.loginAccount,
@@ -206,7 +239,7 @@ class HomeScreen:
         self.unMarkAsCompletedVar.set(self.config['unMarkAsCompleted'])
         self.scrapeQuizVar.set(self.config['scrapeQuiz'])
         self.scrapeCodesVar.set(self.config['scrapeCodes'])
-        self.loggerVar.set(self.config['logger'])
+        self.loggingLevelVar.set(self.config['logger'])
 
 
     def createConfigJson(self):
@@ -224,14 +257,14 @@ class HomeScreen:
             'unMarkAsCompleted': self.unMarkAsCompletedVar.get(),
             'scrapeQuiz': self.scrapeQuizVar.get(),
             'scrapeCodes': self.scrapeCodesVar.get(),
-            'logger': self.loggerVar.get()
+            'logger': self.loggingLevelVar.get()
         }
 
 
     def startScraper(self):
         self.createConfigJson()
-        startScraper = StartScraper(self.configJson)
-        self.process = multiprocessing.Process(target=startScraper.start)
+        startScraper = StartScraper()
+        self.process = multiprocessing.Process(target=startScraper.start, args=(self.configJson,))
         self.process.start()
         self.processes.append(self.process)
         self.updateButtonState()
@@ -239,23 +272,24 @@ class HomeScreen:
 
     def loginAccount(self):
         self.createConfigJson()
-        loginAccount = LoginAccount(self.configJson)
-        self.process = multiprocessing.Process(target=loginAccount.start)
+        loginAccount = LoginAccount()
+        self.process = multiprocessing.Process(target=loginAccount.start, args=(self.configJson,))
         self.process.start()
         self.processes.append(self.process)
         self.updateButtonState()
 
 
     def terminateProcess(self):
-        print("Terminating Process")
-        self.browserUtil.configJson = self.configJson
+        self.logger.debug("Terminating Process")
+        browserUtil = BrowserUtility(self.configJson)
         for process in self.processes:
             try:
                 process.terminate()
                 process.join()
             except psutil.NoSuchProcess:
                 pass
-        asyncio.get_event_loop().run_until_complete(self.browserUtil.shutdownChrome())
+        asyncio.get_event_loop().run_until_complete(browserUtil.getCurrentUrlViaWebsocket())
+        asyncio.get_event_loop().run_until_complete(browserUtil.shutdownChromeViaWebsocket())
         self.processes = []
         self.updateButtonState()
 
@@ -267,8 +301,6 @@ class HomeScreen:
         else:
             self.EnableDisableButtons("normal")
             self.terminateProcessButton.config(state="disabled")
-
-        # Schedule the update after a short delay (1000ms)
         self.app.after(1000, self.updateButtonState)
 
 
@@ -280,16 +312,18 @@ class HomeScreen:
         self.loginAccountButton.config(state=state)
 
 
-    @staticmethod
-    def startChromeDriver():
-        print("Starting Chrome Driver", constants.chromeDriverPath)
+    def startChromeDriver(self):
+        self.logger.debug(f"""  Starting Chrome Driver...
+                                Path:  {constants.chromeDriverPath}
+                          """)
         StartChromedriver().loadChromeDriver()
 
 
     def loadDefaultConfig(self):
         self.configFilePath.set(constants.defaultConfigPath)
-        self.config = self.configUtil.loadConfig(constants.defaultConfigPath)['ScraperConfig']
+        self.config = self.configUtil.loadConfig()['ScraperConfig']
         self.mapConfigValues()
+        self.createConfigJson()
 
 
     def deleteUserData(self):

@@ -12,9 +12,8 @@ class ConfigUtility:
 
 
     def createDefaultConfigIfNotExists(self):
-        print("Creating default config")
-
         if not self.fileUtil.checkIfFileExists(constants.defaultConfigPath):
+            print("Creating default config file...")
             shutil.copy(constants.commonConfigPath, constants.defaultConfigPath)
 
 

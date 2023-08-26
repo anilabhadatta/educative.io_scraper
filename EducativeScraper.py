@@ -8,7 +8,12 @@ from src.Utility.FileUtility import FileUtility
 
 class EducativeScraper:
     def __init__(self):
-        print("Scraper initialized")
+        print("""
+                Educative Scraper (version 3.0.3), developed by Anilabha Datta
+                Project Link: https://github.com/anilabhadatta/educative.io_scraper
+                Check out ReadMe for more information about this project.
+                Use the GUI to start scraping.
+        """)
 
         self.fileUtil = FileUtility()
         self.configUtil = ConfigUtility()

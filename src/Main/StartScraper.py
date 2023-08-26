@@ -1,25 +1,33 @@
 import time
 
+from src.Logging.Logger import Logger
 from src.Utility.BrowserUtility import BrowserUtility
 
 
 class StartScraper:
-    def __init__(self, configJson):
-        self.configJson = configJson
-        self.browserUtil = BrowserUtility(configJson)
+    def __init__(self):
+        self.logger = None
+        self.browserUtil = None
+        self.configJson = None
         self.browser = None
 
 
-    def start(self):
+    def start(self, configJson):
+        self.configJson = configJson
+        self.browserUtil = BrowserUtility(self.configJson)
+        self.logger = Logger(self.configJson, "StartScraper").logger
+        self.logger.debug("""   StartScraper initiated...
+                                To Terminate, Click on Stop Scraper Button
+                        """)
         try:
             i = 0
             while True:
-                print("Starting scraper...", i)
+                self.logger.debug(f"Starting scraper... {i}")
                 i += 1
                 time.sleep(1)
         except KeyboardInterrupt:
-            print("Keyboard Interrupt occurred. Exiting...")
-        except Exception:
-            pass
+            self.logger.error("Keyboard Interrupt")
+        except Exception as e:
+            self.logger.error(e)
         finally:
-            print("Terminated")
+            self.logger.debug("Exiting...")

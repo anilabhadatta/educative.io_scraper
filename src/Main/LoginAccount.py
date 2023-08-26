@@ -1,35 +1,37 @@
 import time
 
+from src.Logging.Logger import Logger
 from src.Utility.BrowserUtility import BrowserUtility
 
 
 class LoginAccount:
-    def __init__(self, configJson):
-        self.configJson = configJson
-        self.browserUtil = BrowserUtility(configJson)
+    def __init__(self):
+        self.browserUtil = None
+        self.logger = None
+        self.configJson = None
         self.browser = None
 
 
-    def start(self):
+    def start(self, configJson):
+        self.configJson = configJson
+        self.browserUtil = BrowserUtility(self.configJson)
+        self.logger = Logger(self.configJson, "LoginAccount").logger
+        self.logger.debug("""   LoginAccount initiated...
+                                Login your account in the browser...
+                                To Terminate, Click on Logout Button
+                         """)
         try:
             self.browser = self.browserUtil.loadBrowser()
             self.browser.get("https://educative.io/login")
-            # self.browser.find_element(By.CSS_SELECTOR, "hello").click()
             time.sleep(20)
+            i = 0
+            while True:
+                time.sleep(1)
+                i += 1
         except KeyboardInterrupt:
-            self.saveUrlLog()
-            print("Keyboard Interrupt occurred. Exiting...")
+            self.logger.error("Keyboard Interrupt")
         except Exception as e:
-            print("Error occurred while starting scraper: ", e)
-            # self.saveUrlLog()
+            self.logger.error(e)
         finally:
-            print("Terminated")
+            self.logger.debug("Exiting...")
             self.browser.quit()
-        print("Exiting...")
-
-
-    def saveUrlLog(self):
-        current_url = self.browser.current_url
-        print(current_url)
-        with open("url_log.txt", "a") as log_file:
-            log_file.write(current_url + "\n")

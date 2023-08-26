@@ -155,3 +155,4 @@ Chrome-bin-osx.zip
 /src/ChromeDrivers/mac/
 
 /temp.py
+/url_log.txt
