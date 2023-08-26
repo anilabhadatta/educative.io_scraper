@@ -14,8 +14,7 @@ driver = webdriver.Chrome(executable_path="C:/chromedriver.exe", chrome_options=
 driver.set_window_size(1920,1080)
 
 
-# username = 'jonathan.h.friedman@gmail.com'
-# password = 'lambofgod20'
+print("Educative Scraper v1 Depreciated, use v2 or v3(ongoing-dev)")
 # driver.get("https://educative.io/login")
 # driver.get_screenshot_as_file('testa.png')
 # time.sleep(4)
