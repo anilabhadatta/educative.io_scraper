@@ -32,7 +32,8 @@
       Update 9.1: Fixed Quiz Screenshot Issues and Implemented Html2Canvas for Quiz Screenshot
       Update 9.2: Fixed Quiz Screenshot Issues and Implemented DOM2PNG for Quiz Screenshot
       Update 9.3: Fixed Quiz Screenshot without options, Improved SingleFile extraction, Disabled Web Security to reduce CORS issues.
-
+      
+###   New Branch currently in Development: https://github.com/anilabhadatta/educative.io_scraper/tree/v3-dev
 ## How to use the Scraper?
 
 > 1.  Create a text file and copy the urls of the first topic of any number of courses and paste it in the text file as shown below.
