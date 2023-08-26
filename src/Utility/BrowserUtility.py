@@ -19,6 +19,8 @@ class BrowserUtility:
 
 
     def loadBrowser(self):
+        self.logger.info("Loading Browser...")
+        self.logger.debug("loadBrowser called")
         userDataDir = os.path.join(
             constants.OS_ROOT, self.configJson["userDataDir"])
         options = webdriver.ChromeOptions()
@@ -43,11 +45,13 @@ class BrowserUtility:
         self.browser.set_window_size(1920, 1080)
         self.browser.command_executor._commands["send_command"] = (
             "POST", '/session/$sessionId/chromium/send_command')
-        self.logger.debug("Browser Initiated")
+        self.logger.info("Browser Initiated")
+        self.logger.debug("loadBrowser completed")
         return self.browser
 
 
     def getDevToolsUrl(self):
+        self.logger.debug("getDevToolsUrl called")
         devToolsFilePath = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], "DevToolsActivePort")
         with open(devToolsFilePath) as f:
             devToolsFile = f.readlines()
@@ -55,9 +59,11 @@ class BrowserUtility:
             devToolsId = devToolsFile[1].split("\n")[0]
         self.devToolUrl = f"ws://127.0.0.1:{devToolsPort}{devToolsId}"
         self.devToolJsonUrl = f"http://127.0.0.1:{devToolsPort}/json/list"
+        self.logger.debug("getDevToolsUrl completed with devToolUrl: " + self.devToolUrl)
 
 
     async def shutdownChromeViaWebsocket(self):
+        self.logger.debug("shutdownChromeViaWebsocket called")
         try:
             self.getDevToolsUrl()
             async with websockets.connect(self.devToolUrl) as websocket:
@@ -68,15 +74,17 @@ class BrowserUtility:
                 await websocket.send(json.dumps(message))
                 response = await websocket.recv()
                 self.logger.debug(f"shutdownChromeViaWebsocket Response: {response}")
+                self.logger.info("Browser closed via websocket")
         except Exception as e:
             self.logger.error("No Browser was open to close via websocket")
 
 
     async def getCurrentUrlViaWebsocket(self):
+        self.logger.debug("getCurrentUrlViaWebsocket called")
         try:
             self.getDevToolsUrl()
             response = requests.get(self.devToolJsonUrl)
             currentUrl = json.loads(response.content)[0]['url']
-            self.logger.info(currentUrl)
+            self.logger.info("Current Url: " + currentUrl)
         except Exception as e:
             self.logger.error("Error occurred while getting current URL via websocket")

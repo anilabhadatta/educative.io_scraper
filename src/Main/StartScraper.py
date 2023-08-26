@@ -16,8 +16,8 @@ class StartScraper:
         self.configJson = configJson
         self.browserUtil = BrowserUtility(self.configJson)
         self.logger = Logger(self.configJson, "StartScraper").logger
-        self.logger.debug("""   StartScraper initiated...
-                                To Terminate, Click on Stop Scraper Button
+        self.logger.info("""StartScraper initiated...
+                            To Terminate, Click on Stop Scraper Button
                         """)
         try:
             i = 0

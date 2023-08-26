@@ -31,9 +31,10 @@ class DownloadUtility:
         self.app = app
         self.progressVar = progressVar
         self.logger = Logger(configJson, "DownloadUtility").logger
+        self.logger.debug("downloadChromeDriver called...")
         chromeDriverUrl = self.releaseUrl + self.config[constants.chromedriverConfigKey]
         chromeDriverOutputPath = os.path.join(constants.chromeDriverFolderPath, "ChromeDriver.zip")
-        self.logger.debug(f"""  Downloading Chrome Driver..
+        self.logger.info(f"""  Downloading Chrome Driver and Extracting..
                                 URL: {chromeDriverUrl}
                                 Output Path: {self.chromeDriverOSPath}
                                 OS: {self.osUtil.getCurrentOS()}
@@ -44,7 +45,7 @@ class DownloadUtility:
         self.logger.debug("Download Complete now Extracting...")
         with zipfile.ZipFile(chromeDriverOutputPath, "r") as zip_ref:
             zip_ref.extractall(constants.chromeDriverFolderPath)
-            self.logger.debug("Extraction completed.")
+            self.logger.info("Download and Extraction of Chromedriver completed.")
 
         self.fileUtil.deleteFileIfExists(chromeDriverOutputPath)
 
@@ -53,9 +54,10 @@ class DownloadUtility:
         self.app = app
         self.progressVar = progressVar
         self.logger = Logger(configJson, "DownloadUtility").logger
+        self.logger.debug("downloadChromeBinary called...")
         chromeBinaryUrl = self.releaseUrl + self.config[constants.chromebinaryConfigKey]
         chromeBinaryOutputPath = os.path.join(constants.chromeBinaryFolderPath, "ChromeBinary.zip")
-        self.logger.debug(f"""  Downloading Chrome Binary..
+        self.logger.info(f"""  Downloading Chrome Binary and Extracting..
                                 URL: {chromeBinaryUrl}
                                 Output Path: {self.chromeBinaryOSPath}
                                 OS: {self.osUtil.getCurrentOS()}
@@ -66,7 +68,7 @@ class DownloadUtility:
         self.logger.debug("Download Complete now Extracting...")
         with zipfile.ZipFile(chromeBinaryOutputPath, "r") as zip_ref:
             zip_ref.extractall(constants.chromeBinaryFolderPath)
-            self.logger.debug("Extraction completed.")
+            self.logger.info("Download and Extraction of ChromeBinary completed.")
 
         self.fileUtil.deleteFileIfExists(chromeBinaryOutputPath)
 

@@ -9,8 +9,8 @@ from src.Utility.FileUtility import FileUtility
 class EducativeScraper:
     def __init__(self):
         print("""
-                Educative Scraper (version 3.0.3), developed by Anilabha Datta
-                Project Link: https://github.com/anilabhadatta/educative.io_scraper
+                Educative Scraper (version 3.0.4 Dev Branch), developed by Anilabha Datta
+                Project Link: https://github.com/anilabhadatta/educative.io_scraper/tree/v3-dev
                 Check out ReadMe for more information about this project.
                 Use the GUI to start scraping.
         """)
@@ -33,5 +33,4 @@ class EducativeScraper:
 
 
 if __name__ == '__main__':
-    # Create the Tkinter app
     app = EducativeScraper()

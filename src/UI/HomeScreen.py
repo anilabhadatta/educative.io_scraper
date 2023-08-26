@@ -76,6 +76,8 @@ class HomeScreen:
         self.loggingLevelVar.trace("w", self.onConfigChange)
         self.saveDirectoryVar.trace("w", self.onConfigChange)
         self.logLevelDescVar.trace("w", self.onConfigChange)
+        self.logger.info("Creating Home Screen...")
+        self.logger.debug("createHomeScreen called")
 
         configFilePathFrame = tk.Frame(self.app)
         configFilePathLabel = tk.Label(configFilePathFrame, text="Config File Path:")
@@ -189,9 +191,11 @@ class HomeScreen:
         progressBarFrame.pack(pady=2)
         self.fixGeometry()
         self.app.update_idletasks()
+        self.logger.debug("createHomeScreen completed")
 
 
     def fixGeometry(self):
+        self.logger.debug("fixGeometry called")
         self.app.update_idletasks()
         width = self.app.winfo_reqwidth()
         height = self.app.winfo_reqheight()
@@ -201,28 +205,43 @@ class HomeScreen:
         x = (screen_width - width) // 2
         y = (screen_height - height) // 2
         self.app.geometry(f"{width}x{height}+{x}+{y}")
+        self.app.resizable(False, False)
+        self.logger.debug("fixGeometry completed")
 
 
     def browseCourseUrlsFile(self):
+        self.logger.debug("browseCourseUrlsFile called")
         courseUrlsFilePath = tk.filedialog.askopenfilename(
             filetypes=[("Text Files", "*.txt")])
         if courseUrlsFilePath:
             self.courseUrlsFilePathVar.set(courseUrlsFilePath)
+        self.logger.debug(f"""browseCourseUrlsFile completed 
+                                courseUrlsFilePath: {courseUrlsFilePath}
+                            """)
 
 
     def browseSaveDirectory(self):
+        self.logger.debug("browseSaveDirectory called")
         saveDirectoryPath = tk.filedialog.askdirectory()
         if saveDirectoryPath:
             self.saveDirectoryVar.set(saveDirectoryPath)
+        self.logger.debug(f"""browseSaveDirectory completed
+                                saveDirectoryPath: {saveDirectoryPath}
+                            """)
 
 
     def browseConfigFile(self):
+        self.logger.debug("browseConfigFile called")
         configFilePath = tk.filedialog.askopenfilename(
             filetypes=[("INI Files", "*.ini")])
         if configFilePath:
             self.configFilePath.set(configFilePath)
             self.config = self.configUtil.loadConfig(configFilePath)['ScraperConfig']
             self.mapConfigValues()
+            self.createConfigJson()
+            self.logger.debug(f"""browseConfigFile completed
+                                    configFilePath: {configFilePath}
+                                """)
 
 
     def mapConfigValues(self):
@@ -262,25 +281,30 @@ class HomeScreen:
 
 
     def startScraper(self):
+        self.logger.debug("startScraper called")
         self.createConfigJson()
         startScraper = StartScraper()
         self.process = multiprocessing.Process(target=startScraper.start, args=(self.configJson,))
         self.process.start()
         self.processes.append(self.process)
         self.updateButtonState()
+        self.logger.debug("startScraper completed")
 
 
     def loginAccount(self):
+        self.logger.debug("loginAccount called")
         self.createConfigJson()
         loginAccount = LoginAccount()
         self.process = multiprocessing.Process(target=loginAccount.start, args=(self.configJson,))
         self.process.start()
         self.processes.append(self.process)
         self.updateButtonState()
+        self.logger.debug("loginAccount completed")
 
 
     def terminateProcess(self):
-        self.logger.debug("Terminating Process")
+        self.logger.debug("terminateProcess called")
+        self.logger.info("Terminating Process...")
         browserUtil = BrowserUtility(self.configJson)
         for process in self.processes:
             try:
@@ -292,6 +316,7 @@ class HomeScreen:
         asyncio.get_event_loop().run_until_complete(browserUtil.shutdownChromeViaWebsocket())
         self.processes = []
         self.updateButtonState()
+        self.logger.debug("terminateProcess completed")
 
 
     def updateButtonState(self):
@@ -313,10 +338,11 @@ class HomeScreen:
 
 
     def startChromeDriver(self):
-        self.logger.debug(f"""  Starting Chrome Driver...
+        self.logger.info(f"""  Starting Chrome Driver...
                                 Path:  {constants.chromeDriverPath}
                           """)
         StartChromedriver().loadChromeDriver()
+        self.logger.debug("startChromeDriver completed")
 
 
     def loadDefaultConfig(self):
@@ -327,18 +353,24 @@ class HomeScreen:
 
 
     def deleteUserData(self):
+        self.logger.debug("deleteUserData called")
         userDataDirPath = os.path.join(constants.OS_ROOT, self.userDataDirVar.get())
         if self.fileUtil.checkIfDirectoryExists(userDataDirPath):
             shutil.rmtree(userDataDirPath)
+            self.logger.debug(f"Deleted User Data Directory: {userDataDirPath}")
 
 
     def updateConfig(self):
+        self.logger.debug("updateConfig called")
         self.createConfigJson()
         self.configUtil.updateConfig(self.configJson, self.configFilePath.get())
+        self.logger.debug(f"updateConfig completed with filePath: {self.configFilePath.get()}")
 
 
     def exportConfig(self):
+        self.logger.debug("exportConfig called")
         self.createConfigJson()
         filePath = tk.filedialog.asksaveasfilename(defaultextension='.ini', filetypes=[('INI Files', '*.ini')],
                                                    title='Save Config File')
         self.configUtil.updateConfig(self.configJson, filePath)
+        self.logger.debug(f"exportConfig completed with filePath: {filePath}")
