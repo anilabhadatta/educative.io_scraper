@@ -1,4 +1,7 @@
-# educative.io_scraper
+# educative.io_scraper v1 is depreciated as of Feb 25, 2022
+## Ignore the recent commits, refer the master/v2/v3 branch for latest updates
+
+
 This a python selenium script used to scrap Educative.io courses.
 
 Run the script without headless mode if your account isn't signed in.
