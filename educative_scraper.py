@@ -557,7 +557,8 @@ if __name__ == '__main__':
         clear()
         try:
             print('''
-                        Educative Scraper, made by Anilabha Datta
+                        Educative Scraper v2, made by Anilabha Datta
+                        Version Migrated to v2 Branch, refer there for latest Updates
                         Project Link: github.com/anilabhadatta/educative.io_scraper
                         Read the documentation for more information about this project.
 
