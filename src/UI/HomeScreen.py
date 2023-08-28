@@ -117,7 +117,14 @@ class HomeScreen:
         loggingLevelCombobox.grid(row=len(optionCheckboxes), column=1, sticky="w", padx=0, pady=5)
         self.logDescriptionLabel = tk.Label(checkboxesFrame, text=self.logLevelDesc[self.logLevelDescVar.get()])
         self.logDescriptionLabel.grid(row=len(optionCheckboxes), column=2, sticky="w", padx=2, pady=2)
-
+        ToolDescriptionLabel0 = tk.Label(checkboxesFrame, text="About: Educative Scraper")
+        ToolDescriptionLabel1 = tk.Label(checkboxesFrame, text="Version 3.0.4 Dev Branch")
+        ToolDescriptionLabel2 = tk.Label(checkboxesFrame, text="Developed by Anilabha Datta")
+        ToolDescriptionLabel3 = tk.Label(checkboxesFrame, text="Check out ReadMe for more Information.")
+        ToolDescriptionLabel0.grid(row=0, column=2, sticky="w", padx=2, pady=2)
+        ToolDescriptionLabel1.grid(row=1, column=2, sticky="w", padx=2, pady=2)
+        ToolDescriptionLabel2.grid(row=2, column=2, sticky="w", padx=2, pady=2)
+        ToolDescriptionLabel3.grid(row=3, column=2, sticky="w", padx=2, pady=2)
         checkboxesFrame.grid(row=0, column=0, padx=0, pady=10, sticky="nw")
 
         entriesFrame = tk.Frame(self.app)
