@@ -7,31 +7,9 @@
 ## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
 
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : 9.3 (latest) || Release Version 6.8
-      Update 6.9: Added support for scraping a special type of quiz container (Mark Down Quiz) in the course.
-      Update 7.0: Fixed File name where "name" is not present in meta property og:title.
-      Update 7.1: Various bug fixes related to code containers and improvements.
-      Update 7.3: Fixed MarkDown and Copy Code button issue.
-      Update 7.4: Fixed File Name for Modules
-      Update 7.5: Fixed Slides Opening and Hints Opening issue
-      Update 7.6: Fixed Quiz Questions skipped issue
-      Update 7.7: Fixed removing of unecessary tags
-      Update 7.8: Fixed Multple Bugs and Improvements
-      Update 7.9: Added Style tag with filter:none
-      Update 8.0: Skipped Projects if it is in current page
-      Update 8.1: Skipped Assessments
-      Update 8.2: Fixed Puzzle Javascript error
-      Update 8.3: Fixed Quiz Container and show solution bug
-      Update 8.4: Fixed Pagination buttons
-      Update 8.5: Fixed Multiple Issues
-      Update 8.6: Fixed Next Button, Background Style for Iframes, Demark Button
-      Update 8.7: Added driver refresh for every page.
-      Update 8.8: Fixed Next page button issue and Quiz Right Button.
-      Update 8.9: Fixed Quiz Screenshot Issues
-      Update 9.0: Fixed Quiz Screenshot Issues and Minor fix for singleFile
-      Update 9.1: Fixed Quiz Screenshot Issues and Implemented Html2Canvas for Quiz Screenshot
-      Update 9.2: Fixed Quiz Screenshot Issues and Implemented DOM2PNG for Quiz Screenshot
-      Update 9.3: Fixed Quiz Screenshot without options, Improved SingleFile extraction, Disabled Web Security to reduce CORS issues.
+      Repo Version : 2.9.4 (latest)
+
+      New v3 in development: Checkout v3-dev branch for latest updates.
 
 ## How to use the Scraper?
 

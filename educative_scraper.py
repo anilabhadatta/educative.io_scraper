@@ -1,19 +1,19 @@
-from time import sleep
-from selenium.webdriver.common.by import By
-import os
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from slugify import slugify
-import glob
-import zipfile
-import json
-import sys
 import base64
+import glob
+import json
+import os
 import re
+import sys
+import zipfile
+from time import sleep
 
+from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from slugify import slugify
 
 OS_ROOT = os.path.expanduser('~')
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -89,15 +89,19 @@ def next_page(driver):
 ''')
     print("Next Page", next_page_result)
     if next_page_result:
-        body = driver.find_element(By.CSS_SELECTOR, "body")
+        driver.get(driver.current_url)
+        wait = WebDriverWait(driver, 20)  # Adjust the timeout as needed
+        wait.until(EC.presence_of_element_located((By.XPATH, "//span[contains(text(), 'Next')]")))
+        print("Found Next Button")
+        # Perform actions on the page
+        element = driver.find_element(By.TAG_NAME, "body")
+        print("Sending Key")
         if current_os == "darwin":
-            body.send_keys(Keys.COMMAND, ">")
+            element.send_keys(Keys.COMMAND, ">")
         else:
-            body.send_keys(Keys.CONTROL, ">")
+            element.send_keys(Keys.CONTROL, ">")
         # error free scraping url
-        sleep(4)
-        driver.refresh()
-        sleep(3)
+        print("Next Page Function Complete")
     return next_page_result
 
 
@@ -136,7 +140,7 @@ def get_file_name_standard(driver, course_folder=False):
     title = driver.find_element(
         By.CSS_SELECTOR, title_selector).get_attribute('content')
     if course_name in title:
-        page_name = title[:len(title)-len(course_name)]
+        page_name = title[:len(title) - len(course_name)]
     else:
         page_name = title
 
@@ -187,7 +191,7 @@ def get_file_name(driver, course_folder=False):
         except:
             file_name = get_file_name_from_module(driver, course_folder)
     file_name = slugify(file_name, replacements=[
-                        ['+', 'plus']]).replace("-", " ")
+        ['+', 'plus']]).replace("-", " ")
     return re.sub(r'[:?|></]', replace_filename, file_name)
 
 
@@ -195,11 +199,14 @@ def delete_node(driver, node):
     print("Node deleted", node)
 
     driver.execute_script(f"""
-                                var element = document.querySelectorAll("{node}");
-                                if (element.length > 0)
-                                    for(i=0; i<element.length; i++){{
-                                        element[i].remove();
+                               var elements = document.querySelectorAll("{node}");
+                                for(element of elements){{
+                                    if (element.tagName === "STYLE" || element.tagName === "DIV" && element.id === "__next") {{
+                                        // do nothing
+                                    }} else {{
+                                    element.parentNode.removeChild(element);
                                     }}
+                                }}
                                 """)
     sleep(1)
 
@@ -210,7 +217,10 @@ def remove_tags(driver):
     privacy_div = "div[aria-label*='Your Privacy']"
     ask_a_question_and_dark_mode_toolbar = "div[id*='view-collection-article-content-root']> :not(#handleArticleScroll) > *"
     streak_div = "div[aria-labelledby*='simple-modal-title']"
-
+    body = "body > *"
+    head = "head > *"
+    delete_node(driver, body)
+    delete_node(driver, head)
     delete_node(driver, nav_node)
     delete_node(driver, privacy_div)
     delete_node(driver, ask_a_question_and_dark_mode_toolbar)
@@ -279,7 +289,6 @@ def send_command(driver, cmd, params={}):
 
 
 def screenshot_as_cdp(driver, ele_to_screenshot, scale=1):
-
     sleep(1)
     size, location = ele_to_screenshot.size, ele_to_screenshot.location
     width, height = size['width'], size['height']
@@ -516,7 +525,7 @@ def download_file(driver, element):
             sleep(2)
             original_file_name = check_file_in_dir(original_file_name)
             os.rename(original_file_name, slugify(hover_file_name,
-                      replacements=[['+', 'plus']]).replace("-", "."))
+                                                  replacements=[['+', 'plus']]).replace("-", "."))
 
 
 def download_code_manually(driver, code):
@@ -711,7 +720,8 @@ def find_nav_bar_buttons(driver, folder_index):
     code_container_selector = "div[class*='code-container']"
 
     return driver.find_elements(By.CSS_SELECTOR, code_container_selector)[
-        folder_index].find_element(By.XPATH, "../..").find_element(By.CSS_SELECTOR, nav_bar_tab_title).find_element(By.XPATH, "../../../../..").find_elements(By.CSS_SELECTOR, "button")
+        folder_index].find_element(By.XPATH, "../..").find_element(By.CSS_SELECTOR, nav_bar_tab_title).find_element(
+        By.XPATH, "../../../../..").find_elements(By.CSS_SELECTOR, "button")
 
 
 def code_container_clipboard_type(driver):
@@ -776,7 +786,8 @@ def widget_tab_container_function(container, driver):
             sleep(2)
             code_container_inside_tab = container.find_element(By.CSS_SELECTOR, widget_inner_container).find_elements(
                 By.CSS_SELECTOR, widget_code_selector)
-            output_containers_inside_tab = container.find_element(By.CSS_SELECTOR, widget_inner_container).find_elements(
+            output_containers_inside_tab = container.find_element(By.CSS_SELECTOR,
+                                                                  widget_inner_container).find_elements(
                 By.CSS_SELECTOR, output_selector)
             try:
                 if code_container_inside_tab:
@@ -952,22 +963,34 @@ def click_option_quiz(driver, quiz_container):
 def inject_script_Tags(driver):
     print("Inject Meta and Script Tag")
     driver.execute_script('''
-                            function injectScriptToHTML(url, location) {
-                                const script = document.createElement("script");
-                                script.src = url;
-                                if (location === "iframe") {
-                                    const frames = document.querySelectorAll('frame, iframe, object');
-                                    for (let i = 0; i < frames.length; i++) {
-                                            const frame = frames[i];
-                                            const frameDocument = frame.contentDocument || frame.contentWindow.document;
-                                            const targetElement = frameDocument.head || frameDocument.body || frameDocument.documentElement;
-                                            targetElement.appendChild(script.cloneNode(true));
-                                    }
-                                }   else {
-                                    document.head.appendChild(script);
-                                }
-                            }
+                            function injectScriptToHTML(script, location) {
+    if (location === "iframe") {
+        const frames = document.querySelectorAll('frame, iframe, object');
+        for (let i = 0; i < frames.length; i++) {
+                const frame = frames[i];
+                const frameDocument = frame.contentDocument || frame.contentWindow.document;
+                const targetElement = frameDocument.head || frameDocument.body || frameDocument.documentElement;
+                targetElement.appendChild(script.cloneNode(true));
+        }
+    }
+    document.head.appendChild(script);
+}
 
+                          
+                          function createScriptTagFromURL(url) {
+    return fetch(url)
+        .then(response => response.text())
+        .then(data => {
+            const scriptElement = document.createElement('script');
+            scriptElement.type = 'text/javascript';
+            scriptElement.textContent = data;
+            return scriptElement;
+        })
+        .catch(error => {
+            console.error('Error loading script:', error);
+            return null;
+        });
+}
                             const baseurl = 'https://anilabhadatta.github.io/SingleFile/';
                             const urls = [
                             'lib/single-file-bootstrap.js',
@@ -980,18 +1003,21 @@ def inject_script_Tags(driver):
                             const fullUrls = urls.map(url => baseurl + url);
                             fullUrls.push(additionalUrl);
 
-                            injectScriptToHTML(fullUrls[0], "top");
-                            try{
-                                    injectScriptToHTML(fullUrls[1], "iframe");
-                                    injectScriptToHTML(fullUrls[2], "iframe");
-                                }
-                            catch(error){
-                                console.log(error);
-                            }
-                            injectScriptToHTML(fullUrls[1], "top");
-                            injectScriptToHTML(fullUrls[2], "top");
-                            injectScriptToHTML(fullUrls[3], "top");
-                            injectScriptToHTML(fullUrls[4], "top");
+                            for(let i=0; i< fullUrls.length; i++){
+    createScriptTagFromURL(fullUrls[i])
+        .then(scriptTag => {
+            if (scriptTag) {
+                if(i === 1 || i === 2){
+                    injectScriptToHTML(scriptTag, "iframe") 
+                }
+                else {
+                    injectScriptToHTML(scriptTag, "")
+                }
+            } else {
+                console.log('Script tag creation failed.');
+            }
+        });
+}
                           ''')
     sleep(2)
 
@@ -1239,11 +1265,7 @@ def scrape_page(driver, file_index):
         check_page(title)
         file_name = str(file_index) + "-" + title
         driver.set_window_size(1920, get_current_height(driver))
-        remove_tags(driver)
         add_style_tag_with_filter(driver)
-        inject_script_Tags(driver)
-        quiz_html += find_mark_down_quiz_containers(driver)
-        quiz_html += take_quiz_screenshot(driver)
         demark_as_completed(driver)
         show_solutions(driver)
         open_slides(driver)
@@ -1252,6 +1274,10 @@ def scrape_page(driver, file_index):
         # take_full_html_screenshot(driver, file_name, quiz_html)
         add_name_tag_in_next_back_button(driver)
         fix_all_svg_tags_inside_object_tags(driver)
+        remove_tags(driver)
+        inject_script_Tags(driver)
+        quiz_html += find_mark_down_quiz_containers(driver)
+        quiz_html += take_quiz_screenshot(driver)
         get_pagecontent_using_singleFile(driver, file_name, quiz_html)
         code_widget_type(driver)
         code_container_download_type(driver)
@@ -1311,10 +1337,10 @@ def load_webpage(driver, url):
     course_path = os.getcwd()
     while True:
         if not check_login(driver):
-            create_log(file_index-1, log_url, save_path, "Not logged in")
+            create_log(file_index - 1, log_url, save_path, "Not logged in")
             return False
         if not check_for_captcha(driver):
-            create_log(file_index-1, log_url, save_path, "Captcha detected")
+            create_log(file_index - 1, log_url, save_path, "Captcha detected")
             return False
         log_url = driver.current_url
         if not scrape_page(driver, file_index):
@@ -1419,7 +1445,8 @@ def create_base_config_dir():
 def select_config():
     global selected_config
     base_config_path = create_base_config_dir()
-    print("\nIf you are creating a new config, please select 1 in main menu to generate the new config and also you must login your educative account.\n")
+    print(
+        "\nIf you are creating a new config, please select 1 in main menu to generate the new config and also you must login your educative account.\n")
 
     if len(os.listdir(base_config_path)) > 0:
         for configs in os.listdir(base_config_path):
@@ -1471,7 +1498,7 @@ if __name__ == '__main__':
         file_index = 0
         try:
             print(f'''
-                        Educative Scraper (version 9.3), developed by Anilabha Datta
+                        Educative Scraper (version 2.9.4), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper
                         Please go through the ReadMe for more information about this project.
 
