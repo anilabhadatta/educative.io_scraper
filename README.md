@@ -9,7 +9,8 @@
       I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
       Repo Version : 2.9.4 (latest)
 
-      New v3 in development: Checkout v3-dev branch for latest updates.
+
+### New Branch currently in Development: https://github.com/anilabhadatta/educative.io_scraper/tree/v3-dev
 
 ## How to use the Scraper?
 
