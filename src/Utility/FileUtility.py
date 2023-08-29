@@ -23,7 +23,7 @@ class FileUtility:
 
     def createFolderIfNotExists(self, folderPath):
         if not self.checkIfDirectoryExists(folderPath):
-            os.mkdir(folderPath)
+            os.makedirs(folderPath)
 
 
     def deleteFileIfExists(self, filePath):

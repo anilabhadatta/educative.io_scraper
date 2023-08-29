@@ -38,7 +38,7 @@ class BrowserUtility:
         options.add_argument("--disable-site-isolation-trials")
         options.add_argument("--disable-features=IsolateOrigins,site-per-process")
         options.add_argument('--log-level=3')
-        userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.56 Safari/537.36"
+        userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
         options.add_argument(f'user-agent={userAgent}')
         options.binary_location = constants.chromeBinaryPath
         self.browser = webdriver.Remote(
