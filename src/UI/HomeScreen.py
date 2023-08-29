@@ -118,7 +118,7 @@ class HomeScreen:
         self.logDescriptionLabel = tk.Label(checkboxesFrame, text=self.logLevelDesc[self.logLevelDescVar.get()])
         self.logDescriptionLabel.grid(row=len(optionCheckboxes), column=2, sticky="w", padx=2, pady=2)
         ToolDescriptionLabel0 = tk.Label(checkboxesFrame, text="About: Educative Scraper")
-        ToolDescriptionLabel1 = tk.Label(checkboxesFrame, text="Version 3.0.4 Dev Branch")
+        ToolDescriptionLabel1 = tk.Label(checkboxesFrame, text="Version 3.0.5 Dev Branch")
         ToolDescriptionLabel2 = tk.Label(checkboxesFrame, text="Developed by Anilabha Datta")
         ToolDescriptionLabel3 = tk.Label(checkboxesFrame, text="Check out ReadMe for more Information.")
         ToolDescriptionLabel0.grid(row=0, column=2, sticky="w", padx=2, pady=2)

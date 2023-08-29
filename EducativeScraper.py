@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 
 from src.Common.Constants import constants
@@ -9,7 +10,7 @@ from src.Utility.FileUtility import FileUtility
 class EducativeScraper:
     def __init__(self):
         print("""
-                Educative Scraper (version 3.0.4 Dev Branch), developed by Anilabha Datta
+                Educative Scraper (version 3.0.5 Dev Branch), developed by Anilabha Datta
                 Project Link: https://github.com/anilabhadatta/educative.io_scraper/tree/v3-dev
                 Check out ReadMe for more information about this project.
                 Use the GUI to start scraping.
@@ -19,6 +20,8 @@ class EducativeScraper:
         self.configUtil = ConfigUtility()
         self.loadBasicUtility()
         self.root = tk.Tk()
+        img = tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon-3.png"))
+        self.root.iconphoto(True, img)
         self.run()
 
 
