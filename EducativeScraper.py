@@ -20,7 +20,7 @@ class EducativeScraper:
         self.configUtil = ConfigUtility()
         self.loadBasicUtility()
         self.root = tk.Tk()
-        img = tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon-3.png"))
+        img = tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon-4.png"))
         self.root.iconphoto(True, img)
         self.run()
 
