@@ -77,7 +77,7 @@ class DownloadUtility:
         self.fileUtil.deleteFileIfExists(chromeBinaryOutputPath)
         if not self.osUtil.getCurrentOS() == "win":
             self.logger.debug("Changing Permissions of ChromeDriver...")
-            subprocess.check_call(['chmod', 'u+x', constants.chromeBinaryFolderPath])
+            subprocess.check_call(['chmod', 'u+x', constants.chromeBinaryPath])
             self.logger.debug("Permissions Changed.")
 
 
