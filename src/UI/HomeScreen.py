@@ -87,10 +87,10 @@ class HomeScreen:
         configFilePathLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         configFileTextBox.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         browseConfigFileButton.grid(row=0, column=2, padx=2)
-        configFilePathFrame.pack(pady=10, padx=10, anchor="w")
+        configFilePathFrame.pack(pady=3, padx=10, anchor="w")
 
         containerFrame = tk.Frame(self.app)
-        containerFrame.pack(pady=10, padx=10, anchor="w")
+        containerFrame.pack(pady=3, padx=10, anchor="w")
 
         checkboxesFrame = tk.Frame(containerFrame)
         optionCheckboxes = [
@@ -125,7 +125,7 @@ class HomeScreen:
         ToolDescriptionLabel1.grid(row=1, column=2, sticky="w", padx=2, pady=2)
         ToolDescriptionLabel2.grid(row=2, column=2, sticky="w", padx=2, pady=2)
         ToolDescriptionLabel3.grid(row=3, column=2, sticky="w", padx=2, pady=2)
-        checkboxesFrame.grid(row=0, column=0, padx=0, pady=10, sticky="nw")
+        checkboxesFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
 
         entriesFrame = tk.Frame(self.app)
         userDataDirLabel = tk.Label(entriesFrame, text="User Data Directory:")
@@ -148,7 +148,7 @@ class HomeScreen:
         saveDirectoryEntry.grid(row=2, column=1, sticky="w", padx=2, pady=2)
         saveDirectoryButton.grid(row=2, column=2, padx=2)
         logPathLabel.grid(row=3, column=1, sticky="w", padx=2, pady=2)
-        entriesFrame.pack(pady=10, padx=10, anchor="w")
+        entriesFrame.pack(pady=3, padx=10, anchor="w")
 
         buttonConfigFrame = tk.Frame(self.app)
         loadDefaultConfigButton = tk.Button(buttonConfigFrame, text="Default Config",
@@ -161,7 +161,7 @@ class HomeScreen:
         updateConfigButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         exportConfigButton.grid(row=0, column=2, sticky="w", padx=2, pady=2)
         deleteUserDataButton.grid(row=0, column=3, sticky="w", padx=2, pady=2)
-        buttonConfigFrame.pack(pady=20, padx=100, anchor="center")
+        buttonConfigFrame.pack(pady=3, padx=100, anchor="center")
 
         buttonScraperFrame = tk.Frame(self.app)
         self.downloadChromeDriverButton = tk.Button(buttonScraperFrame, text="Download Chrome Driver", width=19,
@@ -182,20 +182,20 @@ class HomeScreen:
                                                 command=self.terminateProcess,
                                                 width=20, state="disabled")
 
-        self.downloadChromeDriverButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
-        self.downloadChromeBinaryButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        self.startChromeDriverButton.grid(row=1, column=0, sticky="w", padx=2, pady=2)
-        self.loginAccountButton.grid(row=1, column=1, sticky="w", padx=2, pady=2)
-        self.startScraperButton.grid(row=2, column=0, sticky="w", padx=2, pady=2)
-        self.terminateProcessButton.grid(row=2, column=1, sticky="w", padx=2, pady=2)
-        buttonScraperFrame.pack(pady=20, padx=100, anchor="center")
+        self.downloadChromeDriverButton.grid(row=0, column=0, sticky="w", padx=2, pady=3)
+        self.downloadChromeBinaryButton.grid(row=0, column=1, sticky="w", padx=2, pady=3)
+        self.startChromeDriverButton.grid(row=1, column=0, sticky="w", padx=2, pady=3)
+        self.loginAccountButton.grid(row=1, column=1, sticky="w", padx=2, pady=3)
+        self.startScraperButton.grid(row=2, column=0, sticky="w", padx=2, pady=3)
+        self.terminateProcessButton.grid(row=2, column=1, sticky="w", padx=2, pady=3)
+        buttonScraperFrame.pack(pady=4, padx=100, anchor="center")
 
         progressBarFrame = tk.Frame(self.app)
         downloadProgressLabel = tk.Label(progressBarFrame, text="Download Progress:")
         progressBar = ttk.Progressbar(progressBarFrame, length=380, mode="determinate", variable=self.progressVar)
         downloadProgressLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         progressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        progressBarFrame.pack(pady=2)
+        progressBarFrame.pack(pady=3)
         self.fixGeometry()
         self.app.update_idletasks()
         self.logger.debug("createHomeScreen completed")
@@ -364,14 +364,14 @@ class HomeScreen:
         userDataDirPath = os.path.join(constants.OS_ROOT, self.userDataDirVar.get())
         if self.fileUtil.checkIfDirectoryExists(userDataDirPath):
             shutil.rmtree(userDataDirPath)
-            self.logger.debug(f"Deleted User Data Directory: {userDataDirPath}")
+            self.logger.info(f"Deleted User Data Directory: {userDataDirPath}")
 
 
     def updateConfig(self):
         self.logger.debug("updateConfig called")
         self.createConfigJson()
         self.configUtil.updateConfig(self.configJson, self.configFilePath.get())
-        self.logger.debug(f"updateConfig completed with filePath: {self.configFilePath.get()}")
+        self.logger.info(f"Updated Config with filePath: {self.configFilePath.get()}")
 
 
     def exportConfig(self):
@@ -379,5 +379,6 @@ class HomeScreen:
         self.createConfigJson()
         filePath = tk.filedialog.asksaveasfilename(defaultextension='.ini', filetypes=[('INI Files', '*.ini')],
                                                    title='Save Config File')
-        self.configUtil.updateConfig(self.configJson, filePath)
-        self.logger.debug(f"exportConfig completed with filePath: {filePath}")
+        if filePath:
+            self.configUtil.updateConfig(self.configJson, filePath)
+            self.logger.info(f"Exported Config with filePath: {filePath}")

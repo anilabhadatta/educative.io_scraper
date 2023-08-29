@@ -141,17 +141,17 @@ __pycache__
 env
 .DS_Store
 Chrome-bin
-Chrome-bin/mac
+Chrome-bin/*
 Chrome-bin/linux
 Chrome-bin-linux.zip
 Chrome-bin-win.zip
 Chrome-bin-osx.zip
 Chromedriver/
 .idea
-/src/ChromeBinary/win/
+/src/ChromeBinary/*
 /src/ChromeBinary/mac/
 /src/ChromeBinary/linux/
-/src/ChromeDrivers/win/
+/src/ChromeDrivers/*
 /src/ChromeDrivers/linux/
 /src/ChromeDrivers/mac/
 
