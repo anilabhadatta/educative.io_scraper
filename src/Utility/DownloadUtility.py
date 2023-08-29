@@ -95,7 +95,7 @@ class DownloadUtility:
         baseDownloadUrl = self.config["base-download-url"]
 
         apiResponse = requests.get("https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE")
-        if apiResponse.status_code == 200:
+        if apiResponse.status_code == 200 and "linux-arm64" not in self.osUtil.getCurrentOSConfigKey():
             latestVersion = apiResponse.text
             joinedChromeUrl = f"{latestVersion}/{self.osUtil.getCurrentOSConfigKey()}/{constants.chromebinaryConfigKey}.zip"
             joinedChromeDriverUrl = f"{latestVersion}/{self.osUtil.getCurrentOSConfigKey()}/{constants.chromedriverConfigKey}.zip"
