@@ -22,8 +22,8 @@ class ConfigUtility:
         return self.config
 
 
-    def updateConfig(self, configJson, path=constants.defaultConfigPath):
+    def updateConfig(self, configJson, sectionName, path=constants.defaultConfigPath):
         for key, value in configJson.items():
-            self.config['ScraperConfig'][key] = str(value)
+            self.config[sectionName][key] = str(value)
         with open(path, 'w') as configfile:
             self.config.write(configfile)

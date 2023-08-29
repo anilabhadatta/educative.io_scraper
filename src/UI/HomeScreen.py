@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import shutil
 import sys
+import threading
 import tkinter as tk
 import tkinter.filedialog
 from tkinter import ttk
@@ -118,7 +119,7 @@ class HomeScreen:
         self.logDescriptionLabel = tk.Label(checkboxesFrame, text=self.logLevelDesc[self.logLevelDescVar.get()])
         self.logDescriptionLabel.grid(row=len(optionCheckboxes), column=2, sticky="w", padx=2, pady=2)
         ToolDescriptionLabel0 = tk.Label(checkboxesFrame, text="About: Educative Scraper")
-        ToolDescriptionLabel1 = tk.Label(checkboxesFrame, text="Version 3.0.5 Dev Branch")
+        ToolDescriptionLabel1 = tk.Label(checkboxesFrame, text="Version 3.0.6 Dev Branch")
         ToolDescriptionLabel2 = tk.Label(checkboxesFrame, text="Developed by Anilabha Datta")
         ToolDescriptionLabel3 = tk.Label(checkboxesFrame, text="Check out ReadMe for more Information.")
         ToolDescriptionLabel0.grid(row=0, column=2, sticky="w", padx=2, pady=2)
@@ -165,13 +166,9 @@ class HomeScreen:
 
         buttonScraperFrame = tk.Frame(self.app)
         self.downloadChromeDriverButton = tk.Button(buttonScraperFrame, text="Download Chrome Driver", width=19,
-                                                    command=lambda: self.downloadUtil.downloadChromeDriver(self.app,
-                                                                                                           self.progressVar,
-                                                                                                           self.configJson))
+                                                    command=self.downloadChromeDriver)
         self.downloadChromeBinaryButton = tk.Button(buttonScraperFrame, text="Download Chrome Binary", width=20,
-                                                    command=lambda: self.downloadUtil.downloadChromeBinary(self.app,
-                                                                                                           self.progressVar,
-                                                                                                           self.configJson))
+                                                    command=self.downloadChromeBinary)
         self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
                                                  command=self.startChromeDriver, width=19)
         self.loginAccountButton = tk.Button(buttonScraperFrame, text="Login Account", command=self.loginAccount,
@@ -370,7 +367,7 @@ class HomeScreen:
     def updateConfig(self):
         self.logger.debug("updateConfig called")
         self.createConfigJson()
-        self.configUtil.updateConfig(self.configJson, self.configFilePath.get())
+        self.configUtil.updateConfig(self.configJson, 'ScraperConfig', self.configFilePath.get())
         self.logger.info(f"Updated Config with filePath: {self.configFilePath.get()}")
 
 
@@ -382,3 +379,28 @@ class HomeScreen:
         if filePath:
             self.configUtil.updateConfig(self.configJson, filePath)
             self.logger.info(f"Exported Config with filePath: {filePath}")
+
+
+    def downloadChromeDriver(self):
+        self.EnableDisableButtons("disabled")
+        downloadThread = threading.Thread(target=lambda: self.downloadUtil.downloadChromeDriver(self.app,
+                                                                                                self.progressVar,
+                                                                                                self.configJson))
+        downloadThread.start()
+        self.app.after(100, self.checkDownloadThread, downloadThread)
+
+
+    def downloadChromeBinary(self):
+        self.EnableDisableButtons("disabled")
+        downloadThread = threading.Thread(target=lambda: self.downloadUtil.downloadChromeBinary(self.app,
+                                                                                                self.progressVar,
+                                                                                                self.configJson))
+        downloadThread.start()
+        self.app.after(100, self.checkDownloadThread, downloadThread)
+
+
+    def checkDownloadThread(self, thread):
+        if thread.is_alive():
+            self.app.after(100, self.checkDownloadThread, thread)
+        else:
+            self.EnableDisableButtons("normal")

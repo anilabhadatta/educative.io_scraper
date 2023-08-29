@@ -2,7 +2,9 @@ import os
 import ssl
 import subprocess
 import zipfile
+from urllib.parse import urljoin
 
+import requests
 import wget
 
 from src.Common.Constants import constants
@@ -23,6 +25,7 @@ class DownloadUtility:
         self.app = None
         self.progressVar = None
         self.osUtil = OSUtility()
+        self.updateDownloadUrlsInConfig()
 
 
     def downloadChromeDriver(self, app, progressVar, configJson):
@@ -86,3 +89,16 @@ class DownloadUtility:
         percentage = (current / total) * 100
         self.progressVar.set(percentage)
         self.app.update_idletasks()
+
+
+    def updateDownloadUrlsInConfig(self):
+        baseDownloadUrl = self.config["base-download-url"]
+
+        apiResponse = requests.get("https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE")
+        if apiResponse.status_code == 200:
+            latestVersion = apiResponse.text
+            joinedChromeUrl = f"{latestVersion}/{self.osUtil.getCurrentOSConfigKey()}/{constants.chromebinaryConfigKey}.zip"
+            joinedChromeDriverUrl = f"{latestVersion}/{self.osUtil.getCurrentOSConfigKey()}/{constants.chromedriverConfigKey}.zip"
+            self.config[constants.chromebinaryConfigKey] = urljoin(baseDownloadUrl, joinedChromeUrl)
+            self.config[constants.chromedriverConfigKey] = urljoin(baseDownloadUrl, joinedChromeDriverUrl)
+            self.configUtil.updateConfig(self.config, "DownloadUrls", constants.commonConfigPath)
