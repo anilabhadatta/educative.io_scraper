@@ -1,5 +1,6 @@
 import os
 import ssl
+import subprocess
 import zipfile
 
 import wget
@@ -46,6 +47,10 @@ class DownloadUtility:
             self.logger.info("Download and Extraction of Chromedriver completed.")
 
         self.fileUtil.deleteFileIfExists(chromeDriverOutputPath)
+        if not self.osUtil.getCurrentOS() == "win":
+            self.logger.debug("Changing Permissions of ChromeDriver...")
+            subprocess.check_call(['chmod', 'u+x', constants.chromeDriverPath])
+            self.logger.debug("Permissions Changed.")
 
 
     def downloadChromeBinary(self, app, progressVar, configJson):
@@ -70,6 +75,10 @@ class DownloadUtility:
             self.logger.info("Download and Extraction of ChromeBinary completed.")
 
         self.fileUtil.deleteFileIfExists(chromeBinaryOutputPath)
+        if not self.osUtil.getCurrentOS() == "win":
+            self.logger.debug("Changing Permissions of ChromeDriver...")
+            subprocess.check_call(['chmod', 'u+x', constants.chromeBinaryFolderPath])
+            self.logger.debug("Permissions Changed.")
 
 
     def updateProgress(self, current, total, width=80):

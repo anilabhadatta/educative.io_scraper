@@ -1,12 +1,12 @@
+import platform
 import subprocess
-import sys
 
 from src.Common.Constants import constants
 
 
 class StartChromedriver:
     def __init__(self):
-        self.currentOS = sys.platform
+        self.currentOS = platform.system()
 
 
     @staticmethod
@@ -25,13 +25,10 @@ class StartChromedriver:
 
 
     def loadChromeDriver(self):
-        if self.currentOS.startswith('win32') or self.currentOS.startswith('cygwin'):
-            subprocess.Popen(
-                ["start", "cmd", "/k", constants.chromeDriverPath], shell=True)
+        if self.currentOS == "Windows":
+            subprocess.Popen(["start", "cmd", "/k", constants.chromeDriverPath], shell=True)
         else:
-            subprocess.check_call(['chmod', 'u+x', constants.chromeDriverPath])
-            subprocess.check_call(['chmod', 'u+x', constants.chromeBinaryPath])
-            if self.currentOS.startswith('darwin'):
+            if self.currentOS == "Darwin":
                 subprocess.Popen(["open", "-a", "Terminal", constants.chromeDriverPath])
-            elif self.currentOS.startswith('linux'):
+            elif self.currentOS == "Linux":
                 subprocess.Popen([self.getDefaultLinuxTerminal(), "-e", constants.chromeDriverPath])
