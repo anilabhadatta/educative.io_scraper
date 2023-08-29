@@ -47,7 +47,7 @@ class DownloadUtility:
             self.logger.info("Download and Extraction of Chromedriver completed.")
 
         self.fileUtil.deleteFileIfExists(chromeDriverOutputPath)
-        if not self.osUtil.getCurrentOS() == "win":
+        if self.osUtil.getCurrentOS() != "win":
             self.logger.debug("Changing Permissions of ChromeDriver...")
             subprocess.check_call(['chmod', 'u+x', constants.chromeDriverPath])
             self.logger.debug("Permissions Changed.")
@@ -75,7 +75,7 @@ class DownloadUtility:
             self.logger.info("Download and Extraction of ChromeBinary completed.")
 
         self.fileUtil.deleteFileIfExists(chromeBinaryOutputPath)
-        if not self.osUtil.getCurrentOS() == "win":
+        if self.osUtil.getCurrentOS() != "win":
             self.logger.debug("Changing Permissions of ChromeDriver...")
             subprocess.check_call(['chmod', 'u+x', constants.chromeBinaryPath])
             self.logger.debug("Permissions Changed.")
