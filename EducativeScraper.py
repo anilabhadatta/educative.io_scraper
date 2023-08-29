@@ -1,4 +1,6 @@
+import ctypes
 import os
+import platform
 import tkinter as tk
 
 from src.Common.Constants import constants
@@ -20,7 +22,7 @@ class EducativeScraper:
         self.configUtil = ConfigUtility()
         self.loadBasicUtility()
         self.root = tk.Tk()
-        img = tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon-4.png"))
+        img = tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon.png"))
         self.root.iconphoto(True, img)
         self.run()
 
@@ -36,4 +38,6 @@ class EducativeScraper:
 
 
 if __name__ == '__main__':
+    if platform.system() == "Windows":
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("EducativeScraper")
     app = EducativeScraper()
