@@ -1,3 +1,4 @@
+import json
 import os
 import ssl
 import subprocess
@@ -92,12 +93,13 @@ class DownloadUtility:
 
 
     def updateDownloadUrlsInConfig(self):
-        baseDownloadUrl = self.config["base-download-url"]
-        apiResponse = requests.get("https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE")
+        downloadApi = self.config["download-api"]
+        apiResponse = requests.get(downloadApi)
         if apiResponse.status_code == 200 and "linux-arm64" not in self.osUtil.getCurrentOSConfigKey():
-            latestVersion = apiResponse.text
-            joinedChromeUrl = f"{latestVersion}/{self.osUtil.getCurrentOSConfigKey()}/{constants.chromebinaryConfigKey}.zip"
-            joinedChromeDriverUrl = f"{latestVersion}/{self.osUtil.getCurrentOSConfigKey()}/{constants.chromedriverConfigKey}.zip"
+            baseDownloadUrl = json.loads(apiResponse.content)["channels"]["Stable"]["downloads"]["chrome"][0]["url"]
+            baseDownloadUrl = '/'.join(baseDownloadUrl.split('/')[:-1])
+            joinedChromeUrl = f"{self.osUtil.getCurrentOSConfigKey()}/{constants.chromebinaryConfigKey}.zip"
+            joinedChromeDriverUrl = f"{self.osUtil.getCurrentOSConfigKey()}/{constants.chromedriverConfigKey}.zip"
             self.config[constants.chromebinaryConfigKey] = urljoin(baseDownloadUrl, joinedChromeUrl)
             self.config[constants.chromedriverConfigKey] = urljoin(baseDownloadUrl, joinedChromeDriverUrl)
             self.configUtil.updateConfig(self.config, "DownloadUrls", constants.commonConfigPath)
