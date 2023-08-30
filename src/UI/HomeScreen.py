@@ -46,6 +46,8 @@ class HomeScreen:
         self.unMarkAsCompletedVar = tk.BooleanVar(value=True)
         self.scrapeQuizVar = tk.BooleanVar(value=True)
         self.scrapeCodesVar = tk.BooleanVar(value=True)
+        self.isProxyVar = tk.BooleanVar(value=True)
+        self.proxyVar = tk.StringVar()
         self.loggingLevelVar = tk.StringVar()
         self.loggingLevels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "NOTSET"]
         self.logLevelDesc = {
@@ -105,16 +107,20 @@ class HomeScreen:
             ("Unmark As Completed", self.unMarkAsCompletedVar),
             ("Scrape Quiz", self.scrapeQuizVar),
             ("Scrape Codes", self.scrapeCodesVar),
+            ("Proxy", self.isProxyVar),
         ]
 
         for i, (optionText, optionVar) in enumerate(optionCheckboxes):
             checkbox = tk.Checkbutton(checkboxesFrame, text=optionText, variable=optionVar, wraplength=400, anchor="w")
             checkbox.grid(row=int(i), column=0, sticky="w", padx=0, pady=2)
-
+        proxyEntry = tk.Entry(checkboxesFrame, textvariable=self.proxyVar, width=25)
+        proxyEntry.grid(row=len(optionCheckboxes) - 1, column=1, sticky="w", padx=2, pady=2)
+        proxyLabel = tk.Label(checkboxesFrame, text="Format: Host:Port")
+        proxyLabel.grid(row=len(optionCheckboxes) - 1, column=2, sticky="w", padx=2, pady=0)
         loggerLevelLabel = tk.Label(checkboxesFrame, text="Logger Level:")
         loggerLevelLabel.grid(row=len(optionCheckboxes), column=0, sticky="w", padx=2, pady=0)
         loggingLevelCombobox = ttk.Combobox(checkboxesFrame, textvariable=self.loggingLevelVar,
-                                            values=self.loggingLevels, state="readonly")
+                                            values=self.loggingLevels, state="readonly", width=23)
         loggingLevelCombobox.grid(row=len(optionCheckboxes), column=1, sticky="w", padx=0, pady=5)
         self.logDescriptionLabel = tk.Label(checkboxesFrame, text=self.logLevelDesc[self.logLevelDescVar.get()])
         self.logDescriptionLabel.grid(row=len(optionCheckboxes), column=2, sticky="w", padx=2, pady=2)
@@ -263,6 +269,8 @@ class HomeScreen:
         self.scrapeQuizVar.set(self.config['scrapeQuiz'])
         self.scrapeCodesVar.set(self.config['scrapeCodes'])
         self.loggingLevelVar.set(self.config['logger'])
+        self.isProxyVar.set(self.config['isProxy'])
+        self.proxyVar.set(self.config['proxy'])
 
 
     def createConfigJson(self):
@@ -280,7 +288,9 @@ class HomeScreen:
             'unMarkAsCompleted': self.unMarkAsCompletedVar.get(),
             'scrapeQuiz': self.scrapeQuizVar.get(),
             'scrapeCodes': self.scrapeCodesVar.get(),
-            'logger': self.loggingLevelVar.get()
+            'logger': self.loggingLevelVar.get(),
+            'isProxy': self.isProxyVar.get(),
+            'proxy': self.proxyVar.get()
         }
 
 

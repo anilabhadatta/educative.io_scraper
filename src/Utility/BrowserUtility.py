@@ -21,11 +21,10 @@ class BrowserUtility:
     def loadBrowser(self):
         self.logger.info("Loading Browser...")
         self.logger.debug("loadBrowser called")
-        userDataDir = os.path.join(
-            constants.OS_ROOT, self.configJson["userDataDir"])
+        userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"])
         options = webdriver.ChromeOptions()
         if self.configJson["headless"]:
-            options.add_argument('headless')
+            options.add_argument('--headless=chrome')
         options.add_argument(f'user-data-dir={userDataDir}')
         options.add_argument('--profile-directory=Default')
         options.add_argument("--start-maximized")
@@ -41,11 +40,11 @@ class BrowserUtility:
         userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
         options.add_argument(f'user-agent={userAgent}')
         options.binary_location = constants.chromeBinaryPath
-        self.browser = webdriver.Remote(
-            command_executor='http://127.0.0.1:9515', options=options)
+        if self.configJson["isProxy"]:
+            options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
+        self.browser = webdriver.Remote(command_executor='http://127.0.0.1:9515', options=options)
         self.browser.set_window_size(1920, 1080)
-        self.browser.command_executor._commands["send_command"] = (
-            "POST", '/session/$sessionId/chromium/send_command')
+        self.browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
         self.logger.info("Browser Initiated")
         self.logger.debug("loadBrowser completed")
         return self.browser
