@@ -12,6 +12,7 @@ class LoginAccount:
 
     def start(self, configJson):
         self.configJson = configJson
+        self.configJson['headless'] = False
         self.browserUtil = BrowserUtility(self.configJson)
         self.logger = Logger(self.configJson, "LoginAccount").logger
         self.logger.info("""LoginAccount initiated...

@@ -181,7 +181,7 @@ class HomeScreen:
                                             width=20)
         self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper,
                                             width=19)
-        self.terminateProcessButton = tk.Button(buttonScraperFrame, text="Stop Scraper/ Logout",
+        self.terminateProcessButton = tk.Button(buttonScraperFrame, text="Stop Scraper/Close Browser",
                                                 command=self.terminateProcess,
                                                 width=20, state="disabled")
 

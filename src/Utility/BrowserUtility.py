@@ -24,7 +24,7 @@ class BrowserUtility:
         userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"])
         options = webdriver.ChromeOptions()
         if self.configJson["headless"]:
-            options.add_argument('--headless=chrome')
+            options.add_argument('--headless=new')
         options.add_argument(f'user-data-dir={userDataDir}')
         options.add_argument('--profile-directory=Default')
         options.add_argument("--start-maximized")
