@@ -1,109 +1,95 @@
-# Educative.io Scraper / Educative.io Downloader
+# Educative.io Scraper -- Educative.io Downloader
 
-## An Automation tool built using python, selenium and chrome that scrapes Educative.io courses for offline use.
+<pre>
+<code style="white-space : pre-wrap !important;">
+Description: 
+Discover the power of automation with my Python-based Educative.io Course Scraper. Harnessing the capabilities of Selenium
+and Chromium-based browsers, this tool effortlessly scrapes and saves Educative.io courses for offline use enabling you to
+learn at your own pace, even without an internet connection.
 
-### Disclaimer: I am not responsible for any misuse of this scraper, I made this for my personal use.
+Contributions:
+I wholeheartedly welcome contributions from individuals in any capacity to enhance this project. Whether you're a developer,
+designer, or enthusiast, your involvement is invaluable. Show your support by starring and forking the repository – your
+contributions make a difference! Together, we can make this project even better. Join us in building a community of learners
+and contributors. Thank you for your support!
 
-## To view the downloaded courses, use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository.
+Disclaimer:
+I want to clarify that I am not accountable for any inappropriate use of this scraper. I developed it solely for research
+purposes and take no responsibility for its misuse.
 
-      I Welcome anyone to contribute here in any form. Star and Fork my project 😊 Thanks.
-      Repo Version : v3.0.6 Development Branch
+Repository Version: v3.0.6
+Development Branch"
+</code>
+   </pre>
 
-## How to use the Scraper?
+### 
 
-> 1. Create a text file and copy the urls of the first topic of any number of courses and paste it in the text file as
-     shown below.
+## To view the downloaded courses, you can use the Educative-Viewer repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
 
-<img src="https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png" width="620" height="300">
-<img src="https://user-images.githubusercontent.com/48487849/197013915-1320da6b-d2c2-4239-b1f7-d95450f8fabb.png" width="720" height="160">
+## Steps to use the scraper:
 
-> 2. Run both the executables chromedriver and educative_scraper by downloading them from latest releases.
+-  ###  Prerequisites:
+```
+Git
+Python 3.9+
+OS: Win(x86/x64) - Mac(ARM/x64) - Linux(ARM/x64)
+```
 
-      Note: If the executable release version is older than the current github repo version then run the
-            project manually explained below.
-
-> 3. Select a config if you don't want to use the default config "0" by pressing 2.
-
-      Note: Make sure to generate the config if it is selected for the first time.
-
-> 4. Generate the config (if not created) and provide the urls text file path, save location and headless mode by
-
-     pressing 1.
-
-<img src="https://user-images.githubusercontent.com/48487849/197013987-e6bccbde-06b5-49de-851c-00575a3f8173.png" width="720" height="150">
-
-> 5. Login your educative account by pressing 3.
-> 6. Start Scraping by pressing 4.
-> 7. To return to Main Menu/ Exit Scraper press Ctrl+C / CMD+C.
-
-#### Note 1: If the scraper fails or the User Exits in between for any specific reason, a log.txt file will be created in the save path, containing the index and last known url while scraping, copy the {index url} and replace it in the urls text file to resume scraping the course where it was stopped previously by restarting the scraper.
-
-#### Note 2: Make sure to delete the urls that are already scraped while replacing in the urls text file.
-
-<img src="https://user-images.githubusercontent.com/48487849/197014154-a7dbd7e4-d398-4076-b0e8-279d9841c8f9.png" width="720" height="300">
-
-#### Note 3: If for any reason your system shuts down for power failure or the scraper crashes then you have to manually search the url and index and provide the {index url} in urls text file since the scraper cannot create log.txt for sudden power cut/ crash.
-
-## To Run the project manually using git and python:
-
-### Prerequisites:
-
-      Git
-      Python 3.9+
-      OS: Win/Mac(Intel)/Linux(ARM/AMD) 64bit
-      Replace the word "python3" with "python" and "pip3" with "pip" for Windows OS only.
-
-### Step 1: Clone the repository and create a terminal inside the cloned directory and run the following commands.
-
-### Step 2: Install the virtualenv package for python3 and create a virtual environment named "env".
-
+-  ###  Download & cd this project dir.
+```
+https://github.com/anilabhadatta/educative.io_scraper.git
+cd educative.io_scraper
+   ```
+              
+-  ###  Run the following commands to start Educative Scraper.
+    - #### Windows:
+      ```
+      pip install virtualenv
+      virtualenv env
+      env\Scripts\activate
+      pip install -r requirements.txt
+      python EducativeScraper.py
+      ```
+    - #### MacOS/Linux:
+      ```
       pip3 install virtualenv
       virtualenv env
-
-### Step 3: Activate the virtual environment.
-
-#### > (For Windows)
-
-      env\Scripts\activate
-
-#### > (For MacOS/Linux)
-
       source env/bin/activate
-
-### Step 4: Install the required modules:
-
       pip3 install -r requirements.txt
+      python3 EducativeScraper.py
+      ```
+      <div align="center">
+      <img src="https://github-production-user-asset-6210df.s3.amazonaws.com/48487849/264574721-2d5dba02-4c19-4dbc-a346-4063797873ee.png" style="width: 50%; height:50%;">
+      </div>
 
-### Step 5: Download, extract and paste the respective Chrome-bin for your OS from the latest releases section inside the Chrome-bin folder.
-
-![img4](https://user-images.githubusercontent.com/48487849/197014188-3906af24-2297-48a6-9592-b669ac72af53.png)
-
-### Step 6: Open up two terminals and run the following commands in separate terminals.
-
-      python3 chromedriver.py
-      python3 educative_scraper.py
-
-### Step 7: Refer, **[How to use the Scraper?](#how-to-use-the-scraper)** explained above, except the 2nd point.
-
-#### For Mac OS users only: Refer to [this Repository](https://github.com/anilabhadatta/enable-disable-chrome-updates) to Disable Chrome Updates.
-
-## (Optional) To Build the chromedriver and educative-scraper executables using pyinstaller:
-
-#### Activate the Virtual Environment and Install the required modules for the project (Refer Step 2, 3, 4 above).
-
-#### Install the pyinstaller package and run the following commands.
-
-      pip3 install pyinstaller
-
-#### > (For Windows)
-
-      pyinstaller --clean --add-data Chrome-bin;Chrome-bin --onefile -i"icon.ico" educative_scraper.py
-      pyinstaller --clean --add-data "Chrome-driver;Chrome-driver" --onefile -i"icon.ico" chromedriver.py
-
-#### > (For MacOS/Linux)
-
-      pyinstaller --clean --add-data Chrome-bin:Chrome-bin --onefile -i"icon.ico" educative_scraper.py
-      pyinstaller --clean --add-data "Chrome-driver:Chrome-driver" --onefile -i"icon.ico" chromedriver.py
-
-Pyinstaller command for Linux OS may or may not work due to a pyinstaller bug, currently checking for a fix.\
-A Whitepaper will be released containing the explanation of each functions and the cases handled by the scraper.
+-  ### After the GUI successfully loads, please proceed to follow the subsequent steps.
+      - Create a text file.
+      - Copy the URLs of the first topics/lessons from any number of courses.
+      - Paste all the URLs into the text file and save it.
+      <div align="center">
+       <br><img src="https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png" style="width: 70%; height:50%;">
+       <br><img src="https://user-images.githubusercontent.com/48487849/197013915-1320da6b-d2c2-4239-b1f7-d95450f8fabb.png" style="width: 70%; height:50%;"><br>
+      </div>
+      
+      - Select a configuration if you prefer not to use the default configuration.
+      - If you prefer not to display the browser window, choose the `headless` option.
+      - Please provide a unique `User Data Directory` name that the browser will use to store your current session. Ensure that `each instance` of the scraper has a `distinct` User Data Directory name.
+      - Please select the file path of the text file containing the course URLs, as well as the directory where you would like to save the downloaded content.
+      - You can choose to save/export the current configuration for later use, or you can opt for the default configuration.
+      - For the initial setup or updates, click on `Download Chromedriver` and `Download Chrome Binary` to automatically download them into the project directory.
+      - If you intend to utilize proxies, simply enable the proxy option and enter the proxy in proxies box.
+       <ul>
+          <br>
+          <li> For IP authorized proxy, you can directly enter IP:PORT of the proxy.</li>
+          <li> For USER:PASS authorized proxy, you'll need to create a localhost tunnel using the <a href="https://github.com/anilabhadatta/proxy-login-automator">Proxy-Login-Automator</a> repository.</li>
+          <li> After setting up the tunnel, enter the IP:PORT of the localhost proxy that you configured in the Proxy Login Automator.</li>
+          <br>
+        </ul>
+      - Click on `Start Chromedriver` to start the Chromedriver.
+      - Click on `Login Account` to log in to your Educative.io account and click on `Close Browser Button` to close the browser after the login is successfully completed.
+      - Click on `Start Scraper` to begin scraping the courses.
+      - The scraper will automatically stop after scraping all the URLs in the selected text file.
+      - If you decide to stop the scraper using the `Stop Scraper Button` before it finishes or face any errors, the most recent URL will be saved in the `EducativeScraper.log` file. Simply copy the URL from the INFO logger and replace the URL of the topic/lesson that has already been completed with the copied URL. This will allow you to resume the scraper from where you left off.
+        <div align="center">
+        <br><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/48487849/264581350-dd669e5a-739c-4ff1-a7b3-6beb2eba5437.png" style="width: 80%; height:80%;">
+        </div>
