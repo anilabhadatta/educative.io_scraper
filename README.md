@@ -37,7 +37,7 @@ OS: Win(x86/x64) - Mac(ARM/x64) - Linux(ARM/x64)
 
 -  ###  Download & cd this project dir.
 ```
-https://github.com/anilabhadatta/educative.io_scraper.git
+git clone https://github.com/anilabhadatta/educative.io_scraper.git
 cd educative.io_scraper
    ```
               
