@@ -1,10 +1,8 @@
 import ctypes
-import os
 import platform
-import tkinter as tk
 
 from src.Common.Constants import constants
-from src.UI.HomeScreen import HomeScreen
+from src.UI.HomeScreenGUI import HomeScreen
 from src.Utility.ConfigUtility import ConfigUtility
 from src.Utility.FileUtility import FileUtility
 
@@ -21,9 +19,6 @@ class EducativeScraper:
         self.fileUtil = FileUtility()
         self.configUtil = ConfigUtility()
         self.loadBasicUtility()
-        self.root = tk.Tk()
-        img = tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon.png"))
-        self.root.iconphoto(True, img)
         self.run()
 
 
@@ -32,9 +27,9 @@ class EducativeScraper:
         self.configUtil.createDefaultConfigIfNotExists()
 
 
-    def run(self):
-        HomeScreen(self.root).createHomeScreen()
-        self.root.mainloop()
+    @staticmethod
+    def run():
+        HomeScreen().createHomeScreen()
 
 
 if __name__ == '__main__':

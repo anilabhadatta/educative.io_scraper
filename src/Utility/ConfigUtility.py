@@ -18,6 +18,10 @@ class ConfigUtility:
 
 
     def loadConfig(self, path=constants.defaultConfigPath):
+        if path != constants.commonConfigPath and not self.checkKeys(path, "ScraperConfig"):
+            print("Config file is corrupted. Replacing with default config...")
+            shutil.copy(constants.commonConfigPath, path)
+        self.config = configparser.ConfigParser()
         self.config.read(path)
         return self.config
 
@@ -27,3 +31,13 @@ class ConfigUtility:
             self.config[sectionName][key] = str(value)
         with open(path, 'w') as configfile:
             self.config.write(configfile)
+
+
+    def checkKeys(self, path, sectionName):
+        self.config = configparser.ConfigParser()
+        self.config.read(path)
+        configKeys = set(self.config.options(sectionName))
+        defaultConfigParse = configparser.ConfigParser()
+        defaultConfigParse.read(constants.commonConfigPath)
+        defaultConfigKeys = set(defaultConfigParse.options(sectionName))
+        return configKeys == defaultConfigKeys

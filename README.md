@@ -22,7 +22,7 @@ Development Branch"
 </code>
    </pre>
 
-###  
+###   
 
 ## To view the downloaded courses, you can use the Educative-Viewer repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
 
@@ -33,7 +33,7 @@ Development Branch"
 ```
 Git
 Python 3.9+
-OS: Win(x86/x64) - Mac(ARM/x64) - Linux(ARM/x64)
+OS: Win(x86/x64) - Mac(ARM64/x64) - Linux(ARM64/x64)
 ```
 
 -  ### Download & cd this project dir.

@@ -22,14 +22,16 @@ from src.Utility.FileUtility import FileUtility
 
 
 class HomeScreen:
-    def __init__(self, app):
+    def __init__(self):
         self.config = None
         self.logger = None
         self.process = None
         self.processes = []
         self.configJson = None
         self.currentOS = sys.platform
-        self.app = app
+        self.app = tk.Tk()
+        img = tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon.png"))
+        self.app.iconphoto(True, img)
         self.app.geometry("400x400")
         self.app.title("Educative Scraper")
         self.configFilePath = tk.StringVar()
@@ -202,6 +204,13 @@ class HomeScreen:
         self.fixGeometry()
         self.app.update_idletasks()
         self.logger.debug("createHomeScreen completed")
+        self.app.protocol("WM_DELETE_WINDOW", self.onClosingWindow)
+        self.app.mainloop()
+
+
+    def onClosingWindow(self):
+        self.terminateProcess()
+        self.app.destroy()
 
 
     def fixGeometry(self):
