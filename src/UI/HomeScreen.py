@@ -387,7 +387,7 @@ class HomeScreen:
         filePath = tk.filedialog.asksaveasfilename(defaultextension='.ini', filetypes=[('INI Files', '*.ini')],
                                                    title='Save Config File')
         if filePath:
-            self.configUtil.updateConfig(self.configJson, filePath)
+            self.configUtil.updateConfig(self.configJson, 'ScraperConfig', filePath)
             self.logger.info(f"Exported Config with filePath: {filePath}")
 
 
