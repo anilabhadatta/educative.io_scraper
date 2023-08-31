@@ -1,6 +1,7 @@
 # Educative.io Scraper -- Educative.io Downloader
 
-```html {white-space: pre-wrap; overflow: hidden;}
+<pre>
+<code style="white-space : pre-wrap !important;">
 Description: 
 Discover the power of automation with my Python-based Educative.io Course Scraper. Harnessing the capabilities of Selenium
 and Chromium-based browsers, this tool effortlessly scrapes and saves Educative.io courses for offline use enabling you to
@@ -18,7 +19,8 @@ purposes and take no responsibility for its misuse.
 
 Repository Version: v3.0.6
 Development Branch"
-```
+</code>
+   </pre>
 
 ### 
 
