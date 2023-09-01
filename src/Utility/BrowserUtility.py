@@ -20,7 +20,6 @@ class BrowserUtility:
 
     def loadBrowser(self):
         self.logger.info("Loading Browser...")
-        self.logger.debug("loadBrowser called")
         userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"])
         options = webdriver.ChromeOptions()
         if self.configJson["headless"]:
@@ -46,7 +45,6 @@ class BrowserUtility:
         self.browser.set_window_size(1920, 1080)
         self.browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
         self.logger.info("Browser Initiated")
-        self.logger.debug("loadBrowser completed")
         return self.browser
 
 
@@ -72,8 +70,7 @@ class BrowserUtility:
                     "method": "Browser.close"
                 }
                 await websocket.send(json.dumps(message))
-                response = await websocket.recv()
-                self.logger.debug(f"shutdownChromeViaWebsocket Response: {response}")
+                await websocket.recv()
                 self.logger.info("Browser closed via websocket")
         except Exception as e:
             self.logger.error("No Browser was open to close via websocket")

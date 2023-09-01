@@ -18,11 +18,11 @@ I want to clarify that I am not accountable for any inappropriate use of this sc
 purposes and take no responsibility for its misuse.
 
 Repository Version: v3.0.6
-Development Branch"
+Development Branch: v3-dev
 </code>
    </pre>
 
-###   
+###     
 
 ## To view the downloaded courses, you can use the Educative-Viewer repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
 

@@ -13,13 +13,12 @@ class ConfigUtility:
 
     def createDefaultConfigIfNotExists(self):
         if not self.fileUtil.checkIfFileExists(constants.defaultConfigPath):
-            print("Creating default config file...")
             shutil.copy(constants.commonConfigPath, constants.defaultConfigPath)
 
 
     def loadConfig(self, path=constants.defaultConfigPath):
-        if path != constants.commonConfigPath and not self.checkKeys(path, "ScraperConfig"):
-            print("Config file is corrupted. Replacing with default config...")
+        if path is not constants.commonConfigPath and not self.checkKeys(path, "ScraperConfig"):
+            print("Config file is corrupted. Replacing with default common config...")
             shutil.copy(constants.commonConfigPath, path)
         self.config = configparser.ConfigParser()
         self.config.read(path)

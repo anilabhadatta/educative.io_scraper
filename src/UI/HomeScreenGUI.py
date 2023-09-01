@@ -2,7 +2,6 @@ import asyncio
 import multiprocessing
 import os
 import shutil
-import sys
 import threading
 import tkinter as tk
 import tkinter.filedialog
@@ -26,14 +25,14 @@ class HomeScreen:
         self.config = None
         self.logger = None
         self.process = None
-        self.processes = []
         self.configJson = None
-        self.currentOS = sys.platform
+        self.processes = []
+
         self.app = tk.Tk()
-        img = tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon.png"))
-        self.app.iconphoto(True, img)
+        self.app.iconphoto(True, tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon.png")))
         self.app.geometry("400x400")
         self.app.title("Educative Scraper")
+
         self.configFilePath = tk.StringVar()
         self.userDataDirVar = tk.StringVar()
         self.headlessVar = tk.BooleanVar(value=False)
@@ -41,13 +40,7 @@ class HomeScreen:
         self.saveDirectoryVar = tk.StringVar()
         self.singleFileHTMLVar = tk.BooleanVar(value=True)
         self.fullPageScreenshotHTMLVar = tk.BooleanVar(value=True)
-        self.openSlidesVar = tk.BooleanVar(value=True)
-        self.openMarkdownQuizVar = tk.BooleanVar(value=True)
-        self.openHintsVar = tk.BooleanVar(value=True)
-        self.openSolutionsVar = tk.BooleanVar(value=True)
-        self.unMarkAsCompletedVar = tk.BooleanVar(value=True)
-        self.scrapeQuizVar = tk.BooleanVar(value=True)
-        self.scrapeCodesVar = tk.BooleanVar(value=True)
+        self.apiToHtmlVar = tk.BooleanVar(value=True)
         self.isProxyVar = tk.BooleanVar(value=True)
         self.proxyVar = tk.StringVar()
         self.loggingLevelVar = tk.StringVar()
@@ -60,13 +53,14 @@ class HomeScreen:
             "CRITICAL": "Program can't continue running.",
             "NOTSET": "Lowest level, turns off logging."
         }
+
+        self.fileUtil = FileUtility()
+        self.downloadUtil = DownloadUtility()
         self.progressVar = tk.DoubleVar()
         self.configUtil = ConfigUtility()
         self.loadDefaultConfig()
         self.logLevelDescVar = tk.StringVar(value=self.configJson['logger'])
         self.logDescriptionLabel = None
-        self.fileUtil = FileUtility()
-        self.downloadUtil = DownloadUtility()
 
 
     def onConfigChange(self, *args):
@@ -82,36 +76,25 @@ class HomeScreen:
         self.saveDirectoryVar.trace("w", self.onConfigChange)
         self.logLevelDescVar.trace("w", self.onConfigChange)
         self.logger.info("Creating Home Screen...")
-        self.logger.debug("createHomeScreen called")
 
         configFilePathFrame = tk.Frame(self.app)
         configFilePathLabel = tk.Label(configFilePathFrame, text="Config File Path:")
         configFileTextBox = tk.Entry(configFilePathFrame, textvariable=self.configFilePath, width=70)
         browseConfigFileButton = tk.Button(configFilePathFrame, text="...", command=self.browseConfigFile)
-
         configFilePathLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         configFileTextBox.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         browseConfigFileButton.grid(row=0, column=2, padx=2)
         configFilePathFrame.pack(pady=3, padx=10, anchor="w")
 
         containerFrame = tk.Frame(self.app)
-        containerFrame.pack(pady=3, padx=10, anchor="w")
-
         checkboxesFrame = tk.Frame(containerFrame)
         optionCheckboxes = [
             ("Headless", self.headlessVar),
             ("Single File HTML", self.singleFileHTMLVar),
             ("Full Page Screenshot HTML", self.fullPageScreenshotHTMLVar),
-            ("Open Slides", self.openSlidesVar),
-            ("Open Markdown Quiz", self.openMarkdownQuizVar),
-            ("Open Hints", self.openHintsVar),
-            ("Open Solutions", self.openSolutionsVar),
-            ("Unmark As Completed", self.unMarkAsCompletedVar),
-            ("Scrape Quiz", self.scrapeQuizVar),
-            ("Scrape Codes", self.scrapeCodesVar),
+            ("Api To HTML", self.apiToHtmlVar),
             ("Proxy", self.isProxyVar),
         ]
-
         for i, (optionText, optionVar) in enumerate(optionCheckboxes):
             checkbox = tk.Checkbutton(checkboxesFrame, text=optionText, variable=optionVar, wraplength=400, anchor="w")
             checkbox.grid(row=int(i), column=0, sticky="w", padx=0, pady=2)
@@ -135,6 +118,7 @@ class HomeScreen:
         ToolDescriptionLabel2.grid(row=2, column=2, sticky="w", padx=2, pady=2)
         ToolDescriptionLabel3.grid(row=3, column=2, sticky="w", padx=2, pady=2)
         checkboxesFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
+        containerFrame.pack(pady=3, padx=10, anchor="w")
 
         entriesFrame = tk.Frame(self.app)
         userDataDirLabel = tk.Label(entriesFrame, text="User Data Directory:")
@@ -147,7 +131,6 @@ class HomeScreen:
         saveDirectoryButton = tk.Button(entriesFrame, text="...", command=self.browseSaveDirectory)
         logPathLabel = tk.Label(entriesFrame,
                                 text="Logs are saved in Save Directory Path with name 'EducativeScraper.log")
-
         userDataDirLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         userDataDirEntry.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         courseUrlsFilePathLabel.grid(row=1, column=0, sticky="w", padx=2, pady=2)
@@ -165,7 +148,6 @@ class HomeScreen:
         updateConfigButton = tk.Button(buttonConfigFrame, text="Update Config", command=self.updateConfig)
         exportConfigButton = tk.Button(buttonConfigFrame, text="Export Config", command=self.exportConfig)
         deleteUserDataButton = tk.Button(buttonConfigFrame, text="Delete User Data", command=self.deleteUserData)
-
         loadDefaultConfigButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         updateConfigButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         exportConfigButton.grid(row=0, column=2, sticky="w", padx=2, pady=2)
@@ -186,7 +168,6 @@ class HomeScreen:
         self.terminateProcessButton = tk.Button(buttonScraperFrame, text="Stop Scraper/Close Browser",
                                                 command=self.terminateProcess,
                                                 width=20, state="disabled")
-
         self.downloadChromeDriverButton.grid(row=0, column=0, sticky="w", padx=2, pady=3)
         self.downloadChromeBinaryButton.grid(row=0, column=1, sticky="w", padx=2, pady=3)
         self.startChromeDriverButton.grid(row=1, column=0, sticky="w", padx=2, pady=3)
@@ -201,6 +182,7 @@ class HomeScreen:
         downloadProgressLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
         progressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         progressBarFrame.pack(pady=3)
+
         self.fixGeometry()
         self.app.update_idletasks()
         self.logger.debug("createHomeScreen completed")
@@ -235,7 +217,7 @@ class HomeScreen:
         if courseUrlsFilePath:
             self.courseUrlsFilePathVar.set(courseUrlsFilePath)
         self.logger.debug(f"""browseCourseUrlsFile completed 
-                                courseUrlsFilePath: {courseUrlsFilePath}
+                              courseUrlsFilePath: {courseUrlsFilePath}
                             """)
 
 
@@ -245,7 +227,7 @@ class HomeScreen:
         if saveDirectoryPath:
             self.saveDirectoryVar.set(saveDirectoryPath)
         self.logger.debug(f"""browseSaveDirectory completed
-                                saveDirectoryPath: {saveDirectoryPath}
+                              saveDirectoryPath: {saveDirectoryPath}
                             """)
 
 
@@ -259,7 +241,7 @@ class HomeScreen:
             self.mapConfigValues()
             self.createConfigJson()
             self.logger.debug(f"""browseConfigFile completed
-                                    configFilePath: {configFilePath}
+                                  configFilePath: {configFilePath}
                                 """)
 
 
@@ -270,13 +252,7 @@ class HomeScreen:
         self.saveDirectoryVar.set(self.config['saveDirectory'])
         self.singleFileHTMLVar.set(self.config['singleFileHTML'])
         self.fullPageScreenshotHTMLVar.set(self.config['fullPageScreenshotHTML'])
-        self.openSlidesVar.set(self.config['openSlides'])
-        self.openMarkdownQuizVar.set(self.config['openMarkdownQuiz'])
-        self.openHintsVar.set(self.config['openHints'])
-        self.openSolutionsVar.set(self.config['openSolutions'])
-        self.unMarkAsCompletedVar.set(self.config['unMarkAsCompleted'])
-        self.scrapeQuizVar.set(self.config['scrapeQuiz'])
-        self.scrapeCodesVar.set(self.config['scrapeCodes'])
+        self.apiToHtmlVar.set(self.config['apiToHtml'])
         self.loggingLevelVar.set(self.config['logger'])
         self.isProxyVar.set(self.config['isProxy'])
         self.proxyVar.set(self.config['proxy'])
@@ -290,13 +266,7 @@ class HomeScreen:
             'saveDirectory': self.saveDirectoryVar.get(),
             'singleFileHTML': self.singleFileHTMLVar.get(),
             'fullPageScreenshotHTML': self.fullPageScreenshotHTMLVar.get(),
-            'openSlides': self.openSlidesVar.get(),
-            'openMarkdownQuiz': self.openMarkdownQuizVar.get(),
-            'openHints': self.openHintsVar.get(),
-            'openSolutions': self.openSolutionsVar.get(),
-            'unMarkAsCompleted': self.unMarkAsCompletedVar.get(),
-            'scrapeQuiz': self.scrapeQuizVar.get(),
-            'scrapeCodes': self.scrapeCodesVar.get(),
+            'apiToHtml': self.apiToHtmlVar.get(),
             'logger': self.loggingLevelVar.get(),
             'isProxy': self.isProxyVar.get(),
             'proxy': self.proxyVar.get()

@@ -19,8 +19,6 @@ class EducativeScraper:
 
         self.fileUtil = FileUtility()
         self.configUtil = ConfigUtility()
-        self.loadBasicUtility()
-        self.run()
 
 
     def loadBasicUtility(self):
@@ -36,3 +34,5 @@ if __name__ == '__main__':
     if platform.system() == "Windows":
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("EducativeScraper")
     app = EducativeScraper()
+    app.loadBasicUtility()
+    app.run()

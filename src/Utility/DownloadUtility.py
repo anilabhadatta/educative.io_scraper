@@ -19,13 +19,13 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 class DownloadUtility:
     def __init__(self):
+        self.app = None
+        self.progressVar = None
         self.logger = None
         self.configUtil = ConfigUtility()
         self.fileUtil = FileUtility()
-        self.config = self.configUtil.loadConfig(constants.commonConfigPath)["DownloadUrls"]
-        self.app = None
-        self.progressVar = None
         self.osUtil = OSUtility()
+        self.config = self.configUtil.loadConfig(constants.commonConfigPath)["DownloadUrls"]
         self.updateDownloadUrlsInConfig()
 
 

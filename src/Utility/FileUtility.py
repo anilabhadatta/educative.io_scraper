@@ -34,3 +34,9 @@ class FileUtility:
     def deleteFolderIfExists(self, folderPath):
         if self.checkIfDirectoryExists(folderPath):
             shutil.rmtree(folderPath)
+
+
+    @staticmethod
+    def loadTextFile(filePath):
+        with open(filePath, "r") as f:
+            return f.readlines()
