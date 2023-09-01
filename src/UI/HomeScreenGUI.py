@@ -27,6 +27,7 @@ class HomeScreen:
         self.process = None
         self.configJson = None
         self.processes = []
+        self.checkboxes = []
 
         self.app = tk.Tk()
         self.app.iconphoto(True, tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon.png")))
@@ -70,11 +71,36 @@ class HomeScreen:
         self.logDescriptionLabel.config(text=self.logLevelDesc[self.logLevelDescVar.get()])
 
 
+    def update_checkbox_states(self, *args):
+        singleFileHTML = self.singleFileHTMLVar.get()
+        fullPageScreenshotHTML = self.fullPageScreenshotHTMLVar.get()
+        apiToHtml = self.apiToHtmlVar.get()
+        if singleFileHTML:
+            self.fullPageScreenshotHTMLVar.set(True)
+            self.apiToHtmlVar.set(False)
+            self.checkboxes[2].config(state="disabled")
+            self.checkboxes[3].config(state="disabled")
+        elif not singleFileHTML and not apiToHtml:
+            self.checkboxes[2].config(state="normal")
+            if fullPageScreenshotHTML:
+                self.apiToHtmlVar.set(False)
+                self.checkboxes[3].config(state="disabled")
+            elif not fullPageScreenshotHTML:
+                self.apiToHtmlVar.set(True)
+                self.checkboxes[3].config(state="disabled")
+        elif not singleFileHTML and apiToHtml and fullPageScreenshotHTML:
+            self.apiToHtmlVar.set(False)
+            self.checkboxes[3].config(state="disabled")
+
+
     def createHomeScreen(self, version):
         self.logger = Logger(self.configJson, "HomeScreen").logger
         self.loggingLevelVar.trace("w", self.onConfigChange)
         self.saveDirectoryVar.trace("w", self.onConfigChange)
         self.logLevelDescVar.trace("w", self.onConfigChange)
+        self.fullPageScreenshotHTMLVar.trace("w", self.update_checkbox_states)
+        self.singleFileHTMLVar.trace("w", self.update_checkbox_states)
+        self.apiToHtmlVar.trace("w", self.update_checkbox_states)
         self.logger.info("Creating Home Screen...")
 
         configFilePathFrame = tk.Frame(self.app)
@@ -98,6 +124,7 @@ class HomeScreen:
         for i, (optionText, optionVar) in enumerate(optionCheckboxes):
             checkbox = tk.Checkbutton(checkboxesFrame, text=optionText, variable=optionVar, wraplength=400, anchor="w")
             checkbox.grid(row=int(i), column=0, sticky="w", padx=0, pady=2)
+            self.checkboxes.append(checkbox)
         proxyEntry = tk.Entry(checkboxesFrame, textvariable=self.proxyVar, width=25)
         proxyEntry.grid(row=len(optionCheckboxes) - 1, column=1, sticky="w", padx=2, pady=2)
         proxyLabel = tk.Label(checkboxesFrame, text="Format: Host:Port")
@@ -183,6 +210,7 @@ class HomeScreen:
         progressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         progressBarFrame.pack(pady=3)
 
+        self.update_checkbox_states()
         self.fixGeometry()
         self.app.update_idletasks()
         self.logger.debug("createHomeScreen completed")

@@ -12,11 +12,13 @@ class ExtensionScraper:
 
     def start(self):
         self.logger.info("ExtensionScraper initiated...")
-        urlsTextFile = self.fileUtil.loadTextFile(self.configJson["urlsTextFilePath"])
+        urlsTextFile = self.fileUtil.loadTextFile(self.configJson["courseUrlsFilePath"])
         for url in urlsTextFile:
             try:
                 self.logger.info(f"Scraping URL: {url}")
                 self.browser.get(url)
+                while True:
+                    pass
             except Exception as e:
                 raise Exception(e)
         self.logger.info("ExtensionScraper completed.")
