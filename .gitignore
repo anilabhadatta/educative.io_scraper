@@ -158,3 +158,5 @@ Chromedriver/
 /temp.py
 /url_log.txt
 /env_/
+/courseCollectionsData.txt
+/courseTopicUrls.txt
