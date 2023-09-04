@@ -1,3 +1,5 @@
+import json
+
 from src.Logging.Logger import Logger
 from src.ScraperMethod.ExtensionMethod.ScraperModules.ApiUtility import ApiUtility
 from src.ScraperMethod.ExtensionMethod.ScraperModules.UrlUtility import UrlUtility
@@ -17,17 +19,30 @@ class ExtensionScraper:
     def start(self):
         self.logger.info("ExtensionScraper initiated...")
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
-        for url in urlsTextFile:
+        for textFileUrl in urlsTextFile:
             try:
-                self.logger.info(f"Scraping URL: {url}")
-                courseCollectionsData = self.apiUtils.getCourseCollectionsData(url)
-                courseTopicUrls = self.apiUtils.getCourseTopicUrls(url)
+                self.logger.info(f"Started Scraping from Text File URL: {textFileUrl}")
+                courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl)
+                courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(textFileUrl)
+                for index in range(len(courseTopicUrlsList)):
+                    courseTopicUrl = courseTopicUrlsList[index]
+                    courseApiUrl = courseCollectionsJson["topicApiUrlList"][index]
+                    courseTitle = courseCollectionsJson["courseTitle"]
+                    self.logger.info(f"Scraping {index}-{courseTitle}: {courseTopicUrl}")
+
+                    courseApiContentJson = self.apiUtils.getCourseApiContentJson(courseApiUrl)
+                    with open(f"courseApiContentJson{index}.json", "w") as f:
+                        f.write(json.dumps(courseApiContentJson))
+                    if index == 2:
+                        break
                 with open("courseTopicUrls.txt", "w") as f:
-                    f.write(str(courseTopicUrls))
-                with open("courseCollectionsData.txt", "w") as f:
-                    f.write(str(courseCollectionsData))
+                    f.write(str(courseTopicUrlsList))
+                with open("courseCollectionsData.json", "w") as f:
+                    f.write(json.dumps(courseCollectionsJson))
+                print("Complete")
                 while True:
                     pass
             except Exception as e:
-                raise Exception(e)
+                self.logger.error(f"start {e}")
+                raise Exception(f"ExtensionScraper:start {e}")
         self.logger.info("ExtensionScraper completed.")
