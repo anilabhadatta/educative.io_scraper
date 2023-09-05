@@ -1,5 +1,9 @@
+import json
 import os
+import re
 import shutil
+
+from slugify import slugify
 
 
 class FileUtility:
@@ -39,4 +43,21 @@ class FileUtility:
     @staticmethod
     def loadTextFile(filePath):
         with open(filePath, "r") as f:
-            return f.readlines()
+            lines = f.readlines()
+            return [line.strip() for line in lines]
+
+
+    @staticmethod
+    def loadJsonFile(filePath):
+        with open(filePath, "r") as f:
+            return json.load(f)
+
+
+    def replaceFilename(str):
+        numDict = {':': ' ', '?': ' ', '|': ' ', '>': ' ', '<': ' ', '/': ' '}
+        return numDict[str.group()]
+
+
+    def filenameSlugify(self, filename):
+        filename = slugify(filename, replacements=[['+', 'plus']]).replace("-", " ")
+        return re.sub(r'[:?|></]', self.replaceFilename, filename)

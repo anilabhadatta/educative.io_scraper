@@ -1,7 +1,7 @@
 class ApiScraper:
-    def __init__(self, configJson, browser):
+    def __init__(self, configJson):
         self.configJson = configJson
-        self.browser = browser
+        self.browser = None
 
 
     def start(self):

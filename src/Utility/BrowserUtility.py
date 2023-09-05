@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 import requests
 import websockets
@@ -19,33 +20,38 @@ class BrowserUtility:
 
 
     def loadBrowser(self):
-        self.logger.info("Loading Browser...")
-        userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"])
-        options = webdriver.ChromeOptions()
-        if self.configJson["headless"]:
-            options.add_argument('--headless=new')
-        options.add_argument(f'user-data-dir={userDataDir}')
-        options.add_argument('--profile-directory=Default')
-        options.add_argument("--start-maximized")
-        options.add_argument('--disable-gpu')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--ignore-certificate-errors-spki-list')
-        options.add_argument('--ignore-ssl-errors')
-        options.add_argument("--disable-web-security")
-        options.add_argument('--allow-running-insecure-content')
-        options.add_argument("--disable-site-isolation-trials")
-        options.add_argument("--disable-features=IsolateOrigins,site-per-process")
-        options.add_argument('--log-level=3')
-        userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
-        options.add_argument(f'user-agent={userAgent}')
-        options.binary_location = constants.chromeBinaryPath
-        if self.configJson["isProxy"]:
-            options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
-        self.browser = webdriver.Remote(command_executor='http://127.0.0.1:9515', options=options)
-        self.browser.set_window_size(1920, 1080)
-        self.browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
-        self.logger.info("Browser Initiated")
-        return self.browser
+        try:
+            self.logger.info("Loading Browser...")
+            userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"])
+            options = webdriver.ChromeOptions()
+            if self.configJson["headless"]:
+                options.add_argument('--headless=new')
+            options.add_argument(f'user-data-dir={userDataDir}')
+            options.add_argument('--profile-directory=Default')
+            options.add_argument("--start-maximized")
+            options.add_argument('--disable-gpu')
+            options.add_argument('--no-sandbox')
+            options.add_argument('--ignore-certificate-errors-spki-list')
+            options.add_argument('--ignore-ssl-errors')
+            options.add_argument("--disable-web-security")
+            options.add_argument('--allow-running-insecure-content')
+            options.add_argument("--disable-site-isolation-trials")
+            options.add_argument("--disable-features=IsolateOrigins,site-per-process")
+            options.add_argument('--log-level=3')
+            userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+            options.add_argument(f'user-agent={userAgent}')
+            options.binary_location = constants.chromeBinaryPath
+            if self.configJson["isProxy"]:
+                options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
+            self.browser = webdriver.Remote(command_executor='http://127.0.0.1:9515', options=options)
+            self.browser.set_window_size(1920, 1080)
+            self.browser.command_executor._commands["send_command"] = (
+                "POST", '/session/$sessionId/chromium/send_command')
+            self.logger.info("Browser Initiated")
+            return self.browser
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"BrowserUtility:loadBrowser: {lineNumber}: {e}")
 
 
     def getDevToolsUrl(self):
@@ -85,3 +91,11 @@ class BrowserUtility:
             self.logger.info("Current Url: " + currentUrl)
         except Exception as e:
             self.logger.error("Error occurred while getting current URL via websocket")
+
+
+    def scrollPage(self):
+        self.logger.info("Scrolling Page")
+        totalHeight = int(self.browser.execute_script("return document.body.scrollHeight"))
+        for i in range(1, totalHeight, 10):
+            self.browser.execute_script("window.scrollTo(0, {});".format(i))
+        time.sleep(2)

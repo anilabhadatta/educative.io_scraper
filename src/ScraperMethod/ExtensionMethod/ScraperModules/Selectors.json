@@ -1,0 +1,5 @@
+{
+  "SeleniumBasicUtility": {
+    "articlePageSelector": "(//div[@id='handleArticleScroll']//div[count(div)>=2])[1]"
+  }
+}

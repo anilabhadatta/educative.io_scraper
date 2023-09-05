@@ -1,9 +1,6 @@
-from src.Logging.Logger import Logger
-
-
 class UrlUtility:
-    def __init__(self, configJson):
-        self.logger = Logger(configJson, "UrlUtility").logger
+    def __init__(self):
+        pass
 
 
     def getCourseUrl(self, url):

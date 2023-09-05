@@ -27,7 +27,16 @@ class LoginAccount:
         except KeyboardInterrupt:
             self.logger.error("Keyboard Interrupt")
         except Exception as e:
-            self.logger.error(e)
+            lineNumber = e.__traceback__.tb_lineno
+            self.logger.error(f"start: {lineNumber}: {e}")
         finally:
             self.logger.debug("Exiting...")
-            self.browser.quit()
+            if self.browser is not None:
+                self.browser.quit()
+
+
+    def checkIfLoggedIn(self, browser):
+        isLoggedIn = bool(browser.execute_script(
+            '''return document.cookie.includes('logged_in')'''))
+        if not isLoggedIn:
+            raise Exception("Login to your account in the browser...")

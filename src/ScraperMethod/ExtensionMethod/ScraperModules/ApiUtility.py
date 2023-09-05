@@ -2,16 +2,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
-from src.Logging.Logger import Logger
 from src.ScraperMethod.ExtensionMethod.ScraperModules.UrlUtility import UrlUtility
 
 
 class ApiUtility:
-    def __init__(self, browser, configJson):
-        self.browser = browser
+    def __init__(self):
+        self.browser = None
         self.timeout = 10
-        self.logger = Logger(configJson, "ApiUtility").logger
-        self.urlUtils = UrlUtility(configJson)
+        self.urlUtils = UrlUtility()
 
 
     def executeJsToGetJson(self, url):
@@ -33,10 +31,13 @@ class ApiUtility:
     def getCourseApiContentJson(self, courseApiUrl):
         try:
             jsonData = self.executeJsToGetJson(courseApiUrl)
-            jsonData = jsonData["components"]
-            return jsonData
+            if "components" in jsonData:
+                jsonData = jsonData["components"]
+                return jsonData
+            return None
         except Exception as e:
-            self.logger.error(f"getCourseApiContentJson {e}")
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
 
 
     def getCourseCollectionsJson(self, topicUrl):
@@ -50,16 +51,23 @@ class ApiUtility:
             categories = jsonData["toc"]["categories"]
             courseTitle = jsonData["title"]
             topicApiUrlList = []
+            topicNameList = []
             baseApiUrl = f"https://educative.io/api/collection/{authorId}/{collectionId}/page/"
             for category in categories:
+                if not category["pages"]:
+                    topicApiUrlList.append(baseApiUrl + str(category["id"]))
+                    topicNameList.append(category["title"])
                 for page in category["pages"]:
                     topicApiUrlList.append(baseApiUrl + str(page["id"]))
+                    topicNameList.append(page["title"])
             return {
                 "courseTitle": courseTitle,
-                "topicApiUrlList": topicApiUrlList
+                "topicApiUrlList": topicApiUrlList,
+                "topicNameList": topicNameList
             }
         except Exception as e:
-            self.logger.error(f"getCourseCollectionsJson {e}")
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getCourseCollectionsJson: {lineNumber}: {e}")
 
 
     def getCourseTopicUrlsList(self, topicUrl):
@@ -74,4 +82,5 @@ class ApiUtility:
                 topicUrls.append(topicUrlElement.get_attribute("href"))
             return topicUrls
         except Exception as e:
-            self.logger.error(f"getCourseTopicUrlsList {e}")
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getCourseTopicUrlsList: {lineNumber}: {e}")
