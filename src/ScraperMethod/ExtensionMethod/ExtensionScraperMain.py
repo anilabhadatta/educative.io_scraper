@@ -3,7 +3,9 @@ import os
 from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
 from src.ScraperMethod.ExtensionMethod.ScraperModules.ApiUtility import ApiUtility
+from src.ScraperMethod.ExtensionMethod.ScraperModules.RemoveUtility import RemoveUtility
 from src.ScraperMethod.ExtensionMethod.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
+from src.ScraperMethod.ExtensionMethod.ScraperModules.ShowUtility import ShowUtility
 from src.ScraperMethod.ExtensionMethod.ScraperModules.UrlUtility import UrlUtility
 from src.Utility.BrowserUtility import BrowserUtility
 from src.Utility.FileUtility import FileUtility
@@ -21,6 +23,8 @@ class ExtensionScraper:
         self.outputFolderPath = self.configJson["saveDirectory"]
         self.loginUtils = LoginAccount()
         self.seleniumBasicUtils = SeleniumBasicUtility()
+        self.removeUtils = RemoveUtility()
+        self.showUtils = ShowUtility()
 
 
     def start(self):
@@ -65,7 +69,6 @@ class ExtensionScraper:
                 self.loginUtils.checkIfLoggedIn(self.browser)
                 courseApiContentJson = self.apiUtils.getCourseApiContentJson(courseApiUrl)
                 courseTopicPath = os.path.join(coursePath, topicName)
-                self.fileUtils.createFolderIfNotExists(courseTopicPath)
                 self.scrapeTopic(courseTopicPath, courseApiContentJson, courseTopicUrl)
                 # with open(f"courseApiContentJson{topicIndex}.json", "w") as f:
                 #     f.write(json.dumps(courseApiContentJson))
@@ -78,10 +81,21 @@ class ExtensionScraper:
 
     def scrapeTopic(self, courseTopicPath, courseApiContentJson, courseTopicUrl):
         try:
+            self.seleniumBasicUtils.browser = self.browser
+            self.removeUtils.browser = self.browser
+            self.showUtils.browser = self.browser
             self.browser.get(courseTopicUrl)
-            self.seleniumBasicUtils.waitWebdriverToLoadTopicPage(self.browser)
+            self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
             self.browserUtils.scrollPage()
-            self.seleniumBasicUtils.checkSomethingWentWrong(self.browser)
+            self.seleniumBasicUtils.checkSomethingWentWrong()
+            self.browserUtils.setWindowSize()
+            self.removeUtils.removeBlurWithCSS()
+            self.removeUtils.removeMarkAsCompleted()
+            self.showUtils.showSingleMarkDownQuizSolution()
+            self.showUtils.showCodeSolutions()
+            self.showUtils.showHints()
+            self.showUtils.showSlides()
+            self.fileUtils.createFolderIfNotExists(courseTopicPath)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ExtensionScraper:scrapeTopic: {lineNumber}: {e}")

@@ -11,7 +11,7 @@ from src.Logging.Logger import Logger
 
 
 class BrowserUtility:
-    def __init__(self, configJson):
+    def __init__(self, configJson=None):
         self.devToolJsonUrl = None
         self.browser = None
         self.configJson = configJson
@@ -93,9 +93,22 @@ class BrowserUtility:
             self.logger.error("Error occurred while getting current URL via websocket")
 
 
+    def getCurrentHeight(self):
+        return self.browser.execute_script("return document.body.scrollHeight")
+
+
     def scrollPage(self):
         self.logger.info("Scrolling Page")
-        totalHeight = int(self.browser.execute_script("return document.body.scrollHeight"))
+        totalHeight = int(self.getCurrentHeight())
         for i in range(1, totalHeight, 10):
             self.browser.execute_script("window.scrollTo(0, {});".format(i))
         time.sleep(2)
+
+
+    def setWindowSize(self):
+        try:
+            totalHeight = int(self.getCurrentHeight())
+            self.browser.set_window_size(1920, totalHeight)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"SeleniumBasicUtility:setWindowSize: {lineNumber}: {e}")

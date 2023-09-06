@@ -1,5 +1,17 @@
 {
   "SeleniumBasicUtility": {
-    "articlePageSelector": "(//div[@id='handleArticleScroll']//div[count(div)>=2])[1]"
+    "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]"
+  },
+  "RemoveUtility": {
+    "articleFooter": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]/div[3]",
+    "markAsCompleted": "//span[normalize-space() = 'Mark As Completed']",
+    "completed": "//span[normalize-space() = 'Completed']"
+  },
+  "ShowUtility": {
+    "showMarkDownQuizSolution": "Show Answer",
+    "showCodeSolution": "Show Solution",
+    "confirmShowSolution": "button[aria-label*='confirm']",
+    "showHints": "g[id*='noun_lightbulb']",
+    "showSlides": "svg[aria-label*='view all slides']"
   }
 }
