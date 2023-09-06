@@ -35,8 +35,8 @@ class LoginAccount:
                 self.browser.quit()
 
 
-    def checkIfLoggedIn(self, browser):
-        isLoggedIn = bool(browser.execute_script(
+    def checkIfLoggedIn(self):
+        isLoggedIn = bool(self.browser.execute_script(
             '''return document.cookie.includes('logged_in')'''))
         if not isLoggedIn:
             raise Exception("Login to your account in the browser...")

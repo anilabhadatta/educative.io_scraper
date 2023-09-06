@@ -4,8 +4,10 @@ from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
 from src.ScraperMethod.ExtensionMethod.ScraperModules.ApiUtility import ApiUtility
 from src.ScraperMethod.ExtensionMethod.ScraperModules.RemoveUtility import RemoveUtility
+from src.ScraperMethod.ExtensionMethod.ScraperModules.ScreenshotHtmlUtility import ScreenshotHtmlUtility
 from src.ScraperMethod.ExtensionMethod.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
 from src.ScraperMethod.ExtensionMethod.ScraperModules.ShowUtility import ShowUtility
+from src.ScraperMethod.ExtensionMethod.ScraperModules.SingleFileUtility import SingleFileUtility
 from src.ScraperMethod.ExtensionMethod.ScraperModules.UrlUtility import UrlUtility
 from src.Utility.BrowserUtility import BrowserUtility
 from src.Utility.FileUtility import FileUtility
@@ -25,6 +27,8 @@ class ExtensionScraper:
         self.seleniumBasicUtils = SeleniumBasicUtility()
         self.removeUtils = RemoveUtility()
         self.showUtils = ShowUtility()
+        self.singleFileUtils = SingleFileUtility(configJson)
+        self.screenshotHtmlUtils = ScreenshotHtmlUtility(configJson)
 
 
     def start(self):
@@ -35,6 +39,7 @@ class ExtensionScraper:
                 self.logger.info(f"Started Scraping from Text File URL: {textFileUrl}")
                 self.browser = self.browserUtils.loadBrowser()
                 self.apiUtils.browser = self.browser
+                self.loginUtils.browser = self.browser
                 self.scrapeCourse(textFileUrl)
                 print("Complete")
                 while True:
@@ -52,7 +57,7 @@ class ExtensionScraper:
         try:
             courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl)
             startIndex = courseTopicUrlsList.index(textFileUrl) if textFileUrl in courseTopicUrlsList else 0
-            self.loginUtils.checkIfLoggedIn(self.browser)
+            self.loginUtils.checkIfLoggedIn()
             courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(textFileUrl)
             courseTitle = self.fileUtils.filenameSlugify(courseCollectionsJson["courseTitle"])
             coursePath = os.path.join(self.outputFolderPath, courseTitle)
@@ -64,26 +69,26 @@ class ExtensionScraper:
             for topicIndex in range(startIndex, len(courseTopicUrlsList)):
                 courseTopicUrl = courseTopicUrlsList[topicIndex]
                 courseApiUrl = courseCollectionsJson["topicApiUrlList"][topicIndex]
-                topicName = self.fileUtils.filenameSlugify(courseCollectionsJson["topicNameList"][topicIndex])
-                self.logger.info(f"Scraping {topicIndex}-{topicName}: {courseTopicUrl}")
-                self.loginUtils.checkIfLoggedIn(self.browser)
+                topicName = str(topicIndex) + "-" + self.fileUtils.filenameSlugify(
+                    courseCollectionsJson["topicNameList"][topicIndex])
+                self.logger.info(f"Scraping {topicName}: {courseTopicUrl}")
+                self.loginUtils.checkIfLoggedIn()
                 courseApiContentJson = self.apiUtils.getCourseApiContentJson(courseApiUrl)
-                courseTopicPath = os.path.join(coursePath, topicName)
-                self.scrapeTopic(courseTopicPath, courseApiContentJson, courseTopicUrl)
+                self.scrapeTopic(coursePath, topicName, courseApiContentJson, courseTopicUrl)
                 # with open(f"courseApiContentJson{topicIndex}.json", "w") as f:
                 #     f.write(json.dumps(courseApiContentJson))
-                if topicIndex == 2:
-                    break
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ExtensionScraper:scrapeCourse: {lineNumber}: {e}")
 
 
-    def scrapeTopic(self, courseTopicPath, courseApiContentJson, courseTopicUrl):
+    def scrapeTopic(self, coursePath, topicName, courseApiContentJson, courseTopicUrl):
         try:
             self.seleniumBasicUtils.browser = self.browser
             self.removeUtils.browser = self.browser
             self.showUtils.browser = self.browser
+            self.singleFileUtils.browser = self.browser
+            self.screenshotHtmlUtils.browser = self.browser
             self.browser.get(courseTopicUrl)
             self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
             self.browserUtils.scrollPage()
@@ -95,7 +100,19 @@ class ExtensionScraper:
             self.showUtils.showCodeSolutions()
             self.showUtils.showHints()
             self.showUtils.showSlides()
+            self.seleniumBasicUtils.addNameAttributeInNextBackButton()
+            self.removeUtils.removeUnwantedElements()
+            self.singleFileUtils.fixAllObjectTags()
+            self.singleFileUtils.injectImportantScripts()
+            self.singleFileUtils.makeCodeSelectable()
+            courseTopicPath = os.path.join(coursePath, topicName)
             self.fileUtils.createFolderIfNotExists(courseTopicPath)
+            if self.configJson["singleFileHTML"]:
+                htmlPageData = self.singleFileUtils.getSingleFileHtml(topicName)
+            else:
+                htmlPageData = self.screenshotHtmlUtils.getFullPageScreenshotHtml(topicName)
+            htmlFilePath = os.path.join(courseTopicPath, f"{topicName}.html")
+            self.fileUtils.createTopicHtml(htmlFilePath, htmlPageData)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ExtensionScraper:scrapeTopic: {lineNumber}: {e}")

@@ -15,7 +15,7 @@ class ShowUtility:
         try:
             showMarkDownQuizSolutionSelector = self.selectors["showMarkDownQuizSolution"]
             showMarkDownQuizJsScript = f"""
-            const divs = document.querySelectorAll('div');
+            var divs = document.querySelectorAll('div');
             divs.forEach(div => {{
               if (div.textContent.trim() === "{showMarkDownQuizSolutionSelector}") {{
                   div.click();
@@ -32,7 +32,7 @@ class ShowUtility:
             showCodeSolutionSelector = self.selectors["showCodeSolution"]
             confirmButtonSelector = self.selectors["confirmShowSolution"]
             showCodeSolutionJsScript = f"""
-            const buttons = document.querySelectorAll('button');
+            var buttons = document.querySelectorAll('button');
             buttons.forEach(button => {{
               if (button.textContent.trim() === "{showCodeSolutionSelector}" && button.disabled === false) {{
                   button.click();
@@ -50,7 +50,7 @@ class ShowUtility:
         try:
             showHintSelector = self.selectors["showHints"]
             showHintJsScript = f"""
-            const gs = document.querySelectorAll("{showHintSelector}");
+            var gs = document.querySelectorAll("{showHintSelector}");
             gs.forEach(g => {{
                 var button = g.closest('svg').parentNode;
                 if(button.disabled === false) {{
@@ -68,7 +68,7 @@ class ShowUtility:
         try:
             showSlideSelector = self.selectors["showSlides"]
             showSlideJsScript = f"""
-            const svgs = document.querySelectorAll("{showSlideSelector}");
+            var svgs = document.querySelectorAll("{showSlideSelector}");
             svgs.forEach(svg => {{
                 var button = svg.parentNode;
                 if(button.disabled === false) {{

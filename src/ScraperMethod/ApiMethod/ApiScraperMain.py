@@ -5,6 +5,4 @@ class ApiScraper:
 
 
     def start(self):
-        print("Started API scraper")
-        while True:
-            pass
+        print("API scraper Not implemented yet use Single File Extension scraper instead.")

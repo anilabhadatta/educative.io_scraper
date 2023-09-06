@@ -49,5 +49,22 @@ class RemoveUtility:
             raise Exception(f"RemoveUtility:removeMarkAsCompleted: {lineNumber}: {e}")
 
 
-    def removeTags(self):
-        pass
+    def removeUnwantedElements(self):
+        try:
+            nodesToDelete = [self.selectors["navNode"], self.selectors["privacyNode"],
+                             self.selectors["askQuestionDarkModeToolbar"], self.selectors["streakNode"]]
+            selectors = ", ".join([f'{node}' for node in nodesToDelete])
+            removeTagsJsScript = f"""
+            var elements = document.querySelectorAll("{selectors}");
+            elements.forEach(element => {{
+                if (element.tagName === "STYLE" || element.tagName === "DIV" && element.id === "__next") {{
+                    // do nothing
+                }} else {{
+                element.parentNode.removeChild(element);
+                }}
+            }});
+            """
+            self.browser.execute_script(removeTagsJsScript)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"RemoveUtility:removeUnwantedElements: {lineNumber}: {e}")

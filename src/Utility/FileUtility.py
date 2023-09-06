@@ -61,3 +61,9 @@ class FileUtility:
     def filenameSlugify(self, filename):
         filename = slugify(filename, replacements=[['+', 'plus']]).replace("-", " ")
         return re.sub(r'[:?|></]', self.replaceFilename, filename)
+
+
+    @staticmethod
+    def createTopicHtml(htmlFilePath, htmlPageData):
+        with open(htmlFilePath, "w+", encoding="utf-8") as fh:
+            fh.write(htmlPageData)

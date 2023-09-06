@@ -1,11 +1,19 @@
 {
   "SeleniumBasicUtility": {
-    "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]"
+    "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
+    "nextButton": "Next",
+    "backButton": "Back"
   },
   "RemoveUtility": {
     "articleFooter": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]/div[3]",
     "markAsCompleted": "//span[normalize-space() = 'Mark As Completed']",
-    "completed": "//span[normalize-space() = 'Completed']"
+    "completed": "//span[normalize-space() = 'Completed']",
+    "navNode": "div[class*='ed-grid'] > nav",
+    "privacyNode": "div[aria-label*='Your Privacy']",
+    "askQuestionDarkModeToolbar": "div[id*='view-collection-article-content-root']> :not(#handleArticleScroll) > *",
+    "streakNode": "div[aria-labelledby*='simple-modal-title']",
+    "bodyChildNodes": "body > *",
+    "headChildNodes": "head > *"
   },
   "ShowUtility": {
     "showMarkDownQuizSolution": "Show Answer",
@@ -13,5 +21,13 @@
     "confirmShowSolution": "button[aria-label*='confirm']",
     "showHints": "g[id*='noun_lightbulb']",
     "showSlides": "svg[aria-label*='view all slides']"
+  },
+  "SingleFileUtility": {
+    "objectTag": "object[role='img']",
+    "codeContainerClass": "monaco-editor"
+  },
+  "ScreenshotHtmlUtility": {
+    "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
+    "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]"
   }
 }
