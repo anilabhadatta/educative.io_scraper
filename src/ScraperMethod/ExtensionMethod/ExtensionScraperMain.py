@@ -15,7 +15,6 @@ from src.Utility.FileUtility import FileUtility
 
 class ExtensionScraper:
     def __init__(self, configJson):
-        print("Yes")
         self.browser = None
         self.configJson = configJson
         self.outputFolderPath = self.configJson["saveDirectory"]
@@ -30,7 +29,6 @@ class ExtensionScraper:
         self.showUtils = ShowUtility(configJson)
         self.singleFileUtils = SingleFileUtility(configJson)
         self.screenshotHtmlUtils = ScreenshotHtmlUtility(configJson)
-        print("Yes")
 
 
     def start(self):
