@@ -12,19 +12,22 @@ class SingleFileUtility:
         self.fileUtils = FileUtility()
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["SingleFileUtility"]
-        self.configJson = configJson
         self.logger = Logger(configJson, "SingleFileUtility").logger
         self.screenshotHtmlUtils = ScreenshotHtmlUtility(configJson)
 
 
     def fixAllObjectTags(self):
         try:
+            self.logger.info("Fixing all object tags")
             objectTagSelector = self.selectors["objectTag"]
             fixObjectTagsJsScript = f"""
             var objectTags = document.querySelectorAll("{objectTagSelector}");
             objectTags.forEach(objectTag => objectTag.type = "image/svg+xml");
+            return objectTags.length;
             """
-            self.browser.execute_script(fixObjectTagsJsScript)
+            isPresent = self.browser.execute_script(fixObjectTagsJsScript)
+            if isPresent <= 0:
+                self.logger.info("No object tag found")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SingleFileUtility:fixAllObjectTags: {lineNumber}: {e}")
@@ -32,6 +35,7 @@ class SingleFileUtility:
 
     def injectImportantScripts(self):
         try:
+            self.logger.info("Injecting important scripts")
             injectImportantScriptsJsScript = """
             function injectScriptToHTML(scriptTag, location) {
                 if (location === "iframe") {
@@ -84,6 +88,8 @@ class SingleFileUtility:
             }
             """
             self.browser.execute_script(injectImportantScriptsJsScript)
+            time.sleep(5)
+            self.browser.execute_script(injectImportantScriptsJsScript)
             time.sleep(10)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
@@ -92,6 +98,7 @@ class SingleFileUtility:
 
     def makeCodeSelectable(self):
         try:
+            self.logger.info("Making code selectable")
             codeContainerClassName = self.selectors["codeContainerClass"]
             makeCodeSelectableJsScript = f"""
             var codes = document.getElementsByClassName("{codeContainerClassName}");
@@ -100,8 +107,11 @@ class SingleFileUtility:
                     codes[i].classList.remove('no-user-select');
                 }} 
             }}
+            return codes.length;
             """
-            self.browser.execute_script(makeCodeSelectableJsScript)
+            isPresent = self.browser.execute_script(makeCodeSelectableJsScript)
+            if isPresent <= 0:
+                self.logger.info("No code found")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SingleFileUtility:makeCodeSelectable: {lineNumber}: {e}")
@@ -109,7 +119,7 @@ class SingleFileUtility:
 
     def getSingleFileHtml(self, topicName):
         singleFileJsScript = """
-        const { content, title, filename } = await window.singlefile.getPageData({
+        const { content, title, filename } = await singlefile.getPageData({
             removeHiddenElements: true,
             removeUnusedStyles: true,
             removeUnusedFonts: true,

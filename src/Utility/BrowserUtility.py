@@ -16,7 +16,8 @@ class BrowserUtility:
         self.browser = None
         self.configJson = configJson
         self.devToolUrl = None
-        self.logger = Logger(configJson, "BrowserUtility").logger
+        if configJson:
+            self.logger = Logger(configJson, "BrowserUtility").logger
 
 
     def loadBrowser(self):

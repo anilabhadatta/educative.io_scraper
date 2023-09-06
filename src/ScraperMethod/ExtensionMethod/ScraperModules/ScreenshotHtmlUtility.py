@@ -12,14 +12,14 @@ class ScreenshotHtmlUtility:
     def __init__(self, configJson):
         self.browser = None
         self.fileUtils = FileUtility()
-        self.seleniumBasicUtils = SeleniumBasicUtility()
+        self.seleniumBasicUtils = SeleniumBasicUtility(configJson)
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["ScreenshotHtmlUtility"]
-        self.configJson = configJson
         self.logger = Logger(configJson, "ScreenshotHtmlUtility").logger
 
 
     def getFullPageScreenshotHtml(self, topicName):
+        self.logger.info(f"Getting full page screenshot html for {topicName}")
         articlePageSelector = self.selectors["articlePage"]
         generalPageSelector = self.selectors["generalPage"]
         self.seleniumBasicUtils.browser = self.browser
@@ -35,6 +35,7 @@ class ScreenshotHtmlUtility:
 
 
     def getHtmlWithImage(self, base64Png, topicName):
+        self.logger.debug(f"Attaching image with the html")
         return f"""
         <!DOCTYPE html>
         <html lang="en">

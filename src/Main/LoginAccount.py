@@ -3,10 +3,12 @@ from src.Utility.BrowserUtility import BrowserUtility
 
 
 class LoginAccount:
-    def __init__(self):
+    def __init__(self, configJson=None):
         self.browserUtil = None
         self.logger = None
-        self.configJson = None
+        if configJson:
+            self.logger = Logger(configJson, "LoginAccount").logger
+        self.configJson = configJson
         self.browser = None
 
 
@@ -36,6 +38,8 @@ class LoginAccount:
 
 
     def checkIfLoggedIn(self):
+        self.logger = Logger(self.configJson, "LoginAccount").logger
+        self.logger.info("Checking if logged in...")
         isLoggedIn = bool(self.browser.execute_script(
             '''return document.cookie.includes('logged_in')'''))
         if not isLoggedIn:

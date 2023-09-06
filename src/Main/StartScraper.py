@@ -6,14 +6,10 @@ from src.ScraperMethod.ExtensionMethod.ExtensionScraperMain import ExtensionScra
 class StartScraper:
     def __init__(self):
         self.logger = None
-        self.browserUtil = None
-        self.configJson = None
-        self.browser = None
 
 
     def start(self, configJson):
-        self.configJson = configJson
-        self.logger = Logger(self.configJson, "StartScraper").logger
+        self.logger = Logger(configJson, "StartScraper").logger
         self.logger.info("""StartScraper Initiated...
                             To Terminate, Click on Stop Scraper Button
                         """)

@@ -2,18 +2,21 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
+from src.Logging.Logger import Logger
 from src.ScraperMethod.ExtensionMethod.ScraperModules.UrlUtility import UrlUtility
 
 
 class ApiUtility:
-    def __init__(self):
+    def __init__(self, configJson):
         self.browser = None
         self.timeout = 10
         self.urlUtils = UrlUtility()
+        self.logger = Logger(configJson, "ApiUtility").logger
 
 
     def executeJsToGetJson(self, url):
-        script = f"""
+        self.logger.info(f"Executing JS to get JSON from URL")
+        apiJsonScript = f"""
             return new Promise((resolve, reject) => {{
                 fetch("{url}")
                     .then(response => response.json())
@@ -25,11 +28,12 @@ class ApiUtility:
                     }});
             }});
         """
-        return self.browser.execute_script(script)
+        return self.browser.execute_script(apiJsonScript)
 
 
     def getCourseApiContentJson(self, courseApiUrl):
         try:
+            self.logger.info(f"Getting Course API Content JSON from URL: {courseApiUrl}")
             jsonData = self.executeJsToGetJson(courseApiUrl)
             if "components" in jsonData:
                 jsonData = jsonData["components"]
@@ -42,6 +46,7 @@ class ApiUtility:
 
     def getCourseCollectionsJson(self, topicUrl):
         try:
+            self.logger.info(f"Getting Course Collections JSON from URL: {topicUrl}")
             courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(topicUrl)
             self.browser.get("https://www.educative.io/api/")
             jsonData = self.executeJsToGetJson(courseApiUrl)
@@ -72,6 +77,7 @@ class ApiUtility:
 
     def getCourseTopicUrlsList(self, topicUrl):
         try:
+            self.logger.info(f"Getting Course Topic URLs List from URL: {topicUrl}")
             courseUrlSelector = self.urlUtils.getCourseUrlSelector(topicUrl)
             self.browser.get(topicUrl)
             WebDriverWait(self.browser, self.timeout).until(

@@ -1,17 +1,20 @@
 import os
 
+from src.Logging.Logger import Logger
 from src.Utility.FileUtility import FileUtility
 
 
 class RemoveUtility:
-    def __init__(self):
+    def __init__(self, configJson):
         self.browser = None
         self.fileUtils = FileUtility()
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["RemoveUtility"]
+        self.logger = Logger(configJson, "RemoveUtility").logger
 
 
     def removeBlurWithCSS(self):
+        self.logger.info("Removing blur with CSS")
         removeBlurJsScript = """
         const head = document.querySelector('head');
         const style = document.createElement('style');
@@ -25,6 +28,7 @@ class RemoveUtility:
 
     def removeMarkAsCompleted(self):
         try:
+            self.logger.info("Removing mark-as-completed/completed tick mark")
             articleFooterSelector = self.selectors["articleFooter"]
             markAsCompletedSelector = self.selectors["markAsCompleted"]
             completedSelector = self.selectors["completed"]
@@ -51,6 +55,7 @@ class RemoveUtility:
 
     def removeUnwantedElements(self):
         try:
+            self.logger.info("Removing unwanted elements")
             nodesToDelete = [self.selectors["navNode"], self.selectors["privacyNode"],
                              self.selectors["askQuestionDarkModeToolbar"], self.selectors["streakNode"]]
             selectors = ", ".join([f'{node}' for node in nodesToDelete])
