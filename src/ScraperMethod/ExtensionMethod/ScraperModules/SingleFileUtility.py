@@ -22,7 +22,22 @@ class SingleFileUtility:
             objectTagSelector = self.selectors["objectTag"]
             fixObjectTagsJsScript = f"""
             var objectTags = document.querySelectorAll("{objectTagSelector}");
-            objectTags.forEach(objectTag => objectTag.type = "image/svg+xml");
+            objectTags.forEach(objectTag => {{
+                try{{
+                    svgElement = objectTag.contentDocument.documentElement;
+                    clsName = objectTag.className;
+                    parentTag = objectTag.parentNode;
+                    childrenTags = objectTag.parentNode.children;
+                    for(i=0;i<childrenTags.length;i++){{
+                        childrenTags[i].remove();
+                    }}
+                    parentTag.append(svgElement);
+                    svgElement.classList.add(clsName);
+                }}
+                catch(error){{
+                    console.log(error);
+                }}
+            }});           
             return objectTags.length;
             """
             isPresent = self.browser.execute_script(fixObjectTagsJsScript)
@@ -39,7 +54,7 @@ class SingleFileUtility:
             injectImportantScriptsJsScript = """
             function injectScriptToHTML(scriptTag, location) {
                 if (location === "iframe") {
-                    var frames = document.querySelectorAll('frame, iframe, object');
+                    var frames = document.querySelectorAll('frame, iframe');
                     frames.forEach(frame => {
                             var frameDocument = frame.contentDocument || frame.contentWindow.document;
                             var targetElement = frameDocument.head || frameDocument.body || frameDocument.documentElement;

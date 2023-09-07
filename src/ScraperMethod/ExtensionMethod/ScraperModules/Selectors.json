@@ -3,7 +3,8 @@
     "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
     "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]",
     "nextButton": "Next",
-    "backButton": "Back"
+    "backButton": "Back",
+    "expandAllButton": "//button[contains(., 'Expand All Sections')]"
   },
   "RemoveUtility": {
     "articleFooter": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]/div[3]",
@@ -32,6 +33,6 @@
     "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]"
   },
   "ApiUtility": {
-    "expandAllButton": "//button[contains(., 'Expand All Sections')]"
+    "nextData": "script[id*='__NEXT_DATA__']"
   }
 }

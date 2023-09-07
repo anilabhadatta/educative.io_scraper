@@ -14,9 +14,24 @@ class SeleniumBasicUtility:
     def __init__(self, configJson):
         self.fileUtils = FileUtility()
         self.browser = None
+        self.timeout = 10
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["SeleniumBasicUtility"]
         self.logger = Logger(configJson, "SeleniumBasicUtility").logger
+
+
+    def expandAllSections(self):
+        try:
+            self.logger.info("Expanding all sections")
+            expandAllButtonSelector = self.selectors["expandAllButton"]
+            expandButton = WebDriverWait(self.browser, self.timeout).until(
+                EC.presence_of_element_located((By.XPATH, expandAllButtonSelector)))
+            if expandButton:
+                expandButton.click()
+                time.sleep(2)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"SeleniumBasicUtility:expandAllSections: {lineNumber}: {e}")
 
 
     def waitWebdriverToLoadTopicPage(self):
