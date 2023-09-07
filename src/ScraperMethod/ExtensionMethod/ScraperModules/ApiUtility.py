@@ -46,8 +46,8 @@ class ApiUtility:
 
     def getCourseCollectionsJson(self, topicUrl):
         try:
-            self.logger.info(f"Getting Course Collections JSON from URL: {topicUrl}")
             courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(topicUrl)
+            self.logger.info(f"Getting Course Collections JSON from URL: {courseApiUrl}")
             self.browser.get("https://www.educative.io/api/")
             jsonData = self.executeJsToGetJson(courseApiUrl)
             jsonData = jsonData["instance"]["details"]

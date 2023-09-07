@@ -14,6 +14,6 @@ class UrlUtility:
 
     def getCourseApiCollectionListUrl(self, url):
         url = url.split("/")
-        if url[3] is "module":
+        if "module" in url[3]:
             return "/".join(url[:3]) + "/api/collection/" + "/".join(url[6:-1]) + "?work_type=collection"
         return "/".join(url[:3]) + "/api/collection/" + "/".join(url[4:-1]) + "?work_type=collection"
