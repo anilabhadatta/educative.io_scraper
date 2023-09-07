@@ -1,9 +1,13 @@
+import os
+import time
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from src.Logging.Logger import Logger
 from src.ScraperMethod.ExtensionMethod.ScraperModules.UrlUtility import UrlUtility
+from src.Utility.FileUtility import FileUtility
 
 
 class ApiUtility:
@@ -11,6 +15,9 @@ class ApiUtility:
         self.browser = None
         self.timeout = 10
         self.urlUtils = UrlUtility()
+        self.fileUtils = FileUtility()
+        selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
+        self.selectors = self.fileUtils.loadJsonFile(selectorPath)["ApiUtility"]
         self.logger = Logger(configJson, "ApiUtility").logger
 
 
@@ -44,11 +51,10 @@ class ApiUtility:
             raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
 
 
-    def getCourseCollectionsJson(self, topicUrl):
+    def getCourseCollectionsJson(self, courseUrl):
         try:
-            courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(topicUrl)
+            courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(courseUrl)
             self.logger.info(f"Getting Course Collections JSON from URL: {courseApiUrl}")
-            self.browser.get("https://www.educative.io/api/")
             jsonData = self.executeJsToGetJson(courseApiUrl)
             jsonData = jsonData["instance"]["details"]
             authorId = str(jsonData["author_id"])
@@ -75,13 +81,17 @@ class ApiUtility:
             raise Exception(f"ApiUtility:getCourseCollectionsJson: {lineNumber}: {e}")
 
 
-    def getCourseTopicUrlsList(self, topicUrl):
+    def getCourseTopicUrlsList(self, courseUrl):
         try:
-            self.logger.info(f"Getting Course Topic URLs List from URL: {topicUrl}")
-            courseUrlSelector = self.urlUtils.getCourseUrlSelector(topicUrl)
-            self.browser.get(topicUrl)
+            self.logger.info(f"Getting Course Topic URLs List from URL: {courseUrl}")
+            courseUrlSelector = self.urlUtils.getCourseUrlSelector(courseUrl)
+            self.logger.info(f"Course URL Selector: {courseUrlSelector}")
+            self.browser.get(courseUrl)
             WebDriverWait(self.browser, self.timeout).until(
                 EC.presence_of_element_located((By.XPATH, courseUrlSelector)))
+            expandAllButtonSelector = self.selectors["expandAllButton"]
+            self.browser.find_element(By.XPATH, expandAllButtonSelector).click()
+            time.sleep(2)
             topicUrlElements = self.browser.find_elements(By.XPATH, courseUrlSelector)
             topicUrls = []
             for topicUrlElement in topicUrlElements:
@@ -90,3 +100,15 @@ class ApiUtility:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseTopicUrlsList: {lineNumber}: {e}")
+
+
+    def getCourseUrl(self, topicUrl):
+        try:
+            self.browser.get(topicUrl)
+            courseTypeSelector = f"a[href*='{topicUrl.split('/')[3]}']"
+            WebDriverWait(self.browser, self.timeout).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, courseTypeSelector)))
+            return self.browser.find_element(By.CSS_SELECTOR, courseTypeSelector).get_attribute("href")
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getCourseUrl: {lineNumber}: {e}")

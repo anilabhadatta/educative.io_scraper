@@ -41,9 +41,6 @@ class ExtensionScraper:
                 self.apiUtils.browser = self.browser
                 self.loginUtils.browser = self.browser
                 self.scrapeCourse(textFileUrl)
-                print("Complete")
-                while True:
-                    pass
             except Exception as e:
                 lineNumber = e.__traceback__.tb_lineno
                 raise Exception(f"ExtensionScraper:start: {lineNumber}: {e}")
@@ -55,15 +52,22 @@ class ExtensionScraper:
 
     def scrapeCourse(self, textFileUrl):
         try:
-            courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl)
+            courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
+            courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(courseUrl)
             startIndex = courseTopicUrlsList.index(textFileUrl) if textFileUrl in courseTopicUrlsList else 0
             self.loginUtils.checkIfLoggedIn()
-            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(textFileUrl)
+            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseUrl)
+
+            self.logger.debug(f"Course Topic URLs: {courseTopicUrlsList}")
+            self.logger.debug(f"Course Collections JSON: {courseCollectionsJson}")
+            self.logger.info(f"{len(courseCollectionsJson['topicApiUrlList'])} == {len(courseTopicUrlsList)}")
+            if len(courseCollectionsJson["topicApiUrlList"]) != len(courseTopicUrlsList):
+                raise Exception("CourseCollectionsJson and CourseTopicUrlsList length not equal")
+
             courseTitle = self.fileUtils.filenameSlugify(courseCollectionsJson["courseTitle"])
             coursePath = os.path.join(self.outputFolderPath, courseTitle)
             self.fileUtils.createFolderIfNotExists(coursePath)
-            self.logger.debug(f"Course Topic URLs: {courseTopicUrlsList}")
-            self.logger.debug(f"Course Collections JSON: {courseCollectionsJson}")
+
             for topicIndex in range(startIndex, len(courseTopicUrlsList)):
                 courseTopicUrl = courseTopicUrlsList[topicIndex]
                 courseApiUrl = courseCollectionsJson["topicApiUrlList"][topicIndex]

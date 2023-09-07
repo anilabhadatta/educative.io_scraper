@@ -1,6 +1,7 @@
 {
   "SeleniumBasicUtility": {
     "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
+    "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]",
     "nextButton": "Next",
     "backButton": "Back"
   },
@@ -10,7 +11,7 @@
     "completed": "//span[normalize-space() = 'Completed']",
     "navNode": "div[class*='ed-grid'] > nav",
     "privacyNode": "div[aria-label*='Your Privacy']",
-    "askQuestionDarkModeToolbar": "div[id*='view-collection-article-content-root']> :not(#handleArticleScroll) > *",
+    "askQuestionDarkModeToolbar": "div[id*='view-collection-article-content-root'] > :not(#handleArticleScroll):not(:last-child), div[id*='view-collection-article-content-root']:not(:has(#handleArticleScroll)) > :not(:last-child)",
     "streakNode": "div[aria-labelledby*='simple-modal-title']",
     "bodyChildNodes": "body > *",
     "headChildNodes": "head > *"
@@ -29,5 +30,8 @@
   "ScreenshotHtmlUtility": {
     "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
     "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]"
+  },
+  "ApiUtility": {
+    "expandAllButton": "//button[contains(., 'Expand All Sections')]"
   }
 }

@@ -23,7 +23,11 @@ class SeleniumBasicUtility:
         try:
             self.logger.info("Waiting for webdriver to load topic page")
             articlePageSelector = self.selectors["articlePage"]
-            WebDriverWait(self.browser, 10).until(EC.visibility_of_element_located((By.XPATH, articlePageSelector)))
+            generalPageSelector = self.selectors["generalPage"]
+            try:
+                WebDriverWait(self.browser, 10).until(EC.visibility_of_element_located((By.XPATH, articlePageSelector)))
+            except Exception as e:
+                WebDriverWait(self.browser, 10).until(EC.visibility_of_element_located((By.XPATH, generalPageSelector)))
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SeleniumBasicUtility:waitWebdriverToLoadTopicPage: {lineNumber}: {e}")

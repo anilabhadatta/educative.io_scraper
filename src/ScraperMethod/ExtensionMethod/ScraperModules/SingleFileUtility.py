@@ -120,21 +120,17 @@ class SingleFileUtility:
     def getSingleFileHtml(self, topicName):
         singleFileJsScript = """
         const { content, title, filename } = await singlefile.getPageData({
+            removeImports: true,
+            removeScripts: true,
+            removeAudioSrc: true,
+            removeVideoSrc: true,
             removeHiddenElements: true,
             removeUnusedStyles: true,
             removeUnusedFonts: true,
-            removeImports: true,
-            blockScripts: true,
-            blockAudios: true,
-            blockVideos: true,
             compressHTML: true,
-            removeAlternativeFonts: true,
-            removeAlternativeMedias: true,
-            removeAlternativeImages: true,
-            groupDuplicateImages: true,
-            insertMetaCSP: true,
-            networkTimeout: 60000,
-            shadowEnabled: true,
+            blockVideos: true,
+            blockScripts: true,
+            networkTimeout: 60000
         });
         return content;
         """

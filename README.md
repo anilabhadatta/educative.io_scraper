@@ -17,14 +17,14 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. I developed it solely for research
 purposes and take no responsibility for its misuse.
 
-Repository Version: v3.0.11
+Repository Version: v3.0.12
 Development Branch: v3-dev
 </code>
    </pre>
 
-###          
+###              
 
-## To view the downloaded courses, you can use the Educative-Viewer repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
+## To view the downloaded courses, you can use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
 
 ## Steps to use the scraper:
 

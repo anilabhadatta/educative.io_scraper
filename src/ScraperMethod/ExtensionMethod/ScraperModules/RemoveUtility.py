@@ -33,18 +33,22 @@ class RemoveUtility:
             markAsCompletedSelector = self.selectors["markAsCompleted"]
             completedSelector = self.selectors["completed"]
             removeMarkAsCompletedJsScript = f"""
-            var articleFooter = document.evaluate("{articleFooterSelector}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-            articleFooter = articleFooter.snapshotItem(0);
-            var markAsCompleted = document.evaluate("{markAsCompletedSelector}", articleFooter, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-            var completed = document.evaluate("{completedSelector}", articleFooter, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-            
-            if (markAsCompleted.snapshotLength > 0 || completed.snapshotLength > 0) {{    
-                if(markAsCompleted.snapshotLength > 0) {{
-                    markAsCompleted.snapshotItem(0).parentNode.click();
+            try{{
+                var articleFooter = document.evaluate("{articleFooterSelector}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                articleFooter = articleFooter.snapshotItem(0);
+                var markAsCompleted = document.evaluate("{markAsCompletedSelector}", articleFooter, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                var completed = document.evaluate("{completedSelector}", articleFooter, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                
+                if (markAsCompleted.snapshotLength > 0 || completed.snapshotLength > 0) {{    
+                    if(markAsCompleted.snapshotLength > 0) {{
+                        markAsCompleted.snapshotItem(0).parentNode.click();
+                    }}
+                    if (completed.snapshotLength > 0) {{
+                        completed.snapshotItem(0).parentNode.click();
+                    }}
                 }}
-                if (completed.snapshotLength > 0) {{
-                    completed.snapshotItem(0).parentNode.click();
-                }}
+            }} catch (e) {{
+                console.log(e);
             }}
             """
             self.browser.execute_script(removeMarkAsCompletedJsScript)
