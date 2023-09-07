@@ -52,10 +52,8 @@ class ApiUtility:
             raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
 
 
-    def getCourseCollectionsJson(self):
+    def getCourseCollectionsJson(self, courseApiUrl):
         try:
-            nextData = self.browser.find_elements(By.CSS_SELECTOR, self.selectors["nextData"])[0]
-            courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(nextData)
             self.logger.info(f"Getting Course Collections JSON from URL: {courseApiUrl}")
             jsonData = self.executeJsToGetJson(courseApiUrl)
             jsonData = jsonData["instance"]["details"]
@@ -66,16 +64,15 @@ class ApiUtility:
             topicApiUrlList = []
             topicNameList = []
             baseApiUrl = f"https://educative.io/api/collection/{authorId}/{collectionId}/page/"
+            categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT"]
             for category in categories:
-                if not category["pages"]:
-                    pageUrl = baseApiUrl + str(category["id"])
-                    if pageUrl not in topicApiUrlList and "RECOVERED_ARTICLES" not in pageUrl:
-                        topicApiUrlList.append(pageUrl)
+                if any(cType in category["type"] for cType in categoryType) and (
+                        isinstance(category["id"], int) or len(category["id"]) <= 10):
+                    if not category["pages"]:
+                        topicApiUrlList.append(baseApiUrl + str(category["id"]))
                         topicNameList.append(category["title"])
-                for page in category["pages"]:
-                    pageUrl = baseApiUrl + str(page["id"])
-                    if pageUrl not in topicApiUrlList:
-                        topicApiUrlList.append(pageUrl)
+                    for page in category["pages"]:
+                        topicApiUrlList.append(baseApiUrl + str(page["id"]))
                         topicNameList.append(page["title"])
             return {
                 "courseTitle": courseTitle,
@@ -87,8 +84,10 @@ class ApiUtility:
             raise Exception(f"ApiUtility:getCourseCollectionsJson: {lineNumber}: {e}")
 
 
-    def getCourseTopicUrlsList(self, topicUrl):
+    def getCourseTopicUrlsList(self, topicUrl, courseUrl):
         try:
+            self.logger.info(f"Getting Course Topic URLs List from URL: {courseUrl}")
+            self.browser.get(courseUrl)
             topicUrlSelector = self.urlUtils.getTopicUrlSelector(topicUrl)
             WebDriverWait(self.browser, self.timeout).until(
                 EC.presence_of_element_located((By.XPATH, topicUrlSelector)))
@@ -115,8 +114,22 @@ class ApiUtility:
             self.logger.info(f"Course Type Selector: {courseTypeSelector}")
             courseUrl = WebDriverWait(self.browser, self.timeout).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, courseTypeSelector))).get_attribute("href")
-            self.browser.get(courseUrl)
             return courseUrl
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseUrl: {lineNumber}: {e}")
+
+
+    def getNextData(self):
+        try:
+            self.logger.info(f"Getting Next Data")
+            nextDataSelector = self.selectors["nextData"]
+            nextDataScript = f"""
+            return JSON.parse(document.querySelectorAll("{nextDataSelector}")[0].textContent);
+            """
+            nextData = self.browser.execute_script(nextDataScript)
+            courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(nextData)
+            return courseApiUrl
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getNextData: {lineNumber}: {e}")

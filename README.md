@@ -17,12 +17,12 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. I developed it solely for research
 purposes and take no responsibility for its misuse.
 
-Repository Version: v3.0.12
+Repository Version: v3.0.13
 Development Branch: v3-dev
 </code>
    </pre>
 
-###              
+###               
 
 ## To view the downloaded courses, you can use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
 
@@ -102,5 +102,6 @@ cd educative.io_scraper
       <div align="center">
       <br><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/48487849/264581350-dd669e5a-739c-4ff1-a7b3-6beb2eba5437.png" style="width: 80%; height:80%;">
       </div>
-    - Please Note that an index is not required in the URLs text file, Simply paste the URLs of the topic from which you want to start scraping.
+    - Please Note that an index is not required in the URLs text file, Simply paste the URLs of the topic from which you
+      want to start scraping.
     - Known issue, Project/Assessment HTML may not render in Educative Viewer but the HTML is correctly scraped.

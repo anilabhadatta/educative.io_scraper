@@ -53,17 +53,18 @@ class ExtensionScraper:
     def scrapeCourse(self, textFileUrl):
         try:
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
-            self.logger.info(f"Getting Course Topic URLs List from URL: {courseUrl}")
-            courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl)
+            courseApiUrl = self.apiUtils.getNextData()
+            courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
             startIndex = courseTopicUrlsList.index(textFileUrl) if textFileUrl in courseTopicUrlsList else 0
             self.loginUtils.checkIfLoggedIn()
-            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson()
+            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl)
 
             self.logger.debug(f"Course Topic URLs: {courseTopicUrlsList}")
             self.logger.debug(f"Course Collections JSON: {courseCollectionsJson}")
-            self.logger.info(f"{len(courseCollectionsJson['topicApiUrlList'])} == {len(courseTopicUrlsList)}")
+            self.logger.info(
+                f"API Urls: {len(courseCollectionsJson['topicApiUrlList'])} == {len(courseTopicUrlsList)} :Topic Urls")
             if len(courseCollectionsJson["topicApiUrlList"]) != len(courseTopicUrlsList):
-                raise Exception("CourseCollectionsJson and CourseTopicUrlsList length not equal")
+                raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
 
             courseTitle = self.fileUtils.filenameSlugify(courseCollectionsJson["courseTitle"])
             coursePath = os.path.join(self.outputFolderPath, courseTitle)
