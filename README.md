@@ -59,8 +59,9 @@ cd educative.io_scraper
       python3 EducativeScraper.py
       ```
       <div align="center">
-      <img src="https://github-production-user-asset-6210df.s3.amazonaws.com/48487849/264574721-2d5dba02-4c19-4dbc-a346-4063797873ee.png" style="width: 50%; height:50%;">
+      <img src="https://github.com/anilabhadatta/educative.io_scraper/assets/48487849/5e63a3c3-ac7a-48a9-8e13-4e6e9f098f09.png" style="width: 50%; height:50%;">
       </div>
+
 
 -  ### After the GUI successfully loads, please proceed to follow the subsequent steps.
     - Create a text file.
@@ -80,7 +81,7 @@ cd educative.io_scraper
     - You can choose to save/export the current configuration for later use, or you can opt for the default
       configuration.
     - For the initial setup or updates, click on `Download Chromedriver` and `Download Chrome Binary` to automatically
-      download them into the project directory.
+      Download them into the project directory.
     - If you intend to utilize proxies, simply enable the proxy option and enter the proxy in proxies box.
       <ul>
       <br>
@@ -91,7 +92,7 @@ cd educative.io_scraper
       </ul>
     - Click on `Start Chromedriver` to start the Chromedriver.
     - Click on `Login Account` to log in to your Educative.io account and click on `Close Browser Button` to close the
-      browser after the login is successfully completed.
+      browser after the login is completed.
     - Click on `Start Scraper` to begin scraping the courses.
     - The scraper will automatically stop after scraping all the URLs in the selected text file.
     - If you decide to stop the scraper using the `Stop Scraper Button` before it finishes or face any errors, the most
@@ -101,3 +102,5 @@ cd educative.io_scraper
       <div align="center">
       <br><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/48487849/264581350-dd669e5a-739c-4ff1-a7b3-6beb2eba5437.png" style="width: 80%; height:80%;">
       </div>
+    - Please Note that an index is not required in the URLs text file, Simply paste the URLs of the topic from which you want to start scraping.
+    - Known issue, Project/Assessment HTML may not render in Educative Viewer but the HTML is correctly scraped.
