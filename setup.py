@@ -3,7 +3,7 @@ import os
 import platform
 import shutil
 import subprocess
-
+import sys
 
 class Setup:
     def __init__(self, args, rootDir):
@@ -44,6 +44,65 @@ class Setup:
                 subprocess.Popen([self.getDefaultLinuxTerminal(), "-e", self.command])
 
 
+    def generate_exe(self):
+
+        # Get folder path
+        
+        folder_path = f"{rootDir}"
+        # Create virtual environment 
+        
+        envPath = os.path.join(rootDir, "env")
+        envPath = f"{envPath}"
+        subprocess.run([sys.executable, "-m", "venv", envPath])
+        
+        # Activate virtual environment
+        activate_path = os.path.join(envPath, 'Scripts', 'activate.bat')
+        subprocess.call(activate_path, shell=True)
+        
+        # Install packages, including pyinstaller
+        requirements_path = os.path.join(rootDir, 'requirements.txt')
+        subprocess.run([os.path.join(envPath, 'Scripts', 'python.exe'),
+                    "-m", "pip", "install", "-r", requirements_path, "pyinstaller"])
+
+        # Make executable folder
+        executable_path = os.path.join(rootDir, "executable")
+        os.mkdir(executable_path)
+        
+        # Copy icon
+        icon_path = os.path.join(rootDir, "icon.ico")
+        shutil.copy(icon_path, executable_path)
+        
+        # Make scraper.py
+        scraper_py = os.path.join(executable_path, "scraper.py")
+        with open(scraper_py, "w") as f:
+            f.write(f"""
+import os
+import subprocess
+
+script_path = r"{folder_path}"
+os.chdir(script_path)
+script_to_run = r'"{os.path.join(envPath, 'Scripts', 'python.exe')}" EducativeScraper.py'
+
+subprocess.call(script_to_run, shell=True)
+    """)
+  
+        # Run pyinstaller
+        pyinstaller_path = os.path.join(envPath, 'Scripts', 'pyinstaller.exe')
+        command = [pyinstaller_path, "--noconfirm", "--onefile", "--console", "--icon", "executable/icon.ico", "executable/scraper.py"]   
+        subprocess.run(command)
+    
+        # Delete executable folder
+        shutil.rmtree(executable_path)
+
+        # Delete builder folder for exe
+        build_path = os.path.join(rootDir, "build")
+        shutil.rmtree(build_path)
+
+        # Delete temp file
+        temp_path = os.path.join(rootDir, "scraper.spec")
+        os.remove(temp_path)  
+
+
     def generateAndExecuteCommand(self):
         if self.args.install:
             self.removeEnvIfExists()
@@ -53,10 +112,7 @@ class Setup:
             self.executeCommand()
         elif self.args.create:
             self.removeEnvIfExists()
-            self.command = f"{self.pythonPrefix} -m venv env"
-            subprocess.run(self.command, shell=True)
-            self.command = f"{self.envActivation} && {self.pipPrefix} install -r requirements.txt && pyinstaller --noconfirm --onefile --console {self.setupFilePath} && exit"
-            self.executeCommand()
+            self.generate_exe()
         elif self.args.run:
             if self.checkEnvIfExists():
                 self.command = f"{self.envActivation} && {self.pythonPrefix} {self.educativeScraperFilePath} && exit"
