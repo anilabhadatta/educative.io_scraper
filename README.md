@@ -1,8 +1,6 @@
 # Educative.io Scraper -- Educative.io Downloader
 
-<pre>
-<code style="white-space : pre-wrap !important;">
-Description: 
+<pre><code style="white-space : pre-wrap !important;">Description: 
 Discover the power of automation with my Python-based Educative.io Course Scraper. Harnessing the capabilities of Selenium
 and Chromium-based browsers, this tool effortlessly scrapes and saves Educative.io courses for offline use enabling you to
 learn at your own pace, even without an internet connection.
@@ -18,9 +16,7 @@ I want to clarify that I am not accountable for any inappropriate use of this sc
 purposes and take no responsibility for its misuse.
 
 Repository Version: v3.0.14
-Development Branch: v3-dev
-</code>
-   </pre>
+Development Branch: v3-dev</code></pre>
 
 ###                          
 
@@ -51,9 +47,10 @@ cd educative.io_scraper
       python setup.py --run
       
       [Commands]
-      --install: Install the required dependencies.
-      --run: Run the scraper.
+      --install: Creates a virtual environment and installs the required dependencies.
+      --run: Activates the environment and starts the scraper.
       --create: Creates an executable file for the scraper.
+      Note: The git repository path should not be changed after creating the executable.
       ```
 
 
@@ -118,4 +115,3 @@ cd educative.io_scraper
       </div>
     - Please Note that an index is not required in the URLs text file, Simply paste the URLs of the topic from which you
       want to start scraping.
-    - Known issue, Project/Assessment HTML may not render in Educative Viewer but the HTML is correctly scraped.
