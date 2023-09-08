@@ -18,7 +18,7 @@ purposes and take no responsibility for its misuse.
 Repository Version: v3.0.14
 Development Branch: v3-dev</code></pre>
 
-###                          
+###                           
 
 ## To view the downloaded courses, you can use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
 
@@ -48,7 +48,7 @@ cd educative.io_scraper
       
       [Commands]
       --install: Creates a virtual environment and installs the required dependencies.
-      --run: Activates the environment and starts the scraper.
+      --run: Activates the environment and starts the scraper. [Default = True]
       --create: Creates an executable file for the scraper.
       Note: The git repository path should not be changed after creating the executable.
       ```
