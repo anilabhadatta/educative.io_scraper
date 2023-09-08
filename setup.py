@@ -6,85 +6,84 @@ import subprocess
 
 
 class Setup:
-    def __init__(self, args, rootDir):
+    def __init__(self, args):
         self.currentOS = platform.system()
         self.args = args
         self.command = None
         self.pythonPrefix = "python3" if self.currentOS != "Windows" else "python"
         self.pipPrefix = "pip3" if self.currentOS != "Windows" else "pip"
-        self.envActivation = "source env/bin/activate" if self.currentOS != "Windows" else r"env\Scripts\activate.bat"
-        self.rootDir = rootDir
+        self.rootDir = os.path.dirname(os.path.realpath(__file__))
         self.envPath = os.path.join(self.rootDir, "env")
-        self.setupFilePath = os.path.join(self.rootDir, "setup.py")
+        self.envActivation = "source env/bin/activate" if self.currentOS != "Windows" else r"env\Scripts\activate.bat"
+        self.envActivationPath = os.path.join(self.rootDir, self.envActivation)
         self.educativeScraperFilePath = os.path.join(self.rootDir, "EducativeScraper.py")
+        self.tempSetupFilePath = os.path.join(self.rootDir, "tempDir", "setup.py")
+        self.tempDirPath = os.path.join(self.rootDir, "tempDir")
+        self.iconRoot = os.path.join(self.rootDir, "src", "Common")
 
 
-    @staticmethod
-    def getDefaultLinuxTerminal():
-        terminals = ['gnome-terminal', 'xfce4-terminal', 'konsole', 'xterm', 'lxterminal', 'mate-terminal', 'urxvt',
-                     'alacritty', 'termite']
-
-        for terminal in terminals:
-            try:
-                subprocess.run(['which', terminal], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               text=True)
-                return terminal
-            except subprocess.CalledProcessError:
-                pass
-        return None
+    def installDependencies(self):
+        self.removeFolderIfExists(self.envPath)
+        self.command = f"{self.pythonPrefix} -m venv env && {self.envActivationPath} && {self.pipPrefix} install -r requirements.txt && exit"
+        subprocess.run(self.command, shell=True)
 
 
-    def executeCommand(self):
-        if self.currentOS == "Windows":
-            subprocess.Popen(["start", "cmd", "/k", self.command], shell=True)
+    def createExecutable(self):
+        self.createFolderIfNotExists(self.tempDirPath)
+        self.createTempExecutableSetupFile()
+        self.getIconPath()
+        self.command = f"{self.envActivationPath}  && pyinstaller --clean --noconfirm --onefile --console --icon {self.iconRoot} {self.tempSetupFilePath} && exit"
+        subprocess.run(self.command, shell=True)
+        self.removeFolderIfExists(self.tempDirPath)
+
+
+    def runScraper(self):
+        if os.path.isdir(self.envPath):
+            self.command = f"{self.envActivationPath} && {self.pythonPrefix} {self.educativeScraperFilePath} && exit"
+            subprocess.run(self.command, shell=True)
         else:
-            if self.currentOS == "Darwin":
-                subprocess.Popen(["open", "-a", "Terminal", self.command])
-            elif self.currentOS == "Linux":
-                subprocess.Popen([self.getDefaultLinuxTerminal(), "-e", self.command])
+            print(f"Please run '{self.pythonPrefix} setup.py --install' first")
+
+
+    def createTempExecutableSetupFile(self):
+        with open(self.tempSetupFilePath, "w") as f:
+            f.write(rf"""
+import subprocess
+command = rf"{self.envActivationPath} && {self.pythonPrefix} {self.educativeScraperFilePath} && exit"
+subprocess.call(command, shell=True)
+                    """)
+
+
+    def getIconPath(self):
+        self.iconRoot = os.path.join(self.iconRoot, "icon.png")
+        if self.currentOS == "Windows":
+            self.iconRoot = os.path.join(self.iconRoot, "icon.ico")
+
+
+    def createFolderIfNotExists(self, path):
+        if not os.path.isdir(path):
+            os.makedirs(path)
+
+
+    def removeFolderIfExists(self, path):
+        if os.path.isdir(path):
+            shutil.rmtree(path)
 
 
     def generateAndExecuteCommand(self):
         if self.args.install:
-            self.removeEnvIfExists()
-            self.command = f"{self.pythonPrefix} -m venv env"
-            subprocess.run(self.command, shell=True)
-            self.command = f"{self.envActivation} && {self.pipPrefix} install -r requirements.txt && {self.pythonPrefix} {self.educativeScraperFilePath} && exit"
-            self.executeCommand()
+            self.installDependencies()
         elif self.args.create:
-            self.removeEnvIfExists()
-            self.command = f"{self.pythonPrefix} -m venv env"
-            subprocess.run(self.command, shell=True)
-            self.command = f"{self.envActivation} && {self.pipPrefix} install -r requirements.txt && pyinstaller --noconfirm --onefile --console {self.setupFilePath} && exit"
-            self.executeCommand()
+            self.createExecutable()
         elif self.args.run:
-            if self.checkEnvIfExists():
-                self.command = f"{self.envActivation} && {self.pythonPrefix} {self.educativeScraperFilePath} && exit"
-                self.executeCommand()
-            else:
-                print(f"Please run '{self.pythonPrefix} setup.py install' first")
-
-
-    def checkEnvIfExists(self):
-        if os.path.isdir(self.envPath):
-            return True
-        return False
-
-
-    def removeEnvIfExists(self):
-        if self.checkEnvIfExists():
-            shutil.rmtree(self.envPath)
+            self.runScraper()
 
 
 if __name__ == '__main__':
-    rootDir = os.path.dirname(os.path.realpath(__file__))
-    # for pyinstaller hardcode the project directory path
-    # rootDir = r"C:\Users\user\Documents\GitHub\EducativeScraper"
-    os.chdir(rootDir)
     parser = argparse.ArgumentParser(description="Educative Scraper Setup")
     parser.add_argument("--install", action='store_true', default=False, help="Install required dependencies")
     parser.add_argument("--run", action='store_true', default=True, help="Run the scraper")
     parser.add_argument("--create", action='store_true', default=False, help="Create an executable file of the scraper")
     args = parser.parse_args()
-    setup = Setup(args, rootDir)
+    setup = Setup(args)
     setup.generateAndExecuteCommand()

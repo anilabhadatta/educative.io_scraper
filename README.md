@@ -17,12 +17,12 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. I developed it solely for research
 purposes and take no responsibility for its misuse.
 
-Repository Version: v3.0.13
+Repository Version: v3.0.14
 Development Branch: v3-dev
 </code>
    </pre>
 
-###               
+###                          
 
 ## To view the downloaded courses, you can use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
 
@@ -44,6 +44,20 @@ cd educative.io_scraper
    ```
 
 -  ### Run the following commands to start Educative Scraper.
+- #### Automatic Steps:
+    - #### Use python3 instead of python for Linux and MacOS.
+      ```
+      python setup.py --install
+      python setup.py --run
+      
+      [Commands]
+      --install: Install the required dependencies.
+      --run: Run the scraper.
+      --create: Creates an executable file for the scraper.
+      ```
+
+
+- #### Manual Steps:
     - #### Windows:
       ```
       python -m venv env
