@@ -151,18 +151,18 @@ class SingleFileUtility:
         """
         try:
             try:
+                self.logger.info("getSingleFileHtml: Getting SingleFile Html...")
+                htmlPageData = self.browser.execute_script(singleFileJsScript)
+            except Exception as e1:
                 try:
-                    self.logger.info("getSingleFileHtml: Getting SingleFile Html...")
+                    self.logger.error(f"getSingleFileHtml: Failed to get SingleFile Html, retrying...")
                     htmlPageData = self.browser.execute_script(singleFileJsScript)
-                except Exception as e:
-                    self.logger.error(f"getSingleFileHtml: Failed to get SingleFile Html, retrying...{e}")
-                    htmlPageData = self.browser.execute_script(singleFileJsScript)
-                self.logger.info("getSingleFileHtml: Successfully Received Page using SingleFile...")
-            except Exception as e:
-                self.logger.error(f"getSingleFileHtml: Failed to get SingleFile Html, getting ScreenshotHtml...{e}")
-                self.screenshotHtmlUtils.browser = self.browser
-                htmlPageData = self.screenshotHtmlUtils.getFullPageScreenshotHtml(topicName)
-                self.logger.info("getSingleFileHtml: Successfully Received Page using ScreenshotHtml...")
+                    self.logger.info("getSingleFileHtml: Successfully Received Page using SingleFile...")
+                except Exception as e2:
+                    self.logger.error(f"getSingleFileHtml: Failed to get SingleFile Html, getting ScreenshotHtml...")
+                    self.screenshotHtmlUtils.browser = self.browser
+                    htmlPageData = self.screenshotHtmlUtils.getFullPageScreenshotHtml(topicName)
+                    self.logger.info("getSingleFileHtml: Successfully Received Page using ScreenshotHtml...")
             return htmlPageData
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno

@@ -16,9 +16,11 @@ class EducativeScraper:
                 Check out ReadMe for more information about this project.
                 Use the GUI to start scraping.
         """)
-
+        if platform.system() == "Windows":
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("EducativeScraper")
         self.fileUtil = FileUtility()
         self.configUtil = ConfigUtility()
+        self.loadBasicUtility()
 
 
     def loadBasicUtility(self):
@@ -31,8 +33,5 @@ class EducativeScraper:
 
 
 if __name__ == '__main__':
-    if platform.system() == "Windows":
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("EducativeScraper")
     app = EducativeScraper()
-    app.loadBasicUtility()
     app.run()
