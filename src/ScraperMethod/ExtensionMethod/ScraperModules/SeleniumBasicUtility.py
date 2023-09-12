@@ -22,13 +22,16 @@ class SeleniumBasicUtility:
 
     def expandAllSections(self):
         try:
-            self.logger.info("Expanding all sections")
+            self.logger.debug("Expanding all sections function")
             expandAllButtonSelector = self.selectors["expandAllButton"]
-            expandButton = WebDriverWait(self.browser, self.timeout).until(
+            WebDriverWait(self.browser, self.timeout).until(
                 EC.presence_of_element_located((By.XPATH, expandAllButtonSelector)))
-            if expandButton:
-                expandButton.click()
+            expandButton = self.browser.find_elements(By.XPATH, expandAllButtonSelector)
+            while expandButton:
+                self.logger.info("Expanding all sections")
+                expandButton[0].click()
                 time.sleep(2)
+                expandButton = self.browser.find_elements(By.XPATH, expandAllButtonSelector)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SeleniumBasicUtility:expandAllSections: {lineNumber}: {e}")

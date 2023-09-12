@@ -16,7 +16,7 @@ class Setup:
         self.envPath = os.path.join(self.rootDir, "env")
         self.envActivation = "source env/bin/activate" if self.currentOS != "Windows" else r"env\Scripts\activate.bat"
         self.educativeScraperFilePath = os.path.join(self.rootDir, "EducativeScraper.py")
-        self.tempSetupFilePath = os.path.join(self.rootDir, "tempDir", "setup.py")
+        self.tempSetupFilePath = os.path.join(self.rootDir, "tempDir", "EducativeScraper.py")
         self.tempDirPath = os.path.join(self.rootDir, "tempDir")
         self.iconRoot = os.path.join(self.rootDir, "src", "Common")
         os.chdir(self.rootDir)
