@@ -105,7 +105,7 @@ class SingleFileUtility:
             self.browser.execute_script(injectImportantScriptsJsScript)
             time.sleep(5)
             self.browser.execute_script(injectImportantScriptsJsScript)
-            time.sleep(10)
+            time.sleep(5)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SingleFileUtility:injectImportantScripts: {lineNumber}: {e}")

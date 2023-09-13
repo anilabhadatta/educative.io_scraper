@@ -95,12 +95,17 @@ class ApiUtility:
                 self.seleniumBasicUtils.browser = self.browser
                 self.seleniumBasicUtils.expandAllSections()
             self.logger.info(f"Course URL Selector: {topicUrlSelector}")
-            topicUrlElements = self.browser.find_elements(By.XPATH, topicUrlSelector)
-            topicUrls = []
-            for topicUrlElement in topicUrlElements:
-                topicUrl = topicUrlElement.get_attribute("href")
-                if topicUrl not in topicUrls:
-                    topicUrls.append(topicUrl)
+            topicUrlJsScript = f"""
+            var topicUrls = document.evaluate("{topicUrlSelector}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+            var hrefData  = [];
+            for (var i = 0; i < topicUrls.snapshotLength; i++) {{
+                var element = topicUrls.snapshotItem(i);
+                var href = 'https://www.educative.io' + element.getAttribute('href');
+                hrefData.push(href);
+            }}
+            return hrefData;
+            """
+            topicUrls = self.browser.execute_script(topicUrlJsScript)
             return topicUrls
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
@@ -112,8 +117,13 @@ class ApiUtility:
             self.browser.get(topicUrl)
             courseTypeSelector = f"a[href*='/{topicUrl.split('/')[3]}/']"
             self.logger.info(f"Course Type Selector: {courseTypeSelector}")
-            courseUrl = WebDriverWait(self.browser, self.timeout).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, courseTypeSelector))).get_attribute("href")
+            WebDriverWait(self.browser, self.timeout).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, courseTypeSelector)))
+            courseUrlJsScript = f"""
+            var courseUrl = "https://www.educative.io" + document.querySelector("{courseTypeSelector}").getAttribute('href');
+            return courseUrl;
+            """
+            courseUrl = self.browser.execute_script(courseUrlJsScript)
             return courseUrl
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
