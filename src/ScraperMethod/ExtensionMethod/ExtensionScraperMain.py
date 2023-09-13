@@ -71,7 +71,7 @@ class ExtensionScraper:
             self.fileUtils.createFolderIfNotExists(coursePath)
 
             for topicIndex in range(startIndex, len(courseTopicUrlsList)):
-                courseTopicUrl = courseTopicUrlsList[topicIndex]
+                courseTopicUrl = courseTopicUrlsList[topicIndex] + "?showContent=true"
                 courseApiUrl = courseCollectionsJson["topicApiUrlList"][topicIndex]
                 topicName = str(topicIndex) + "-" + self.fileUtils.filenameSlugify(
                     courseCollectionsJson["topicNameList"][topicIndex])

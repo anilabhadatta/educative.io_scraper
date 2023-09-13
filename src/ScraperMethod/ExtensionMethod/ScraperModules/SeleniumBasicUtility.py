@@ -43,9 +43,11 @@ class SeleniumBasicUtility:
             articlePageSelector = self.selectors["articlePage"]
             generalPageSelector = self.selectors["generalPage"]
             try:
-                WebDriverWait(self.browser, 10).until(EC.visibility_of_element_located((By.XPATH, articlePageSelector)))
+                WebDriverWait(self.browser, self.timeout).until(
+                    EC.visibility_of_element_located((By.XPATH, articlePageSelector)))
             except Exception as e:
-                WebDriverWait(self.browser, 10).until(EC.visibility_of_element_located((By.XPATH, generalPageSelector)))
+                WebDriverWait(self.browser, self.timeout).until(
+                    EC.visibility_of_element_located((By.XPATH, generalPageSelector)))
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SeleniumBasicUtility:waitWebdriverToLoadTopicPage: {lineNumber}: {e}")
@@ -53,7 +55,7 @@ class SeleniumBasicUtility:
 
     def loadingPageAndCheckIfSomethingWentWrong(self):
         self.logger.info("Loading page and checking if something went wrong")
-        time.sleep(10)
+        time.sleep(self.timeout)
         if "Something Went Wrong" in self.browser.page_source:
             raise Exception(f"SeleniumBasicUtility:checkSomethingWentWrong: Something Went Wrong")
 
