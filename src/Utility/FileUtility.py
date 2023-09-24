@@ -67,3 +67,9 @@ class FileUtility:
     def createTopicHtml(htmlFilePath, htmlPageData):
         with open(htmlFilePath, "w+", encoding="utf-8") as fh:
             fh.write(htmlPageData)
+
+
+    @staticmethod
+    def createTextFile(textFilePath, data):
+        with open(textFilePath, "w+", encoding="utf-8") as fh:
+            fh.write(data)

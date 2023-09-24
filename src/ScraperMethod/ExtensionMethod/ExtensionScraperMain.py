@@ -3,6 +3,8 @@ import os
 from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
 from src.ScraperMethod.ExtensionMethod.ScraperModules.ApiUtility import ApiUtility
+from src.ScraperMethod.ExtensionMethod.ScraperModules.CodeUtility import CodeUtility
+from src.ScraperMethod.ExtensionMethod.ScraperModules.QuizUtility import QuizUtility
 from src.ScraperMethod.ExtensionMethod.ScraperModules.RemoveUtility import RemoveUtility
 from src.ScraperMethod.ExtensionMethod.ScraperModules.ScreenshotHtmlUtility import ScreenshotHtmlUtility
 from src.ScraperMethod.ExtensionMethod.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
@@ -22,6 +24,8 @@ class ExtensionScraper:
         self.fileUtils = FileUtility()
         self.apiUtils = ApiUtility(configJson)
         self.urlUtils = UrlUtility()
+        self.codeUtils = CodeUtility(configJson)
+        self.quizUtils = QuizUtility(configJson)
         self.browserUtils = BrowserUtility(configJson)
         self.loginUtils = LoginAccount(configJson)
         self.seleniumBasicUtils = SeleniumBasicUtility(configJson)
@@ -117,6 +121,21 @@ class ExtensionScraper:
             self.fileUtils.createTopicHtml(htmlFilePath, htmlPageData)
             if courseApiContentJson:
                 self.logger.debug(f"Course API Content JSON: {courseApiContentJson}")
+                self.logger.info(f"Downloading Code and Quiz Files if found...")
+                quizComponentIndex = 0
+                codeComponentIndex = 0
+                codeTypes = ["Code", "TabbedCode", "CodeTest", "WebpackBin", "RunJS"]
+                quizTypes = ["Quiz", "StructuredQuiz"]
+                for componentIndex, component in enumerate(courseApiContentJson):
+                    componentType = component["type"]
+                    if any(item in componentType for item in codeTypes) and "content" in component:
+                        self.codeUtils.downloadCodeFiles(courseTopicPath, component, codeComponentIndex)
+                        codeComponentIndex += 1
+                    elif any(item in componentType for item in quizTypes) and "content" in component:
+                        self.quizUtils.downloadQuizFiles(courseTopicPath, component, quizComponentIndex)
+                        quizComponentIndex += 1
+                self.logger.info(f"Code and Quiz Files Downloaded if found.")
+
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ExtensionScraper:scrapeTopic: {lineNumber}: {e}")
