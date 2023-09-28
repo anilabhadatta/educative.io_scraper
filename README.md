@@ -70,7 +70,11 @@ cd educative.io_scraper
       python3 EducativeScraper.py
       ```
       <div align="center">
-      <img src="https://github.com/anilabhadatta/educative.io_scraper/assets/48487849/5e63a3c3-ac7a-48a9-8e13-4e6e9f098f09.png" style="width: 50%; height:50%;">
+         <figure>
+            <img src="https://github.com/anilabhadatta/educative.io_scraper/assets/48487849/ee64cfac-93b0-46d1-8050-00eec9b698a1.png" style="width: 50%; height:50%;">
+            <br>
+            <figcaption>Recommeded GUI Settings</figcaption>
+         </figure>
       </div>
 
 
