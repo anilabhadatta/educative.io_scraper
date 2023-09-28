@@ -49,7 +49,7 @@ cd educative.io_scraper
       [Commands]
       --install: Creates a virtual environment and installs the required dependencies.
       --run: Activates the environment and starts the scraper. [Default = True]
-      --create: Creates an executable file for the scraper.
+      --create: Creates a shortcut executable file linked to the scraper directory.
       Note: The git repository path should not be changed after creating the executable.
       ```
 
