@@ -2,15 +2,15 @@ import os
 
 from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
-from src.ScraperMethod.ExtensionMethod.ScraperModules.ApiUtility import ApiUtility
-from src.ScraperMethod.ExtensionMethod.ScraperModules.CodeUtility import CodeUtility
-from src.ScraperMethod.ExtensionMethod.ScraperModules.QuizUtility import QuizUtility
-from src.ScraperMethod.ExtensionMethod.ScraperModules.RemoveUtility import RemoveUtility
-from src.ScraperMethod.ExtensionMethod.ScraperModules.ScreenshotHtmlUtility import ScreenshotHtmlUtility
-from src.ScraperMethod.ExtensionMethod.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
-from src.ScraperMethod.ExtensionMethod.ScraperModules.ShowUtility import ShowUtility
-from src.ScraperMethod.ExtensionMethod.ScraperModules.SingleFileUtility import SingleFileUtility
-from src.ScraperMethod.ExtensionMethod.ScraperModules.UrlUtility import UrlUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.ApiUtility import ApiUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.CodeUtility import CodeUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.QuizUtility import QuizUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.RemoveUtility import RemoveUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.ScreenshotHtmlUtility import ScreenshotHtmlUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.ShowUtility import ShowUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.SingleFileUtility import SingleFileUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.UrlUtility import UrlUtility
 from src.Utility.BrowserUtility import BrowserUtility
 from src.Utility.FileUtility import FileUtility
 
@@ -61,7 +61,7 @@ class ExtensionScraper:
             courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
             startIndex = courseTopicUrlsList.index(textFileUrl) if textFileUrl in courseTopicUrlsList else 0
             self.loginUtils.checkIfLoggedIn()
-            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl)
+            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
 
             self.logger.debug(f"Course Topic URLs: {courseTopicUrlsList}")
             self.logger.debug(f"Course Collections JSON: {courseCollectionsJson}")
@@ -124,7 +124,7 @@ class ExtensionScraper:
                 self.logger.info(f"Downloading Code and Quiz Files if found...")
                 quizComponentIndex = 0
                 codeComponentIndex = 0
-                codeTypes = ["Code", "TabbedCode", "CodeTest", "WebpackBin", "RunJS"]
+                codeTypes = ["CodeTest", "TabbedCode", "Code", "WebpackBin", "RunJS"]
                 quizTypes = ["Quiz", "StructuredQuiz"]
                 for componentIndex, component in enumerate(courseApiContentJson):
                     componentType = component["type"]

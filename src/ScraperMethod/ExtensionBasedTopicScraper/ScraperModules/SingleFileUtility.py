@@ -2,7 +2,7 @@ import os
 import time
 
 from src.Logging.Logger import Logger
-from src.ScraperMethod.ExtensionMethod.ScraperModules.ScreenshotHtmlUtility import ScreenshotHtmlUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.ScreenshotHtmlUtility import ScreenshotHtmlUtility
 from src.Utility.FileUtility import FileUtility
 
 

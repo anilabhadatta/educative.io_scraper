@@ -1,6 +1,6 @@
 from src.Logging.Logger import Logger
-from src.ScraperMethod.ApiMethod.ApiScraperMain import ApiScraper
-from src.ScraperMethod.ExtensionMethod.ExtensionScraperMain import ExtensionScraper
+from src.ScraperMethod.AllTopicUrlsScraper.ScrapeAllTopicUrls import ScrapeAllTopicUrls
+from src.ScraperMethod.ExtensionBasedTopicScraper.ExtensionScraperMain import ExtensionScraper
 
 
 class StartScraper:
@@ -14,8 +14,8 @@ class StartScraper:
                             To Terminate, Click on Stop Scraper Button
                         """)
         try:
-            if configJson["apiToHtml"]:
-                ApiScraper(configJson).start()
+            if configJson["scrapeAllTopicUrls"]:
+                ScrapeAllTopicUrls(configJson).start()
             else:
                 ExtensionScraper(configJson).start()
         except KeyboardInterrupt:

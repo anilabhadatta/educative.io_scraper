@@ -41,7 +41,7 @@ class HomeScreen:
         self.saveDirectoryVar = tk.StringVar()
         self.singleFileHTMLVar = tk.BooleanVar(value=True)
         self.fullPageScreenshotHTMLVar = tk.BooleanVar(value=True)
-        self.apiToHtmlVar = tk.BooleanVar(value=True)
+        self.scrapeAllTopicUrlsVar = tk.BooleanVar(value=True)
         self.isProxyVar = tk.BooleanVar(value=True)
         self.proxyVar = tk.StringVar()
         self.loggingLevelVar = tk.StringVar()
@@ -74,19 +74,19 @@ class HomeScreen:
     def updateCheckboxStates(self, *args):
         singleFileHTML = self.singleFileHTMLVar.get()
         fullPageScreenshotHTML = self.fullPageScreenshotHTMLVar.get()
-        apiToHtml = self.apiToHtmlVar.get()
+        scrapeAllTopicUrls = self.scrapeAllTopicUrlsVar.get()
         if singleFileHTML:
             self.fullPageScreenshotHTMLVar.set(True)
-            self.apiToHtmlVar.set(False)
+            self.scrapeAllTopicUrlsVar.set(False)
             self.checkboxes[2].config(state="disabled")
-        elif not singleFileHTML and not apiToHtml:
+        elif not singleFileHTML and not scrapeAllTopicUrls:
             self.checkboxes[2].config(state="normal")
             if fullPageScreenshotHTML:
-                self.apiToHtmlVar.set(False)
+                self.scrapeAllTopicUrlsVar.set(False)
             elif not fullPageScreenshotHTML:
-                self.apiToHtmlVar.set(True)
-        elif not singleFileHTML and apiToHtml and fullPageScreenshotHTML:
-            self.apiToHtmlVar.set(False)
+                self.scrapeAllTopicUrlsVar.set(True)
+        elif not singleFileHTML and scrapeAllTopicUrls and fullPageScreenshotHTML:
+            self.scrapeAllTopicUrlsVar.set(False)
 
 
     def createHomeScreen(self, version):
@@ -113,7 +113,7 @@ class HomeScreen:
             ("Headless", self.headlessVar),
             ("Single File HTML", self.singleFileHTMLVar),
             ("Full Page Screenshot HTML", self.fullPageScreenshotHTMLVar),
-            ("Api To HTML", self.apiToHtmlVar),
+            ("Scrape All Topic Urls", self.scrapeAllTopicUrlsVar),
             ("Proxy", self.isProxyVar),
         ]
         for i, (optionText, optionVar) in enumerate(optionCheckboxes):
@@ -276,7 +276,7 @@ class HomeScreen:
         self.saveDirectoryVar.set(self.config['saveDirectory'])
         self.singleFileHTMLVar.set(self.config['singleFileHTML'])
         self.fullPageScreenshotHTMLVar.set(self.config['fullPageScreenshotHTML'])
-        self.apiToHtmlVar.set(self.config['apiToHtml'])
+        self.scrapeAllTopicUrlsVar.set(self.config['scrapeAllTopicUrls'])
         self.loggingLevelVar.set(self.config['logger'])
         self.isProxyVar.set(self.config['isProxy'])
         self.proxyVar.set(self.config['proxy'])
@@ -290,7 +290,7 @@ class HomeScreen:
             'saveDirectory': self.saveDirectoryVar.get(),
             'singleFileHTML': self.singleFileHTMLVar.get(),
             'fullPageScreenshotHTML': self.fullPageScreenshotHTMLVar.get(),
-            'apiToHtml': self.apiToHtmlVar.get(),
+            'scrapeAllTopicUrls': self.scrapeAllTopicUrlsVar.get(),
             'logger': self.loggingLevelVar.get(),
             'isProxy': self.isProxyVar.get(),
             'proxy': self.proxyVar.get()

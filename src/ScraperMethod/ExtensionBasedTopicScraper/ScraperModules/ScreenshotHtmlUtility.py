@@ -4,7 +4,7 @@ import time
 from selenium.webdriver.common.by import By
 
 from src.Logging.Logger import Logger
-from src.ScraperMethod.ExtensionMethod.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
 from src.Utility.FileUtility import FileUtility
 
 

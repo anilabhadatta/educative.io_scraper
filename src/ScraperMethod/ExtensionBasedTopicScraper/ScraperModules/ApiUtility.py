@@ -5,8 +5,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from src.Logging.Logger import Logger
-from src.ScraperMethod.ExtensionMethod.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
-from src.ScraperMethod.ExtensionMethod.ScraperModules.UrlUtility import UrlUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
+from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.UrlUtility import UrlUtility
 from src.Utility.FileUtility import FileUtility
 
 
@@ -42,19 +42,30 @@ class ApiUtility:
     def getCourseApiContentJson(self, courseApiUrl):
         try:
             self.logger.info(f"Getting Course API Content JSON from URL: {courseApiUrl}")
-            jsonData = self.executeJsToGetJson(courseApiUrl)
-            if "components" in jsonData:
-                jsonData = jsonData["components"]
-                return jsonData
-            return None
+            retry = 1
+            jsonData = None
+            while retry < 3:
+                jsonData = self.executeJsToGetJson(courseApiUrl)
+                if "components" in jsonData:
+                    jsonData = jsonData["components"]
+                    self.logger.info("Successfully fetched JSON API data")
+                    break
+                retry += 1
+                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 3: {courseApiUrl}")
+            return jsonData
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
 
 
-    def getCourseCollectionsJson(self, courseApiUrl):
+    def getCourseCollectionsJson(self, courseApiUrl, courseUrl):
         try:
             self.logger.info(f"Getting Course Collections JSON from URL: {courseApiUrl}")
+            courseType = courseUrl.split('/')[3]
+            if "module" in courseType:
+                courseType = "module"
+            else:
+                courseType = "collection"
             jsonData = self.executeJsToGetJson(courseApiUrl)
             jsonData = jsonData["instance"]["details"]
             authorId = str(jsonData["author_id"])
@@ -69,10 +80,10 @@ class ApiUtility:
                 if any(cType in category["type"] for cType in categoryType) and (
                         isinstance(category["id"], int) or len(category["id"]) <= 10):
                     if not category["pages"]:
-                        topicApiUrlList.append(baseApiUrl + str(category["id"]))
+                        topicApiUrlList.append(baseApiUrl + str(category["id"]) + f"?work_type={courseType}")
                         topicNameList.append(category["title"])
                     for page in category["pages"]:
-                        topicApiUrlList.append(baseApiUrl + str(page["id"]))
+                        topicApiUrlList.append(baseApiUrl + str(page["id"]) + f"?work_type={courseType}")
                         topicNameList.append(page["title"])
             return {
                 "courseTitle": courseTitle,
@@ -101,7 +112,10 @@ class ApiUtility:
             for (var i = 0; i < topicUrls.snapshotLength; i++) {{
                 var element = topicUrls.snapshotItem(i);
                 var href = 'https://www.educative.io' + element.getAttribute('href');
-                hrefData.push(href);
+                isButtonInsideHref = element.querySelector('button');
+                if(isButtonInsideHref === null) {{
+                    hrefData.push(href);
+                }}
             }}
             return hrefData;
             """

@@ -2,6 +2,7 @@ import json
 import os
 import re
 import shutil
+import stat
 
 from slugify import slugify
 
@@ -37,7 +38,12 @@ class FileUtility:
 
     def deleteFolderIfExists(self, folderPath):
         if self.checkIfDirectoryExists(folderPath):
-            shutil.rmtree(folderPath)
+            def on_rm_error(func, path, exc_info):
+                os.chmod(path, stat.S_IWRITE)
+                os.unlink(path)
+
+
+            shutil.rmtree(folderPath, onerror=on_rm_error)
 
 
     @staticmethod
