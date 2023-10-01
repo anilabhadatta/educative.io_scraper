@@ -28,7 +28,7 @@ class Setup:
                 import tkinter
                 print("Tkinter already installed")
             except ImportError:
-                self.command = f"sudo apt-get install python3-tk && exit"
+                self.command = f"sudo apt-get install python3-tk -y && exit"
                 subprocess.run(self.command, shell=True)
 
 
