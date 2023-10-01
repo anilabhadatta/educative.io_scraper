@@ -24,14 +24,19 @@ class Setup:
 
     def installTkinterInLinux(self):
         if self.currentOS == "Linux":
-            self.command = f"sudo apt-get install python3-tk && exit"
-            subprocess.run(self.command, shell=True)
+            try:
+                import tkinter
+                print("Tkinter already installed")
+            except ImportError:
+                self.command = f"sudo apt-get install python3-tk && exit"
+                subprocess.run(self.command, shell=True)
 
 
     def installDependencies(self):
         self.removeFolderIfExists(self.envPath)
         self.command = f"{self.pythonPrefix} -m venv env && {self.envActivation} && {self.pipPrefix} install -r requirements.txt && exit"
         subprocess.run(self.command, shell=True)
+        self.installTkinterInLinux()
 
 
     def createExecutable(self):
