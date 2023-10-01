@@ -23,20 +23,30 @@ class Setup:
 
 
     def installTkinterInLinux(self):
-        if self.currentOS == "Linux":
-            try:
-                import tkinter
-                print("Tkinter already installed")
-            except ImportError:
-                self.command = f"sudo apt-get install python3-tk -y && exit"
-                subprocess.run(self.command, shell=True)
+        try:
+            import tkinter
+            print("Tkinter already installed")
+        except ImportError:
+            self.command = f"sudo apt-get install python3-tk -y && exit"
+            subprocess.run(self.command, shell=True)
+
+
+    def installPython3DevInLinux(self):
+        try:
+            subprocess.check_output(["dpkg", "-l", "python3-dev"])
+            print(f"python3-dev already installed.")
+        except subprocess.CalledProcessError:
+            self.command = f"sudo apt-get install python3-dev -y && exit"
+            subprocess.run(self.command, shell=True)
 
 
     def installDependencies(self):
         self.removeFolderIfExists(self.envPath)
         self.command = f"{self.pythonPrefix} -m venv env && {self.envActivation} && {self.pipPrefix} install -r requirements.txt && exit"
         subprocess.run(self.command, shell=True)
-        self.installTkinterInLinux()
+        if self.currentOS == "Linux":
+            self.installTkinterInLinux()
+            self.installPython3DevInLinux()
 
 
     def createExecutable(self):
