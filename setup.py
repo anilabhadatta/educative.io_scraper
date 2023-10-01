@@ -32,10 +32,15 @@ class Setup:
 
 
     def installPython3DevInLinux(self):
-        try:
-            subprocess.check_output(["dpkg", "-l", "python3-dev"])
-            print(f"python3-dev already installed.")
-        except subprocess.CalledProcessError:
+        def is_python3_dev_installed():
+            result = subprocess.run(["dpkg", "-l", "|", "grep", "python3-dev"], stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, text=True, shell=True)
+            return "ii  python3-dev" in result.stdout
+
+
+        if is_python3_dev_installed():
+            print("python3-dev already installed.")
+        else:
             self.command = f"sudo apt-get install python3-dev -y && exit"
             subprocess.run(self.command, shell=True)
 
