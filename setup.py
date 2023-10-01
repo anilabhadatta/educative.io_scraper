@@ -14,12 +14,18 @@ class Setup:
         self.pipPrefix = "pip3" if self.currentOS != "Windows" else "pip"
         self.rootDir = os.path.dirname(os.path.realpath(__file__))
         self.envPath = os.path.join(self.rootDir, "env")
-        self.envActivation = "source env/bin/activate" if self.currentOS != "Windows" else r"env\Scripts\activate.bat"
+        self.envActivation = ". env/bin/activate" if self.currentOS != "Windows" else r"env\Scripts\activate.bat"
         self.educativeScraperFilePath = os.path.join(self.rootDir, "EducativeScraper.py")
         self.tempSetupFilePath = os.path.join(self.rootDir, "tempDir", "EducativeScraper.py")
         self.tempDirPath = os.path.join(self.rootDir, "tempDir")
         self.iconRoot = os.path.join(self.rootDir, "src", "Common")
         os.chdir(self.rootDir)
+
+
+    def installTkinterInLinux(self):
+        if self.currentOS == "Linux":
+            self.command = f"sudo apt-get install python3-tk && exit"
+            subprocess.run(self.command, shell=True)
 
 
     def installDependencies(self):
