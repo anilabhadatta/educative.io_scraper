@@ -23,26 +23,13 @@ class Setup:
 
 
     def installTkinterInLinux(self):
-        try:
-            import tkinter
-            print("Tkinter already installed")
-        except ImportError:
-            self.command = f"sudo apt-get install python3-tk -y && exit"
-            subprocess.run(self.command, shell=True)
+        self.command = f"sudo apt-get install python3-tk -y && exit"
+        subprocess.run(self.command, shell=True)
 
 
     def installPython3DevInLinux(self):
-        def is_python3_dev_installed():
-            result = subprocess.run(["dpkg", "-l", "|", "grep", "python3-dev"], stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE, text=True, shell=True)
-            return "ii  python3-dev" in result.stdout
-
-
-        if is_python3_dev_installed():
-            print("python3-dev already installed.")
-        else:
-            self.command = f"sudo apt-get install python3-dev -y && exit"
-            subprocess.run(self.command, shell=True)
+        self.command = f"sudo apt-get install python3-dev -y && exit"
+        subprocess.run(self.command, shell=True)
 
 
     def installDependencies(self):
