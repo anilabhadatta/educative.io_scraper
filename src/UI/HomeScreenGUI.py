@@ -113,7 +113,7 @@ class HomeScreen:
             ("Headless", self.headlessVar),
             ("Single File HTML", self.singleFileHTMLVar),
             ("Full Page Screenshot HTML", self.fullPageScreenshotHTMLVar),
-            ("Scrape All Topic Urls", self.scrapeAllTopicUrlsVar),
+            ("Scrape All Course Urls", self.scrapeAllTopicUrlsVar),
             ("Proxy", self.isProxyVar),
         ]
         for i, (optionText, optionVar) in enumerate(optionCheckboxes):

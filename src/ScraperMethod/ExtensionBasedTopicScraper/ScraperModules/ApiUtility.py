@@ -134,7 +134,7 @@ class ApiUtility:
             WebDriverWait(self.browser, self.timeout).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, courseTypeSelector)))
             courseUrlJsScript = f"""
-            var courseUrl = "https://www.educative.io" + document.querySelector("{courseTypeSelector}").getAttribute('href');
+            var courseUrl = "https://www.educative.io" + document.querySelector("{courseTypeSelector}").getAttribute('href') + "?showContent=true";
             return courseUrl;
             """
             courseUrl = self.browser.execute_script(courseUrlJsScript)

@@ -25,19 +25,21 @@ class SeleniumBasicUtility:
             self.logger.debug("Expanding all sections function")
             expandAllButtonSelector = self.selectors["expandAllButton"]
             expandButtonJsScript = f"""
-            var expandButton = document.evaluate("{expandAllButtonSelector}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-            if (expandButton.snapshotLength > 0) {{
-                expandButton.snapshotItem(0).click();
+            try {{
+                var expandButton = document.evaluate("{expandAllButtonSelector}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                if (expandButton.snapshotLength > 0) {{
+                    expandButton.snapshotItem(0).click();
+                }}
+            }} catch (e) {{
+                console.log(e);
             }}
             """
-            WebDriverWait(self.browser, self.timeout).until(
-                EC.presence_of_element_located((By.XPATH, expandAllButtonSelector)))
-            expandButton = self.browser.find_elements(By.XPATH, expandAllButtonSelector)
-            while expandButton:
+            retryExpand = 0
+            while retryExpand < 3:
                 self.logger.info("Expanding all sections")
-                self.browser.execute_script(expandButtonJsScript)
                 time.sleep(2)
-                expandButton = self.browser.find_elements(By.XPATH, expandAllButtonSelector)
+                self.browser.execute_script(expandButtonJsScript)
+                retryExpand += 1
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SeleniumBasicUtility:expandAllSections: {lineNumber}: {e}")

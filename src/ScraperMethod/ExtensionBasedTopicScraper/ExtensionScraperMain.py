@@ -40,6 +40,8 @@ class ExtensionScraper:
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
         for textFileUrl in urlsTextFile:
             try:
+                if "?showContent=true" not in textFileUrl:
+                    textFileUrl += "?showContent=true"
                 self.logger.info(f"Started Scraping from Text File URL: {textFileUrl}")
                 self.browser = self.browserUtils.loadBrowser()
                 self.apiUtils.browser = self.browser
