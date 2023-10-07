@@ -59,9 +59,10 @@ class ExtensionScraper:
     def scrapeCourse(self, textFileUrl):
         try:
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
-            courseApiUrl = self.apiUtils.getNextData()
             courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
             startIndex = courseTopicUrlsList.index(textFileUrl) if textFileUrl in courseTopicUrlsList else 0
+            courseApiUrl = self.apiUtils.getNextData()
+            self.logger.debug(f"Course API URL: {courseApiUrl}")
             self.loginUtils.checkIfLoggedIn()
             courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
 

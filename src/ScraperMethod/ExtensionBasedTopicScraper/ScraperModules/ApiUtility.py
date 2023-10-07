@@ -67,9 +67,11 @@ class ApiUtility:
             else:
                 courseType = "collection"
             jsonData = self.executeJsToGetJson(courseApiUrl)
+            self.logger.debug(f"Course API JSON: {jsonData}")
             jsonData = jsonData["instance"]["details"]
             authorId = str(jsonData["author_id"])
             collectionId = str(jsonData["collection_id"])
+            # todo store pages by categories
             categories = jsonData["toc"]["categories"]
             courseTitle = jsonData["title"]
             topicApiUrlList = []
@@ -98,6 +100,7 @@ class ApiUtility:
     def getCourseTopicUrlsList(self, topicUrl, courseUrl):
         try:
             self.logger.info(f"Getting Course Topic URLs List from URL: {courseUrl}")
+            # TODO scrape the index page too
             self.browser.get(courseUrl)
             topicUrlSelector = self.urlUtils.getTopicUrlSelector(topicUrl)
             WebDriverWait(self.browser, self.timeout).until(

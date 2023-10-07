@@ -41,7 +41,7 @@ class DownloadUtility:
         self.logger.info(f"""  Downloading Chrome Driver and Extracting..
                                 URL: {chromeDriverUrl}
                                 Output Path: {constants.chromeDriverFolderPath}
-                                OS: {self.osUtil.getCurrentOS()}
+                                OS: {self.osUtil.osFriendlyShortName}
                             """)
 
         wget.download(chromeDriverUrl, out=chromeDriverOutputPath, bar=self.updateProgress)
@@ -51,7 +51,7 @@ class DownloadUtility:
             self.logger.info("Download and Extraction of Chromedriver completed.")
 
         self.fileUtil.deleteFileIfExists(chromeDriverOutputPath)
-        if self.osUtil.getCurrentOS() != "win":
+        if self.osUtil.osFriendlyShortName != "win":
             self.logger.debug("Changing Permissions of ChromeDriver...")
             subprocess.check_call(['chmod', 'u+x', constants.chromeDriverPath])
             self.logger.debug("Permissions Changed.")
@@ -69,7 +69,7 @@ class DownloadUtility:
         self.logger.info(f"""  Downloading Chrome Binary and Extracting..
                                 URL: {chromeBinaryUrl}
                                 Output Path: {constants.chromeBinaryFolderPath}
-                                OS: {self.osUtil.getCurrentOS()}
+                                OS: {self.osUtil.osFriendlyShortName}
                             """)
 
         wget.download(chromeBinaryUrl, out=chromeBinaryOutputPath, bar=self.updateProgress)
@@ -79,7 +79,7 @@ class DownloadUtility:
             self.logger.info("Download and Extraction of ChromeBinary completed.")
 
         self.fileUtil.deleteFileIfExists(chromeBinaryOutputPath)
-        if self.osUtil.getCurrentOS() != "win":
+        if self.osUtil.osFriendlyShortName != "win":
             self.logger.info("Changing Permissions of ChromeDriver...")
             subprocess.check_call(['chmod', '-R', '+x', constants.chromeBinaryFolderPath])
             subprocess.check_call(['chmod', 'u+x', constants.chromeBinaryPath])
@@ -95,11 +95,11 @@ class DownloadUtility:
     def updateDownloadUrlsInConfig(self):
         downloadApi = self.config["download-api"]
         apiResponse = requests.get(downloadApi)
-        if apiResponse.status_code == 200 and "linux-arm64" not in self.osUtil.getCurrentOSConfigKey():
+        if apiResponse.status_code == 200 and "linux-arm64" not in self.osUtil.osSuffix:
             baseDownloadUrl = json.loads(apiResponse.content)["channels"]["Stable"]["downloads"]["chrome"][0]["url"]
             baseDownloadUrl = '/'.join(baseDownloadUrl.split('/')[:-1])
-            joinedChromeUrl = f"{self.osUtil.getCurrentOSConfigKey()}/{constants.chromebinaryConfigKey}.zip"
-            joinedChromeDriverUrl = f"{self.osUtil.getCurrentOSConfigKey()}/{constants.chromedriverConfigKey}.zip"
+            joinedChromeUrl = f"{self.osUtil.osSuffix}/{constants.chromebinaryConfigKey}.zip"
+            joinedChromeDriverUrl = f"{self.osUtil.osSuffix}/{constants.chromedriverConfigKey}.zip"
             self.config[constants.chromebinaryConfigKey] = urljoin(baseDownloadUrl, joinedChromeUrl)
             self.config[constants.chromedriverConfigKey] = urljoin(baseDownloadUrl, joinedChromeDriverUrl)
             self.configUtil.updateConfig(self.config, "DownloadUrls", constants.commonConfigPath)
