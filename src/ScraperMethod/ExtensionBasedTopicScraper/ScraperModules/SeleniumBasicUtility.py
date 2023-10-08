@@ -11,7 +11,24 @@ from src.Utility.FileUtility import FileUtility
 
 
 class SeleniumBasicUtility:
+    """
+    A class that provides basic utility functions for Selenium web scraping.
+
+    Attributes:
+        fileUtils (FileUtility): An instance of the FileUtility class.
+        browser: The Selenium webdriver instance.
+        timeout (int): The timeout value for waiting for elements to load.
+        selectors (dict): A dictionary of CSS selectors for various elements.
+        logger (Logger): An instance of the Logger class.
+    """
+
     def __init__(self, configJson):
+        """
+        Initializes a new instance of the SeleniumBasicUtility class.
+
+        Args:
+            configJson (dict): A dictionary of configuration settings.
+        """
         self.fileUtils = FileUtility()
         self.browser = None
         self.timeout = 10 # todo chooose a user configured timeout, too slow for fast internet, better replace with programatic check instead?
@@ -21,6 +38,9 @@ class SeleniumBasicUtility:
 
 
     def expandAllSections(self):
+        """
+        Expands all sections on the current page.
+        """
         try:
             self.logger.debug("Expanding all sections function")
             expandAllButtonSelector = self.selectors["expandAllButton"]
@@ -46,6 +66,9 @@ class SeleniumBasicUtility:
 
 
     def waitWebdriverToLoadTopicPage(self):
+        """
+        Waits for the webdriver to load the topic page.
+        """
         try:
             self.logger.info("Waiting for webdriver to load topic page")
             articlePageSelector = self.selectors["articlePage"]
@@ -62,6 +85,9 @@ class SeleniumBasicUtility:
 
 
     def loadingPageAndCheckIfSomethingWentWrong(self):
+        """
+        Loads the page and checks if something went wrong.
+        """
         self.logger.info("Loading page and checking if something went wrong")
         time.sleep(self.timeout)
         if "Something Went Wrong" in self.browser.page_source:
@@ -69,6 +95,9 @@ class SeleniumBasicUtility:
 
 
     def addNameAttributeInNextBackButton(self):
+        """
+        Adds a name attribute to the next/back button.
+        """
         try:
             self.logger.info("Adding name attribute in next/back button")
             nextButtonSelector = self.selectors["nextButton"]
@@ -91,6 +120,18 @@ class SeleniumBasicUtility:
 
 
     def screenshotAsCdp(self, canvas, scale=1):
+        """
+        Takes a screenshot of the current page using Chrome DevTools Protocol.
+
+        Args:
+            canvas: The canvas element to take a screenshot of.
+            scale (float): The scale factor for the screenshot.
+
+        Returns:
+            The screenshot data as a byte string.
+        """
+        self.logger.info("Taking screenshot as CDP")
+        
         self.logger.info("Taking screenshot as CDP")
         size, location = canvas.size, canvas.location
         width, height = size['width'], size['height']
@@ -112,9 +153,20 @@ class SeleniumBasicUtility:
 
 
     def sendCommand(self, command, params):
+        """
+        Sends a command to the Chrome DevTools Protocol.
+
+        Args:
+            command (str): The name of the command to send.
+            params (dict): A dictionary of parameters for the command.
+
+        Returns:
+            The response value from the command.
+        """
         self.logger.debug(f"Sending command: {command} with params: {params}")
         resource = "/session/%s/chromium/send_command_and_get_result" % self.browser.session_id
         url = self.browser.command_executor._url + resource
         body = json.dumps({'cmd': command, 'params': params})
         response = self.browser.command_executor._request('POST', url, body)
         return response.get('value')
+    
