@@ -64,10 +64,10 @@ class ExtensionScraper:
 
             # Determine the starting index for scraping
             try:
-                startIndex = courseTopicUrlsList.index(textFileUrl + "?showContent=true")
+                startIndex = courseTopicUrlsList.index(textFileUrl)
             except ValueError:
                 try:
-                    startIndex = courseTopicUrlsList.index(textFileUrl)
+                    startIndex = courseTopicUrlsList.index(textFileUrl[:-len("?showContent=true")])
                 except ValueError:
                     startIndex = 0
 
