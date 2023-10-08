@@ -100,7 +100,7 @@ class ApiUtility:
     def getCourseTopicUrlsList(self, topicUrl, courseUrl):
         try:
             self.logger.info(f"Getting Course Topic URLs List from URL: {courseUrl}")
-            # TODO scrape the index page too
+            # TODO scrape the index page too, why are we scrolling to this page?
             self.browser.get(courseUrl)
             topicUrlSelector = self.urlUtils.getTopicUrlSelector(topicUrl)
             WebDriverWait(self.browser, self.timeout).until(
@@ -123,6 +123,7 @@ class ApiUtility:
             return hrefData;
             """
             topicUrls = self.browser.execute_script(topicUrlJsScript)
+            # this seems messed up, sometime only 25 links of total 32
             return topicUrls
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno

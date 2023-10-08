@@ -14,7 +14,7 @@ class SeleniumBasicUtility:
     def __init__(self, configJson):
         self.fileUtils = FileUtility()
         self.browser = None
-        self.timeout = 10
+        self.timeout = 10 # todo chooose a user configured timeout, too slow for fast internet, better replace with programatic check instead?
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["SeleniumBasicUtility"]
         self.logger = Logger(configJson, "SeleniumBasicUtility").logger

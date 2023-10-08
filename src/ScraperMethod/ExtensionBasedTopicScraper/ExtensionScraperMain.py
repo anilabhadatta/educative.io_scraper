@@ -40,8 +40,9 @@ class ExtensionScraper:
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
         for textFileUrl in urlsTextFile:
             try:
-                if "?showContent=true" not in textFileUrl:
-                    textFileUrl += "?showContent=true"
+                # courseTopicUrlsList doesn't contain it, so resume index is always 0
+                # if "?showContent=true" not in textFileUrl:
+                #     textFileUrl += "?showContent=true"
                 self.logger.info(f"Started Scraping from Text File URL: {textFileUrl}")
                 self.browser = self.browserUtils.loadBrowser()
                 self.apiUtils.browser = self.browser
@@ -60,6 +61,7 @@ class ExtensionScraper:
         try:
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
             courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
+
             startIndex = courseTopicUrlsList.index(textFileUrl) if textFileUrl in courseTopicUrlsList else 0
             courseApiUrl = self.apiUtils.getNextData()
             self.logger.debug(f"Course API URL: {courseApiUrl}")
@@ -77,6 +79,9 @@ class ExtensionScraper:
             coursePath = os.path.join(self.outputFolderPath, courseTitle)
             self.fileUtils.createFolderIfNotExists(coursePath)
 
+            # TODO imeplement scrape index page here
+
+            # TODO implement nested save here
             for topicIndex in range(startIndex, len(courseTopicUrlsList)):
                 courseTopicUrl = courseTopicUrlsList[topicIndex] + "?showContent=true"
                 courseApiUrl = courseCollectionsJson["topicApiUrlList"][topicIndex]
