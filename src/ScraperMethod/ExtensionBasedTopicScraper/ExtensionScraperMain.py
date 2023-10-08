@@ -40,9 +40,8 @@ class ExtensionScraper:
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
         for textFileUrl in urlsTextFile:
             try:
-                # courseTopicUrlsList doesn't contain it, so resume index is always 0
-                # if "?showContent=true" not in textFileUrl:
-                #     textFileUrl += "?showContent=true"
+                if "?showContent=true" not in textFileUrl:
+                    textFileUrl += "?showContent=true"
                 self.logger.info(f"Started Scraping from Text File URL: {textFileUrl}")
                 self.browser = self.browserUtils.loadBrowser()
                 self.apiUtils.browser = self.browser
@@ -59,10 +58,20 @@ class ExtensionScraper:
 
     def scrapeCourse(self, textFileUrl):
         try:
+            # Get the course URL and list of topic URLs
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
             courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
 
-            startIndex = courseTopicUrlsList.index(textFileUrl) if textFileUrl in courseTopicUrlsList else 0
+            # Determine the starting index for scraping
+            try:
+                startIndex = courseTopicUrlsList.index(textFileUrl + "?showContent=true")
+            except ValueError:
+                try:
+                    startIndex = courseTopicUrlsList.index(textFileUrl)
+                except ValueError:
+                    startIndex = 0
+
+            # Get the course API URL and collections JSON
             courseApiUrl = self.apiUtils.getNextData()
             self.logger.debug(f"Course API URL: {courseApiUrl}")
             self.loginUtils.checkIfLoggedIn()
@@ -72,16 +81,20 @@ class ExtensionScraper:
             self.logger.debug(f"Course Collections JSON: {courseCollectionsJson}")
             self.logger.info(
                 f"API Urls: {len(courseCollectionsJson['topicApiUrlList'])} == {len(courseTopicUrlsList)} :Topic Urls")
+            
+            # Check that the number of topic URLs matches the number of API URLs
             if len(courseCollectionsJson["topicApiUrlList"]) != len(courseTopicUrlsList):
                 raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
 
+            # Create a folder for the course if it doesn't exist
             courseTitle = self.fileUtils.filenameSlugify(courseCollectionsJson["courseTitle"])
             coursePath = os.path.join(self.outputFolderPath, courseTitle)
             self.fileUtils.createFolderIfNotExists(coursePath)
 
             # TODO imeplement scrape index page here
 
-            # TODO implement nested save here
+            # TODO implement nested folder structure here
+            # Scrape each topic in the course
             for topicIndex in range(startIndex, len(courseTopicUrlsList)):
                 courseTopicUrl = courseTopicUrlsList[topicIndex] + "?showContent=true"
                 courseApiUrl = courseCollectionsJson["topicApiUrlList"][topicIndex]
