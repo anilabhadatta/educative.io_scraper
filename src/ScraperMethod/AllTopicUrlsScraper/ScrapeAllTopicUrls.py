@@ -12,7 +12,7 @@ class ScrapeAllTopicUrls:
         self.logger.info("AllTopicUrls scraper executing!.")
         # todo, pass url for scraping
         self.courseUtil.get_course_api_url("https://www.educative.io/collection/6226925030735872/6693327303868416?work_type=collection")
-        self.courseUtil.get_course_api_url("https://www.educative.io/collection/dynamodb-from-basic-to-advance?work_type=collection")
+        # self.courseUtil.get_course_api_url("https://www.educative.io/collection/dynamodb-from-basic-to-advance?work_type=collection")
 
 if __name__ == "__main__":
     scrapeAllTopicUrls = ScrapeAllTopicUrls()

@@ -42,8 +42,12 @@ class CourseUtil:
             author_id = query["authorId"]
             collection_id = query["collectionId"]
             self.logger.info(f"author_id: {author_id}, collection_id: {collection_id}")
-            # todo give both flavours of course API URL
+            # todo return both flavours of course API URL, by collect id and course name
             courAPIUrl = f"https://educative.io/api/collection/{author_id}/{collection_id}?work_type=collection"
+
+            # todo remove this
+            self.get_content_json(courAPIUrl)
+            
             return courAPIUrl
         
         except Exception as e:
@@ -51,9 +55,48 @@ class CourseUtil:
             raise Exception(f"""Error fetching course API URL for {course_url}. 
                             CourseUtil:get_course_api_url: {lineNumber}: {e}""")
 
+    def get_content_json(self, url):
+        payload = {}
+        headers = {
+        'Cookie': '__cf_bm=.wtp5ObyDOogpMxWGpJkrtG968hQvNs5_hRZU7snWDg-1697046430-0-AZdHhts20natzJvhprYhRY6D1fHA/C3HahVh0AfDJZiXnLJm+732kL2AyN2SCy8xbyOO3M4BxXnk8B12YMfxdac=; flask-session=eyJfcGVybWFuZW50Ijp0cnVlfQ.ZSbgvQ.dxEhIPUBHVhaEVg55cXRZE75eXo'
+        }
+
+        self.logger.info(f"Fetching course Json: {url}")    
+        response = requests.request("GET", url, headers=headers, data=payload)
+        jsonData = json.loads(response.text)["instance"]["details"]
+        formattedResponse = json.dumps(jsonData, indent=4, sort_keys=True)
+        self.logger.debug(f"Course Json: {formattedResponse}")
+
+        # Extracting the desired fields
+        filteredData = {
+            "title": jsonData.get("title"),
+            "summary": jsonData.get("summary"),
+            "page_titles": jsonData.get("page_titles"),
+            "is_priced": jsonData.get("is_priced"),
+            "sections": self.extractPages(jsonData),
+        }
+
+        self.logger.info(f"Filtered Course Json: {json.dumps(filteredData, indent=4, sort_keys=True)}")
+        return filteredData
+
+    def extractPages(self, json_data):
+        extracted_data = []
+    
+        for item in json_data.get("toc").get("categories"):
+            extracted_item = {
+                "title": item.get("title"),
+                "type": item.get("type"),
+                "pages": [{"id": page["id"], "slug": page["slug"], "title": page["title"], "type": page["type"]} for page in item.get("pages", [])]
+            }
+            extracted_data.append(extracted_item)
+        
+        return extracted_data
+        
+
 if __name__ == "__main__":
     courseUtil = CourseUtil()
     
+    # todo pass url even for main call
     #success
     success_course_url = "https://www.educative.io/collection/6226925030735872/6693327303868416?work_type=collection"
     course_api_url = courseUtil.get_course_api_url(success_course_url)
