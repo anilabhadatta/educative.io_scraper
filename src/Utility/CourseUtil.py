@@ -58,6 +58,7 @@ class CourseUtil:
     def get_content_json(self, url):
         payload = {}
         headers = {
+            # todo, get cookie from user?
         'Cookie': '__cf_bm=.wtp5ObyDOogpMxWGpJkrtG968hQvNs5_hRZU7snWDg-1697046430-0-AZdHhts20natzJvhprYhRY6D1fHA/C3HahVh0AfDJZiXnLJm+732kL2AyN2SCy8xbyOO3M4BxXnk8B12YMfxdac=; flask-session=eyJfcGVybWFuZW50Ijp0cnVlfQ.ZSbgvQ.dxEhIPUBHVhaEVg55cXRZE75eXo'
         }
 
