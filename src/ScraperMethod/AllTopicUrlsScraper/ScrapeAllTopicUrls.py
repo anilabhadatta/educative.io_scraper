@@ -1,6 +1,7 @@
 from src.Logging.Logger import Logger
 from src.Utility.CourseUtil import CourseUtil
 
+
 class ScrapeAllTopicUrls:
     def __init__(self, configJson):
         self.configJson = configJson
@@ -10,10 +11,11 @@ class ScrapeAllTopicUrls:
 
     def start(self):
         self.logger.info("AllTopicUrls scraper executing!.")
-        # todo, pass url for scraping
-        self.courseUtil.get_course_api_url("https://www.educative.io/collection/6226925030735872/6693327303868416?work_type=collection")
-        # self.courseUtil.get_course_api_url("https://www.educative.io/collection/dynamodb-from-basic-to-advance?work_type=collection")
+        # pass course index page with trailing /
+        self.courseUtil.scrape_course_content(
+            "https://www.educative.io/courses/ds-and-algorithms-in-python/")
+
 
 if __name__ == "__main__":
-    scrapeAllTopicUrls = ScrapeAllTopicUrls()
+    scrapeAllTopicUrls = ScrapeAllTopicUrls({})
     scrapeAllTopicUrls.start()
