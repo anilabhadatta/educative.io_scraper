@@ -102,7 +102,7 @@ class ExtensionScraper:
             self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
             self.browserUtils.scrollPage()
-            self.browserUtils.setWindowSize()
+            # self.browserUtils.setWindowSize()
             self.removeUtils.removeBlurWithCSS()
             self.removeUtils.removeMarkAsCompleted()
             self.removeUtils.removeUnwantedElements()

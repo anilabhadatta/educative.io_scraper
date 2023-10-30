@@ -44,18 +44,21 @@ class CodeUtility:
             self.logger.info("Downloading Code...")
             content = self.component["content"]
             entryFileName = content["entryFileName"]
-            prependCode, appendCode, tabTitle = "", "", ""
+            prependCode, appendCode, tabTitle, testCasePrependCode = "", "", "", ""
             if "title" in content:
                 tabTitle = content["title"]
             if "hiddenCodeContent" in content:
-                prependCode = content["hiddenCodeContent"]["prependCode"]
-                appendCode = content["hiddenCodeContent"]["appendCode"]
-            if "judge" in content and content["judge"]:
-                testCasePrependCode = content["judgeContentPrepend"]
+                if "prependCode" in content["hiddenCodeContent"]:
+                    prependCode = content["hiddenCodeContent"]["prependCode"]
+                if "appendCode" in content["hiddenCodeContent"]:
+                    appendCode = content["hiddenCodeContent"]["appendCode"]
+            if "judge" in content and content["judge"] and "judgeContent" in content:
+                if "judgeContentPrepend" in content:
+                    testCasePrependCode = content["judgeContentPrepend"]
                 testCaseCode = testCasePrependCode + content["judgeContent"]["authorCode"]
                 textFilePath = os.path.join(self.codeFolderPath, f"{tabTitle}TestCase.txt")
                 self.fileUtils.createTextFile(textFilePath, testCaseCode)
-            if "showSolution" in content and content["showSolution"]:
+            if "showSolution" in content and content["showSolution"] and "solutionContent" in content:
                 solutionContent = content["solutionContent"]
                 textFilePath = os.path.join(self.codeFolderPath, f"{tabTitle}Solution.txt")
                 self.fileUtils.createTextFile(textFilePath, solutionContent)

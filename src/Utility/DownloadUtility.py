@@ -26,7 +26,7 @@ class DownloadUtility:
         self.fileUtil = FileUtility()
         self.osUtil = OSUtility()
         self.config = self.configUtil.loadConfig(constants.commonConfigPath)["DownloadUrls"]
-        self.updateDownloadUrlsInConfig()
+        # self.updateDownloadUrlsInConfig()
 
 
     def downloadChromeDriver(self, app, progressVar, configJson):

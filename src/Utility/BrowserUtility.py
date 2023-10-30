@@ -112,4 +112,4 @@ class BrowserUtility:
             self.browser.set_window_size(1920, totalHeight)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
-            raise Exception(f"SeleniumBasicUtility:setWindowSize: {lineNumber}: {e}")
+            raise Exception(f"BrowserUtility:setWindowSize: {lineNumber}: {e}")

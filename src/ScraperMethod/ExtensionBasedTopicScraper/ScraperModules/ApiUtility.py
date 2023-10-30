@@ -43,16 +43,16 @@ class ApiUtility:
         try:
             self.logger.info(f"Getting Course API Content JSON from URL: {courseApiUrl}")
             retry = 1
-            jsonData = None
+            jsonDataToReturn = None
             while retry < 3:
                 jsonData = self.executeJsToGetJson(courseApiUrl)
                 if "components" in jsonData:
-                    jsonData = jsonData["components"]
+                    jsonDataToReturn = jsonData["components"]
                     self.logger.info("Successfully fetched JSON API data")
                     break
                 retry += 1
                 self.logger.info(f"Found Error fetching Json, retrying {retry} out of 3: {courseApiUrl}")
-            return jsonData
+            return jsonDataToReturn
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
@@ -111,9 +111,9 @@ class ApiUtility:
             var hrefData  = [];
             for (var i = 0; i < topicUrls.snapshotLength; i++) {{
                 var element = topicUrls.snapshotItem(i);
-                var href = 'https://www.educative.io' + element.getAttribute('href');
+                var href = 'https://www.educative.io' + element.getAttribute('href') + "?showContent=true";
                 isButtonInsideHref = element.querySelector('button');
-                if(isButtonInsideHref === null) {{
+                if(isButtonInsideHref === null && href.indexOf("/certificate?") === -1) {{
                     hrefData.push(href);
                 }}
             }}
