@@ -50,7 +50,8 @@ cd educative.io_scraper
       --install: Creates a virtual environment and installs the required dependencies.
       --run: Activates the environment and starts the scraper. [Default = True]
       --create: Creates a shortcut executable file linked to the scraper directory.
-      Note: The git repository path should not be changed after creating the executable.
+      Note: If the git repository is moved to a different location after creating
+            the executable then recreate it again to set the current repository path.
       ```
 
 
@@ -80,11 +81,14 @@ cd educative.io_scraper
 
 -  ### After the GUI successfully loads, please proceed to follow the subsequent steps.
     - Create a text file.
-    - Copy the URLs of the first topics/lessons from any number of courses.
+    - Copy the URLs of the first topic/lesson from any number of courses.
     - Paste all the URLs into the text file and save it.
       <div align="center">
        <br><img src="https://user-images.githubusercontent.com/48487849/162980989-0f128b3d-c969-4809-8553-2bc6791f34b8.png" style="width: 70%; height:50%;">
-       <br><img src="https://user-images.githubusercontent.com/48487849/197013915-1320da6b-d2c2-4239-b1f7-d95450f8fabb.png" style="width: 70%; height:50%;"><br>
+       <br>
+         <figure><img src="https://user-images.githubusercontent.com/48487849/197013915-1320da6b-d2c2-4239-b1f7-d95450f8fabb.png" style="width: 70%; height:50%;"><br>
+          <figcaption>Reference</figcaption>
+         </figure>
       </div>
 
     - Select a configuration if you prefer not to use the default configuration.
@@ -117,5 +121,5 @@ cd educative.io_scraper
       <div align="center">
       <br><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/48487849/264581350-dd669e5a-739c-4ff1-a7b3-6beb2eba5437.png" style="width: 80%; height:80%;">
       </div>
-    - Please Note that an index is not required in the URLs text file, Simply paste the URLs of the topic from which you
-      want to start scraping.
+    - An index is `NOT` required in the URL's text file, Simply paste the URLs of the topic from which you
+      want to start/resume scraping.
