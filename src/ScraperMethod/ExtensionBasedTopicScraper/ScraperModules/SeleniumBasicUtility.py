@@ -1,6 +1,5 @@
 import json
 import os
-import time
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -8,11 +7,12 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from src.Logging.Logger import Logger
 from src.Utility.FileUtility import FileUtility
-
+from src.Utility.OSUtility import OSUtility
 
 class SeleniumBasicUtility:
     def __init__(self, configJson):
         self.fileUtils = FileUtility()
+        self.osUtils = OSUtility(configJson)
         self.browser = None
         self.timeout = 10
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
@@ -37,7 +37,7 @@ class SeleniumBasicUtility:
             retryExpand = 0
             while retryExpand < 3:
                 self.logger.info("Expanding all sections")
-                time.sleep(2)
+                self.osUtils.sleep(2)
                 self.browser.execute_script(expandButtonJsScript)
                 retryExpand += 1
         except Exception as e:
@@ -63,7 +63,7 @@ class SeleniumBasicUtility:
 
     def loadingPageAndCheckIfSomethingWentWrong(self):
         self.logger.info("Loading page and checking if something went wrong")
-        time.sleep(self.timeout)
+        self.osUtils.sleep(self.timeout)
         if "Something Went Wrong" in self.browser.page_source:
             raise Exception(f"SeleniumBasicUtility:checkSomethingWentWrong: Something Went Wrong")
 

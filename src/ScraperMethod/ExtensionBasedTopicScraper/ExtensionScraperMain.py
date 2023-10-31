@@ -13,7 +13,7 @@ from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.SingleFileUtili
 from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.UrlUtility import UrlUtility
 from src.Utility.BrowserUtility import BrowserUtility
 from src.Utility.FileUtility import FileUtility
-
+from src.Utility.OSUtility import OSUtility
 
 class ExtensionScraper:
     def __init__(self, configJson):
@@ -22,6 +22,7 @@ class ExtensionScraper:
         self.outputFolderPath = self.configJson["saveDirectory"]
         self.logger = Logger(configJson, "ExtensionScraper").logger
         self.fileUtils = FileUtility()
+        self.osUtils = OSUtility(configJson)
         self.apiUtils = ApiUtility(configJson)
         self.urlUtils = UrlUtility()
         self.codeUtils = CodeUtility(configJson)
@@ -77,11 +78,13 @@ class ExtensionScraper:
             self.fileUtils.createFolderIfNotExists(coursePath)
 
             for topicIndex in range(startIndex, len(courseTopicUrlsList)):
-                courseTopicUrl = courseTopicUrlsList[topicIndex] + "?showContent=true"
+                courseTopicUrl = courseTopicUrlsList[topicIndex]
                 courseApiUrl = courseCollectionsJson["topicApiUrlList"][topicIndex]
                 topicName = str(topicIndex) + "-" + self.fileUtils.filenameSlugify(
                     courseCollectionsJson["topicNameList"][topicIndex])
-                self.logger.info(f"Scraping {topicName}: {courseTopicUrl}")
+                self.logger.info(f"""-----------------------------------------------------------
+                Scraping Topic: {topicName}: {courseTopicUrl}
+                """)
                 self.loginUtils.checkIfLoggedIn()
                 courseApiContentJson = self.apiUtils.getCourseApiContentJson(courseApiUrl)
                 self.scrapeTopic(coursePath, topicName, courseApiContentJson, courseTopicUrl)
@@ -97,6 +100,7 @@ class ExtensionScraper:
             self.showUtils.browser = self.browser
             self.singleFileUtils.browser = self.browser
             self.screenshotHtmlUtils.browser = self.browser
+            self.osUtils.sleep(10)
             self.browser.get(courseTopicUrl)
             self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
             self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
@@ -126,7 +130,7 @@ class ExtensionScraper:
                 self.logger.info(f"Downloading Code and Quiz Files if found...")
                 quizComponentIndex = 0
                 codeComponentIndex = 0
-                codeTypes = ["CodeTest", "TabbedCode", "Code", "WebpackBin", "RunJS"]
+                codeTypes = ["CodeTest", "TabbedCode", "EditorCode", "Code", "WebpackBin", "RunJS"]
                 quizTypes = ["Quiz", "StructuredQuiz"]
                 for componentIndex, component in enumerate(courseApiContentJson):
                     componentType = component["type"]

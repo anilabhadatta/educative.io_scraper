@@ -1,8 +1,8 @@
 import os
-import time
 
 from git.repo.base import Repo
 
+from src.Utility.OSUtility import OSUtility
 from src.Logging.Logger import Logger
 from src.Utility.FileUtility import FileUtility
 
@@ -13,6 +13,7 @@ class CodeUtility:
         self.component = None
         self.codeFolderPath = None
         self.fileUtils = FileUtility()
+        self.osUtils = OSUtility(configJson)
         self.configJson = configJson
         self.logger = Logger(configJson, "CodeUtility").logger
 
@@ -22,12 +23,14 @@ class CodeUtility:
             self.component = component
             self.codeFolderPath = os.path.join(courseTopicPath, f"Codes_{componentIndex + 1}")
             self.fileUtils.deleteFolderIfExists(self.codeFolderPath)
-            time.sleep(1)
+            self.osUtils.sleep(1)
             self.fileUtils.createFolderIfNotExists(self.codeFolderPath)
             if "TabbedCode" in component["type"]:
                 self.downloadTabbedCode()
             elif "CodeTest" in component["type"]:
                 self.downloadCodeTest()
+            elif "EditorCode" in component["type"]:
+                self.downloadEditorCode()
             elif "Code" in component["type"]:
                 self.downloadCode()
             elif "RunJS" in component["type"]:
@@ -76,6 +79,20 @@ class CodeUtility:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CodeUtility:downloadCode: {lineNumber}: {e}")
+
+    def downloadEditorCode(self):
+        try:
+            self.logger.info("Downloading Editor Code...")
+            content = self.component["content"]
+            if "content" in content and "language" in content:
+                language = content["language"]
+                codeContent = content["content"]
+                textFilePath = os.path.join(self.codeFolderPath, f"{language}Code.txt")
+                self.fileUtils.createTextFile(textFilePath, codeContent)
+            self.logger.info(f"Editor Code Downloaded at: {self.codeFolderPath}")
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"CodeUtility:downloadEditorCode: {lineNumber}: {e}")
 
 
     def downloadTabbedCode(self):

@@ -1,8 +1,8 @@
 import os
-import time
 
 from selenium.webdriver.common.by import By
 
+from src.Utility.OSUtility import OSUtility
 from src.Logging.Logger import Logger
 from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
 from src.Utility.FileUtility import FileUtility
@@ -12,6 +12,7 @@ class ScreenshotHtmlUtility:
     def __init__(self, configJson):
         self.browser = None
         self.fileUtils = FileUtility()
+        self.osUtils = OSUtility(configJson)
         self.seleniumBasicUtils = SeleniumBasicUtility(configJson)
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["ScreenshotHtmlUtility"]
@@ -27,7 +28,7 @@ class ScreenshotHtmlUtility:
             canvas = (self.browser.find_elements(By.XPATH, articlePageSelector) or
                       self.browser.find_elements(By.XPATH, generalPageSelector))
             base64Png = self.seleniumBasicUtils.screenshotAsCdp(canvas[0], 1)
-            time.sleep(2)
+            self.osUtils.sleep(2)
             return self.getHtmlWithImage(base64Png, topicName)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno

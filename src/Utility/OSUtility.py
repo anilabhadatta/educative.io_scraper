@@ -1,12 +1,16 @@
 import platform
+import time
 
+from src.Logging.Logger import Logger
 
 class OSUtility:
-    def __init__(self):
+    def __init__(self, configJson=None):
         self.currentOS = platform.system()
         self.architecture = platform.architecture()[0]
         self.machineType = platform.machine().lower()
         self.osSuffix = None
+        if configJson:
+            self.logger = Logger(configJson, "OSUtility").logger
 
 
     def getCurrentOSConfigKey(self):
@@ -36,3 +40,8 @@ class OSUtility:
         elif self.currentOS == "Windows":
             self.osSuffix = 'win'
         return self.osSuffix
+
+
+    def sleep(self, seconds):
+        self.logger.info(f"Sleeping for {seconds} seconds")
+        time.sleep(seconds)

@@ -1,6 +1,6 @@
 import os
-import time
 
+from src.Utility.OSUtility import OSUtility
 from src.Logging.Logger import Logger
 from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.ScreenshotHtmlUtility import ScreenshotHtmlUtility
 from src.Utility.FileUtility import FileUtility
@@ -9,6 +9,7 @@ from src.Utility.FileUtility import FileUtility
 class SingleFileUtility:
     def __init__(self, configJson):
         self.browser = None
+        self.osUtils = OSUtility(configJson)
         self.fileUtils = FileUtility()
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["SingleFileUtility"]
@@ -105,9 +106,9 @@ class SingleFileUtility:
             }
             """
             self.browser.execute_script(injectImportantScriptsJsScript)
-            time.sleep(5)
+            self.osUtils.sleep(5)
             self.browser.execute_script(injectImportantScriptsJsScript)
-            time.sleep(5)
+            self.osUtils.sleep(5)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SingleFileUtility:injectImportantScripts: {lineNumber}: {e}")

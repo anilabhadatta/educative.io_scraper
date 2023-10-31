@@ -1,12 +1,12 @@
 import json
 import os
-import time
-
 import requests
 import websockets
+
 from selenium import webdriver
 
 from src.Common.Constants import constants
+from src.Utility.OSUtility import OSUtility
 from src.Logging.Logger import Logger
 
 
@@ -18,6 +18,7 @@ class BrowserUtility:
         self.devToolUrl = None
         if configJson:
             self.logger = Logger(configJson, "BrowserUtility").logger
+        self.osUtils = OSUtility(configJson)
 
 
     def loadBrowser(self):
@@ -103,7 +104,7 @@ class BrowserUtility:
         totalHeight = int(self.getCurrentHeight())
         for i in range(1, totalHeight, 10):
             self.browser.execute_script("window.scrollTo(0, {});".format(i))
-        time.sleep(2)
+        self.osUtils.sleep(2)
 
 
     def setWindowSize(self):

@@ -44,14 +44,14 @@ class ApiUtility:
             self.logger.info(f"Getting Course API Content JSON from URL: {courseApiUrl}")
             retry = 1
             jsonDataToReturn = None
-            while retry < 3:
+            while retry < 2:
                 jsonData = self.executeJsToGetJson(courseApiUrl)
                 if "components" in jsonData:
                     jsonDataToReturn = jsonData["components"]
                     self.logger.info("Successfully fetched JSON API data")
                     break
                 retry += 1
-                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 3: {courseApiUrl}")
+                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 2: {courseApiUrl}")
             return jsonDataToReturn
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
