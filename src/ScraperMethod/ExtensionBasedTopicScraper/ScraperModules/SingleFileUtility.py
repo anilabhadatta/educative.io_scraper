@@ -25,6 +25,7 @@ class SingleFileUtility:
             objectTags.forEach(objectTag => {{
                 try{{
                     svgElement = objectTag.contentDocument.documentElement;
+                    objectStyle = objectTag.getAttribute("style");
                     clsName = objectTag.className;
                     parentTag = objectTag.parentNode;
                     childrenTags = objectTag.parentNode.children;
@@ -33,6 +34,7 @@ class SingleFileUtility:
                     }}
                     parentTag.append(svgElement);
                     svgElement.classList.add(clsName);
+                    svgElement.style.cssText = objectStyle;
                 }}
                 catch(error){{
                     console.log(error);
