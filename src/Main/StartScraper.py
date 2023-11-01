@@ -24,4 +24,4 @@ class StartScraper:
             lineNumber = e.__traceback__.tb_lineno
             self.logger.error(f"start: {lineNumber}: {e}")
         finally:
-            self.logger.debug("Exiting ScraperType...")
+            self.logger.debug("Exiting Scraper...")

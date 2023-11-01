@@ -96,7 +96,7 @@ subprocess.call(command, shell=True)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Educative ScraperType Setup")
+    parser = argparse.ArgumentParser(description="Educative Scraper Setup")
     parser.add_argument("--install", action='store_true', default=False, help="Install required dependencies")
     parser.add_argument("--run", action='store_true', default=True, help="Run the scraper")
     parser.add_argument("--create", action='store_true', default=False, help="Create an executable file of the scraper")
