@@ -80,6 +80,7 @@ class CodeUtility:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CodeUtility:downloadCode: {lineNumber}: {e}")
 
+
     def downloadEditorCode(self):
         try:
             self.logger.info("Downloading Editor Code...")

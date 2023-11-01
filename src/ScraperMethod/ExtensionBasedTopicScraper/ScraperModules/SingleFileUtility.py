@@ -28,11 +28,11 @@ class SingleFileUtility:
                     svgElement = objectTag.contentDocument.documentElement;
                     objectStyle = objectTag.getAttribute("style");
                     clsName = objectTag.className;
+                    classNamesArray = clsName.split(' ');
+                    classNamesArray.forEach(function(className) {{
+                      svgElement.classList.add(className);
+                    }});
                     parentTag = objectTag.parentNode;
-                    childrenTags = objectTag.parentNode.children;
-                    for(i=0;i<childrenTags.length;i++){{
-                        childrenTags[i].remove();
-                    }}
                     parentTag.append(svgElement);
                     svgElement.classList.add(clsName);
                     svgElement.style.cssText = objectStyle;
