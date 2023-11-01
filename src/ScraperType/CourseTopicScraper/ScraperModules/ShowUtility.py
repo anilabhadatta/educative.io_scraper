@@ -2,12 +2,14 @@ import os
 
 from src.Logging.Logger import Logger
 from src.Utility.FileUtility import FileUtility
+from src.Utility.OSUtility import OSUtility
 
 
 class ShowUtility:
     def __init__(self, configJson):
         self.browser = None
         self.fileUtils = FileUtility()
+        self.osUtils = OSUtility(configJson)
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["ShowUtility"]
         self.logger = Logger(configJson, "ShowUtility").logger
@@ -30,6 +32,8 @@ class ShowUtility:
             isPresent = self.browser.execute_script(showMarkDownQuizJsScript)
             if isPresent <= 0:
                 self.logger.info("No single markdown quiz solution found")
+            else:
+                self.osUtils.sleep(2)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ShowUtility:showSingleMarkDownQuizSolution: {lineNumber}: {e}")
@@ -55,6 +59,8 @@ class ShowUtility:
             isPresent = self.browser.execute_script(showCodeSolutionJsScript)
             if isPresent <= 0:
                 self.logger.info("No code solution found")
+            else:
+                self.osUtils.sleep(2)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ShowUtility:showCodeSolutions: {lineNumber}: {e}")
@@ -79,6 +85,8 @@ class ShowUtility:
             isPresent = self.browser.execute_script(showHintJsScript)
             if isPresent <= 0:
                 self.logger.info("No hints found")
+            else:
+                self.osUtils.sleep(2)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ShowUtility:showHints: {lineNumber}: {e}")
@@ -103,6 +111,8 @@ class ShowUtility:
             isPresent = self.browser.execute_script(showSlideJsScript)
             if isPresent <= 0:
                 self.logger.info("No slides found")
+            else:
+                self.osUtils.sleep(10)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ShowUtility:showSlides: {lineNumber}: {e}")

@@ -2,20 +2,20 @@ import os
 
 from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
-from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.ApiUtility import ApiUtility
-from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.CodeUtility import CodeUtility
-from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.QuizUtility import QuizUtility
-from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.RemoveUtility import RemoveUtility
-from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.ScreenshotHtmlUtility import ScreenshotHtmlUtility
-from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
-from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.ShowUtility import ShowUtility
-from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.SingleFileUtility import SingleFileUtility
-from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.UrlUtility import UrlUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.ApiUtility import ApiUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.CodeUtility import CodeUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.QuizUtility import QuizUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.RemoveUtility import RemoveUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.ScreenshotUtility import ScreenshotUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.ShowUtility import ShowUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.SingleFileUtility import SingleFileUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.UrlUtility import UrlUtility
 from src.Utility.BrowserUtility import BrowserUtility
 from src.Utility.FileUtility import FileUtility
 from src.Utility.OSUtility import OSUtility
 
-class ExtensionScraper:
+class CourseTopicScraper:
     def __init__(self, configJson):
         self.browser = None
         self.configJson = configJson
@@ -33,7 +33,7 @@ class ExtensionScraper:
         self.removeUtils = RemoveUtility(configJson)
         self.showUtils = ShowUtility(configJson)
         self.singleFileUtils = SingleFileUtility(configJson)
-        self.screenshotHtmlUtils = ScreenshotHtmlUtility(configJson)
+        self.screenshotUtils = ScreenshotUtility(configJson)
 
 
     def start(self):
@@ -87,6 +87,7 @@ class ExtensionScraper:
                 """)
                 self.loginUtils.checkIfLoggedIn()
                 courseApiContentJson = self.apiUtils.getCourseApiContentJson(courseApiUrl)
+                self.osUtils.sleep(10)
                 self.scrapeTopic(coursePath, topicName, courseApiContentJson, courseTopicUrl)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
@@ -99,8 +100,7 @@ class ExtensionScraper:
             self.removeUtils.browser = self.browser
             self.showUtils.browser = self.browser
             self.singleFileUtils.browser = self.browser
-            self.screenshotHtmlUtils.browser = self.browser
-            self.osUtils.sleep(10)
+            self.screenshotUtils.browser = self.browser
             self.browser.get(courseTopicUrl)
             self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
             self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
@@ -114,17 +114,28 @@ class ExtensionScraper:
             self.showUtils.showCodeSolutions()
             self.showUtils.showHints()
             self.showUtils.showSlides()
-            self.singleFileUtils.fixAllObjectTags()
-            self.singleFileUtils.injectImportantScripts()
-            self.singleFileUtils.makeCodeSelectable()
+            pageData = None
             courseTopicPath = os.path.join(coursePath, topicName)
+            topicFilePath = os.path.join(courseTopicPath, f"{topicName}.{self.configJson['fileType']}")
             self.fileUtils.createFolderIfNotExists(courseTopicPath)
-            if self.configJson["singleFileHTML"]:
-                htmlPageData = self.singleFileUtils.getSingleFileHtml(topicName)
-            else:
-                htmlPageData = self.screenshotHtmlUtils.getFullPageScreenshotHtml(topicName)
-            htmlFilePath = os.path.join(courseTopicPath, f"{topicName}.html")
-            self.fileUtils.createTopicHtml(htmlFilePath, htmlPageData)
+            if self.configJson["scrapingMethod"] == "SingleFile-HTML":
+                self.singleFileUtils.fixAllObjectTags()
+                self.singleFileUtils.injectImportantScripts()
+                self.singleFileUtils.makeCodeSelectable()
+                pageData = self.singleFileUtils.getSingleFileHtml(topicName)
+            if not pageData:
+                pageData = self.screenshotUtils.getFullPageScreenshot(topicName)
+                if self.configJson["fileType"] == "html":
+                    pageData = self.fileUtils.getHtmlWithImage(pageData, topicName)
+
+            if self.configJson["fileType"] == "html":
+                self.fileUtils.createTopicHtml(topicFilePath, pageData)
+            elif self.configJson["fileType"] == "png":
+                self.fileUtils.createPngFile(topicFilePath, pageData)
+            elif self.configJson["fileType"] == "pdf":
+                self.fileUtils.createPdfFile(topicFilePath, pageData)
+            self.logger.info("Topic File Successfully Created")
+
             if courseApiContentJson:
                 self.logger.debug(f"Course API Content JSON: {courseApiContentJson}")
                 self.logger.info(f"Downloading Code and Quiz Files if found...")
@@ -141,7 +152,6 @@ class ExtensionScraper:
                         self.quizUtils.downloadQuizFiles(courseTopicPath, component, quizComponentIndex)
                         quizComponentIndex += 1
                 self.logger.info(f"Code and Quiz Files Downloaded if found.")
-
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ExtensionScraper:scrapeTopic: {lineNumber}: {e}")

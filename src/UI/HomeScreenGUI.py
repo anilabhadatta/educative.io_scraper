@@ -39,9 +39,6 @@ class HomeScreen:
         self.headlessVar = tk.BooleanVar(value=False)
         self.courseUrlsFilePathVar = tk.StringVar()
         self.saveDirectoryVar = tk.StringVar()
-        self.singleFileHTMLVar = tk.BooleanVar(value=True)
-        self.fullPageScreenshotHTMLVar = tk.BooleanVar(value=True)
-        self.scrapeAllTopicUrlsVar = tk.BooleanVar(value=True)
         self.isProxyVar = tk.BooleanVar(value=True)
         self.proxyVar = tk.StringVar()
         self.loggingLevelVar = tk.StringVar()
@@ -54,6 +51,12 @@ class HomeScreen:
             "CRITICAL": "Program can't continue running.",
             "NOTSET": "Lowest level, turns off logging."
         }
+        self.scrapingMethodVar = tk.StringVar()
+        self.scrapingMethods = ["SingleFile-HTML", "Full-Page-Screenshot"]
+        self.scraperTypeVar = tk.StringVar()
+        self.scraperTypes = ["Course-Topic-Scraper", "All-Course-Urls-Text-File-Generator"]
+        self.fileTypeVar = tk.StringVar()
+        self.fileTypes = ["html", "pdf", "png"]
 
         self.fileUtil = FileUtility()
         self.downloadUtil = DownloadUtility()
@@ -71,22 +74,18 @@ class HomeScreen:
         self.logDescriptionLabel.config(text=self.logLevelDesc[self.logLevelDescVar.get()])
 
 
-    def updateCheckboxStates(self, *args):
-        singleFileHTML = self.singleFileHTMLVar.get()
-        fullPageScreenshotHTML = self.fullPageScreenshotHTMLVar.get()
-        scrapeAllTopicUrls = self.scrapeAllTopicUrlsVar.get()
-        if singleFileHTML:
-            self.fullPageScreenshotHTMLVar.set(True)
-            self.scrapeAllTopicUrlsVar.set(False)
-            self.checkboxes[2].config(state="disabled")
-        elif not singleFileHTML and not scrapeAllTopicUrls:
-            self.checkboxes[2].config(state="normal")
-            if fullPageScreenshotHTML:
-                self.scrapeAllTopicUrlsVar.set(False)
-            elif not fullPageScreenshotHTML:
-                self.scrapeAllTopicUrlsVar.set(True)
-        elif not singleFileHTML and scrapeAllTopicUrls and fullPageScreenshotHTML:
-            self.scrapeAllTopicUrlsVar.set(False)
+    def updateComboboxStates(self, *args):
+        if self.scraperTypeVar.get() == "All-Course-Urls-Text-File-Generator":
+            self.scrapingMethodCombobox.config(state="disabled")
+            self.fileTypeCombobox.config(state="disabled")
+        elif self.scraperTypeVar.get() == "Course-Topic-Scraper":
+            self.scrapingMethodCombobox.config(state="enabled")
+            self.fileTypeCombobox.config(state="enabled")
+            if self.scrapingMethodVar.get() == "SingleFile-HTML":
+                self.fileTypeVar.set("html")
+                self.fileTypeCombobox.config(state="disabled")
+            elif self.scrapingMethodVar.get() == "Full-Page-Screenshot":
+                self.fileTypeCombobox.config(state="enabled")
 
 
     def createHomeScreen(self, version):
@@ -94,8 +93,8 @@ class HomeScreen:
         self.loggingLevelVar.trace("w", self.onConfigChange)
         self.saveDirectoryVar.trace("w", self.onConfigChange)
         self.logLevelDescVar.trace("w", self.onConfigChange)
-        self.fullPageScreenshotHTMLVar.trace("w", self.updateCheckboxStates)
-        self.singleFileHTMLVar.trace("w", self.updateCheckboxStates)
+        self.scrapingMethodVar.trace("w", self.updateComboboxStates)
+        self.scraperTypeVar.trace("w", self.updateComboboxStates)
         self.logger.info("Creating Home Screen...")
 
         configFilePathFrame = tk.Frame(self.app)
@@ -107,41 +106,54 @@ class HomeScreen:
         browseConfigFileButton.grid(row=0, column=2, padx=2)
         configFilePathFrame.pack(pady=3, padx=10, anchor="w")
 
-        containerFrame = tk.Frame(self.app)
-        checkboxesFrame = tk.Frame(containerFrame)
+        optionsContainerFrame = tk.Frame(self.app)
+        scraperOptionFrame = tk.Frame(optionsContainerFrame)
+        scraperTypeLabel = tk.Label(scraperOptionFrame, text="Scraper Type:")
+        scraperTypeLabel.grid(row=0, column=0, sticky="w", padx=2, pady=0)
+        self.scraperTypeCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.scraperTypeVar,
+                                           values=self.scraperTypes, state="readonly", width=30)
+        self.scraperTypeCombobox.grid(row=0, column=1, sticky="w", padx=0, pady=5)
+        scrapingMethodLabel = tk.Label(scraperOptionFrame, text="Scraping Method:")
+        scrapingMethodLabel.grid(row=1, column=0, sticky="w", padx=2, pady=0)
+        self.scrapingMethodCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.scrapingMethodVar,
+                                           values=self.scrapingMethods, state="readonly", width=30)
+        self.scrapingMethodCombobox.grid(row=1, column=1, sticky="w", padx=0, pady=5)
+        fileTypeLabel = tk.Label(scraperOptionFrame, text="File Type:")
+        fileTypeLabel.grid(row=2, column=0, sticky="w", padx=2, pady=0)
+        self.fileTypeCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.fileTypeVar,
+                                           values=self.fileTypes, state="readonly", width=30)
+        self.fileTypeCombobox.grid(row=2, column=1, sticky="w", padx=0, pady=5)
+        loggerLevelLabel = tk.Label(scraperOptionFrame, text="Logger Level:")
+        loggerLevelLabel.grid(row=3, column=0, sticky="w", padx=2, pady=0)
+        loggingLevelCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.loggingLevelVar,
+                                            values=self.loggingLevels, state="readonly", width=30)
+        loggingLevelCombobox.grid(row=3, column=1, sticky="w", padx=0, pady=5)
+        self.logDescriptionLabel = tk.Label(scraperOptionFrame, text=self.logLevelDesc[self.logLevelDescVar.get()])
+        self.logDescriptionLabel.grid(row=3, column=2, sticky="w", padx=2, pady=2)
+        ToolDescriptionLabel0 = tk.Label(scraperOptionFrame, text="About: Educative Scraper")
+        ToolDescriptionLabel1 = tk.Label(scraperOptionFrame, text=version)
+        ToolDescriptionLabel2 = tk.Label(scraperOptionFrame, text="Developed by Anilabha Datta")
+        ToolDescriptionLabel0.grid(row=0, column=2, sticky="w", padx=2, pady=2)
+        ToolDescriptionLabel1.grid(row=1, column=2, sticky="w", padx=2, pady=2)
+        ToolDescriptionLabel2.grid(row=2, column=2, sticky="w", padx=2, pady=2)
+
+        checkboxesFrame = tk.Frame(optionsContainerFrame)
         optionCheckboxes = [
             ("Headless", self.headlessVar),
-            ("Single File HTML", self.singleFileHTMLVar),
-            ("Full Page Screenshot HTML", self.fullPageScreenshotHTMLVar),
-            ("Scrape All Course Urls", self.scrapeAllTopicUrlsVar),
-            ("Proxy", self.isProxyVar),
+            ("Proxy", self.isProxyVar)
         ]
         for i, (optionText, optionVar) in enumerate(optionCheckboxes):
             checkbox = tk.Checkbutton(checkboxesFrame, text=optionText, variable=optionVar, wraplength=400, anchor="w")
             checkbox.grid(row=int(i), column=0, sticky="w", padx=0, pady=2)
             self.checkboxes.append(checkbox)
-        self.checkboxes[3].config(state="disabled")
-        proxyEntry = tk.Entry(checkboxesFrame, textvariable=self.proxyVar, width=25)
-        proxyEntry.grid(row=len(optionCheckboxes) - 1, column=1, sticky="w", padx=2, pady=2)
+        proxyEntry = tk.Entry(checkboxesFrame, textvariable=self.proxyVar, width=33)
+        proxyEntry.grid(row=len(optionCheckboxes)-1, column=1, sticky="w", padx=(30, 2), pady=2)
         proxyLabel = tk.Label(checkboxesFrame, text="Format: Host:Port")
-        proxyLabel.grid(row=len(optionCheckboxes) - 1, column=2, sticky="w", padx=2, pady=0)
-        loggerLevelLabel = tk.Label(checkboxesFrame, text="Logger Level:")
-        loggerLevelLabel.grid(row=len(optionCheckboxes), column=0, sticky="w", padx=2, pady=0)
-        loggingLevelCombobox = ttk.Combobox(checkboxesFrame, textvariable=self.loggingLevelVar,
-                                            values=self.loggingLevels, state="readonly", width=23)
-        loggingLevelCombobox.grid(row=len(optionCheckboxes), column=1, sticky="w", padx=0, pady=5)
-        self.logDescriptionLabel = tk.Label(checkboxesFrame, text=self.logLevelDesc[self.logLevelDescVar.get()])
-        self.logDescriptionLabel.grid(row=len(optionCheckboxes), column=2, sticky="w", padx=2, pady=2)
-        ToolDescriptionLabel0 = tk.Label(checkboxesFrame, text="About: Educative Scraper")
-        ToolDescriptionLabel1 = tk.Label(checkboxesFrame, text=version)
-        ToolDescriptionLabel2 = tk.Label(checkboxesFrame, text="Developed by Anilabha Datta")
-        ToolDescriptionLabel3 = tk.Label(checkboxesFrame, text="Check out ReadMe for more Information.")
-        ToolDescriptionLabel0.grid(row=0, column=2, sticky="w", padx=2, pady=2)
-        ToolDescriptionLabel1.grid(row=1, column=2, sticky="w", padx=2, pady=2)
-        ToolDescriptionLabel2.grid(row=2, column=2, sticky="w", padx=2, pady=2)
-        ToolDescriptionLabel3.grid(row=3, column=2, sticky="w", padx=2, pady=2)
-        checkboxesFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
-        containerFrame.pack(pady=3, padx=10, anchor="w")
+        proxyLabel.grid(row=len(optionCheckboxes)-1, column=2, sticky="w", padx=2, pady=0)
+
+        scraperOptionFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
+        checkboxesFrame.grid(row=1, column=0, padx=0, pady=3, sticky="nw")
+        optionsContainerFrame.pack(pady=3, padx=10, anchor="w")
 
         entriesFrame = tk.Frame(self.app)
         userDataDirLabel = tk.Label(entriesFrame, text="User Data Directory:")
@@ -206,7 +218,7 @@ class HomeScreen:
         progressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
         progressBarFrame.pack(pady=3)
 
-        self.updateCheckboxStates()
+        self.updateComboboxStates()
         self.fixGeometry()
         self.app.update_idletasks()
         self.logger.debug("createHomeScreen completed")
@@ -274,12 +286,12 @@ class HomeScreen:
         self.headlessVar.set(self.config['headless'])
         self.courseUrlsFilePathVar.set(self.config['courseUrlsFilePath'])
         self.saveDirectoryVar.set(self.config['saveDirectory'])
-        self.singleFileHTMLVar.set(self.config['singleFileHTML'])
-        self.fullPageScreenshotHTMLVar.set(self.config['fullPageScreenshotHTML'])
-        self.scrapeAllTopicUrlsVar.set(self.config['scrapeAllTopicUrls'])
         self.loggingLevelVar.set(self.config['logger'])
         self.isProxyVar.set(self.config['isProxy'])
         self.proxyVar.set(self.config['proxy'])
+        self.fileTypeVar.set(self.config["fileType"])
+        self.scraperTypeVar.set(self.config["scraperType"])
+        self.scrapingMethodVar.set(self.config["scrapingMethod"])
 
 
     def createConfigJson(self):
@@ -288,12 +300,12 @@ class HomeScreen:
             'headless': self.headlessVar.get(),
             'courseUrlsFilePath': self.courseUrlsFilePathVar.get(),
             'saveDirectory': self.saveDirectoryVar.get(),
-            'singleFileHTML': self.singleFileHTMLVar.get(),
-            'fullPageScreenshotHTML': self.fullPageScreenshotHTMLVar.get(),
-            'scrapeAllTopicUrls': self.scrapeAllTopicUrlsVar.get(),
             'logger': self.loggingLevelVar.get(),
             'isProxy': self.isProxyVar.get(),
-            'proxy': self.proxyVar.get()
+            'proxy': self.proxyVar.get(),
+            'scraperType': self.scraperTypeVar.get(),
+            "scrapingMethod": self.scrapingMethodVar.get(),
+            'fileType': self.fileTypeVar.get()
         }
 
 

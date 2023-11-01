@@ -65,7 +65,7 @@ class SeleniumBasicUtility:
         self.logger.info("Loading page and checking if something went wrong")
         self.osUtils.sleep(self.timeout)
         if "Something Went Wrong" in self.browser.page_source:
-            raise Exception(f"SeleniumBasicUtility:checkSomethingWentWrong: Something Went Wrong")
+            raise Exception(f"SeleniumBasicUtility:loadingPageAndCheckIfSomethingWentWrong: Something Went Wrong")
 
 
     def addNameAttributeInNextBackButton(self):

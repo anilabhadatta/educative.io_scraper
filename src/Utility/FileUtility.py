@@ -1,3 +1,5 @@
+import img2pdf
+import base64
 import json
 import os
 import re
@@ -79,3 +81,32 @@ class FileUtility:
     def createTextFile(textFilePath, data):
         with open(textFilePath, "w+", encoding="utf-8") as fh:
             fh.write(data)
+
+
+    def createPngFile(self, topicFilePath, base64Img):
+        with open(topicFilePath, "wb") as fh:
+            fh.write(base64.urlsafe_b64decode(base64Img))
+
+
+    def createPdfFile(self, topicFilePath, base64Img):
+        imageData = base64.b64decode(base64Img)
+        imageIterable = [imageData]
+        pdf_bytes = img2pdf.convert(imageIterable)
+        with open(topicFilePath, "wb") as pdfOutput:
+            pdfOutput.write(pdf_bytes)
+
+
+    def getHtmlWithImage(self, base64Png, topicName):
+        return f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <title>{topicName}</title>
+        </head>
+        <body style="background-color: rgb(21 21 30); zoom: 80%">
+            <div style="text-align: center">
+                <img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{base64Png}" alt="">
+            </div>
+        </body>
+        </html>
+        """

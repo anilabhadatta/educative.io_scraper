@@ -18,7 +18,7 @@ class ConfigUtility:
 
     def loadConfig(self, path=constants.defaultConfigPath):
         if path is not constants.commonConfigPath and not self.checkKeys(path, "ScraperConfig"):
-            print("Config file is corrupted. Replacing with default common config...")
+            print("ConfigUtility: Config file is corrupted. Replacing with default common config...")
             shutil.copy(constants.commonConfigPath, path)
         self.config = configparser.ConfigParser()
         self.config.read(path)

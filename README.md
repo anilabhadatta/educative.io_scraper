@@ -15,7 +15,7 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. I developed it solely for research
 purposes and take no responsibility for its misuse.
 
-Repository Version: v3.1.4 (Latest Beta)
+Repository Version: v3.2.0 (Latest)
 Master Branch: v3-master</code></pre>
 
 ###                                
@@ -50,7 +50,11 @@ cd educative.io_scraper
       --install: Creates a virtual environment and installs the required dependencies.
       --run: Activates the environment and starts the scraper. [Default = True]
       --create: Creates a shortcut executable file linked to the scraper directory.
-      Note: If the git repository is moved to a different location after creating
+      
+      Note: If you have updated to v3.2.0 and above, run with --install arg again, 
+            & Redownload the Chrome Binary and Chrome driver.
+            
+            If the git repository is moved to a different location after creating
             the executable then recreate it again to set the current repository path.
       ```
 

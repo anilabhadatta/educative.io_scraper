@@ -1,6 +1,6 @@
 from src.Logging.Logger import Logger
-from src.ScraperMethod.AllTopicUrlsScraper.ScrapeAllTopicUrls import ScrapeAllTopicUrls
-from src.ScraperMethod.ExtensionBasedTopicScraper.ExtensionScraperMain import ExtensionScraper
+from src.ScraperType.AllCourseUrlsScraper.AllCourseUrlsScraperMain import AllCourseUrlsScraper
+from src.ScraperType.CourseTopicScraper.CourseTopicScraperMain import CourseTopicScraper
 
 
 class StartScraper:
@@ -11,17 +11,17 @@ class StartScraper:
     def start(self, configJson):
         self.logger = Logger(configJson, "StartScraper").logger
         self.logger.info("""StartScraper Initiated...
-                            To Terminate, Click on Stop Scraper Button
+                            To Terminate, Click on Stop ScraperType Button
                         """)
         try:
-            if configJson["scrapeAllTopicUrls"]:
-                ScrapeAllTopicUrls(configJson).start()
+            if configJson["scraperType"] == "All-Course-Urls-Text-File-Generator":
+                AllCourseUrlsScraper(configJson).start()
             else:
-                ExtensionScraper(configJson).start()
+                CourseTopicScraper(configJson).start()
         except KeyboardInterrupt:
             self.logger.error("Keyboard Interrupt")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             self.logger.error(f"start: {lineNumber}: {e}")
         finally:
-            self.logger.debug("Exiting Scraper...")
+            self.logger.debug("Exiting ScraperType...")

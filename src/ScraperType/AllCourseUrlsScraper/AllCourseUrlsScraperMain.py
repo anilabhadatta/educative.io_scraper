@@ -1,7 +1,7 @@
 from src.Logging.Logger import Logger
 
 
-class ScrapeAllTopicUrls:
+class AllCourseUrlsScraper:
     def __init__(self, configJson):
         self.configJson = configJson
         self.logger = Logger(configJson, "ScrapeAllTopicUrls").logger

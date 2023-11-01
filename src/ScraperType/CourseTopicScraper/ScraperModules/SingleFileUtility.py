@@ -2,7 +2,7 @@ import os
 
 from src.Utility.OSUtility import OSUtility
 from src.Logging.Logger import Logger
-from src.ScraperMethod.ExtensionBasedTopicScraper.ScraperModules.ScreenshotHtmlUtility import ScreenshotHtmlUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.ScreenshotUtility import ScreenshotUtility
 from src.Utility.FileUtility import FileUtility
 
 
@@ -14,7 +14,7 @@ class SingleFileUtility:
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["SingleFileUtility"]
         self.logger = Logger(configJson, "SingleFileUtility").logger
-        self.screenshotHtmlUtils = ScreenshotHtmlUtility(configJson)
+        self.screenshotHtmlUtils = ScreenshotUtility(configJson)
 
 
     def fixAllObjectTags(self):
@@ -136,6 +136,7 @@ class SingleFileUtility:
 
 
     def getSingleFileHtml(self, topicName):
+        htmlPageData = None
         singleFileJsScript = """
         const { content, title, filename } = await singlefile.getPageData({
             removeImports: true,
@@ -162,10 +163,7 @@ class SingleFileUtility:
                     htmlPageData = self.browser.execute_script(singleFileJsScript)
                     self.logger.info("getSingleFileHtml: Successfully Received Page using SingleFile...")
                 except Exception as e2:
-                    self.logger.error(f"getSingleFileHtml: Failed to get SingleFile Html, getting ScreenshotHtml...")
-                    self.screenshotHtmlUtils.browser = self.browser
-                    htmlPageData = self.screenshotHtmlUtils.getFullPageScreenshotHtml(topicName)
-                    self.logger.info("getSingleFileHtml: Successfully Received Page using ScreenshotHtml...")
+                    self.logger.error(f"getSingleFileHtml: Failed to get SingleFile Html, Creating Full Page Screenshot HTML...")
             return htmlPageData
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
