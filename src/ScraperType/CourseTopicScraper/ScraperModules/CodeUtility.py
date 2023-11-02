@@ -45,9 +45,10 @@ class CodeUtility:
     def downloadCode(self):
         try:
             self.logger.info("Downloading Code...")
+            prependCode, appendCode, tabTitle, testCasePrependCode, entryFileName = "", "", "", "", "main"
             content = self.component["content"]
-            entryFileName = content["entryFileName"]
-            prependCode, appendCode, tabTitle, testCasePrependCode = "", "", "", ""
+            if "entryFileName" in content:
+                entryFileName = content["entryFileName"]
             if "title" in content:
                 tabTitle = content["title"]
             if "hiddenCodeContent" in content:
