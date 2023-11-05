@@ -56,7 +56,7 @@ class HomeScreen:
         self.scraperTypeVar = tk.StringVar()
         self.scraperTypes = ["Course-Topic-Scraper", "All-Course-Urls-Text-File-Generator"]
         self.fileTypeVar = tk.StringVar()
-        self.fileTypes = ["html", "pdf", "png"]
+        self.fileTypes = ["html", "png2pdf", "png"]
 
         self.fileUtil = FileUtility()
         self.downloadUtil = DownloadUtility()

@@ -53,6 +53,8 @@ class BrowserUtility:
             return self.browser
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
+            if "Failed to establish a new connection" in str(e) and 48 == lineNumber:
+                raise Exception(f"BrowserUtility:loadBrowser: {lineNumber}: Chromedriver might not be running in background, Please click on Start Chromedriver.")
             raise Exception(f"BrowserUtility:loadBrowser: {lineNumber}: {e}")
 
 

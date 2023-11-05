@@ -174,6 +174,7 @@ class CodeUtility:
             content = self.component["content"]
             if "codeContents" in content and "importedGithubPath" in content["codeContents"]:
                 importedGithubPath = content["codeContents"]["importedGithubPath"]
+                importedGithubPath = "/".join(importedGithubPath.split("/")[:5])
                 Repo.clone_from(importedGithubPath, self.codeFolderPath)
             self.logger.info(f"WebpackBin Downloaded at: {self.codeFolderPath}")
         except Exception as e:

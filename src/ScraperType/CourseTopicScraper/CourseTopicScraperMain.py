@@ -61,47 +61,51 @@ class CourseTopicScraper:
         try:
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
             courseApiUrl = self.apiUtils.getNextData()
-            courseTopicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
-            startIndex = courseTopicUrlsList.index(textFileUrl) if textFileUrl in courseTopicUrlsList else 0
+            topicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
+            startIndex = topicUrlsList.index(textFileUrl) if textFileUrl in topicUrlsList else 0
             self.loginUtils.checkIfLoggedIn()
             courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
+            topicApiUrlList = courseCollectionsJson['topicApiUrlList']
+            topicApiNameList = courseCollectionsJson["topicNameList"]
+            topicApiUrlListLen = len(topicApiUrlList)
+            topicUrlsListLen = len(topicUrlsList)
 
-            self.logger.debug(f"Course Topic URLs: {courseTopicUrlsList}")
+            self.logger.debug(f"Course Topic URLs: {topicUrlsList}")
             self.logger.debug(f"Course Collections JSON: {courseCollectionsJson}")
             self.logger.info(
-                f"API Urls: {len(courseCollectionsJson['topicApiUrlList'])} == {len(courseTopicUrlsList)} :Topic Urls")
-            if len(courseCollectionsJson["topicApiUrlList"]) != len(courseTopicUrlsList):
+                f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
+            if topicApiUrlListLen != topicUrlsListLen:
                 raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
 
             courseTitle = self.fileUtils.filenameSlugify(courseCollectionsJson["courseTitle"])
             coursePath = os.path.join(self.outputFolderPath, courseTitle)
             self.fileUtils.createFolderIfNotExists(coursePath)
 
-            for topicIndex in range(startIndex, len(courseTopicUrlsList)):
-                courseTopicUrl = courseTopicUrlsList[topicIndex]
-                courseApiUrl = courseCollectionsJson["topicApiUrlList"][topicIndex]
-                topicName = str(topicIndex) + "-" + self.fileUtils.filenameSlugify(
-                    courseCollectionsJson["topicNameList"][topicIndex])
-                self.logger.info(f"""-----------------------------------------------------------
-                Scraping Topic: {topicName}: {courseTopicUrl}
+            for topicIndex in range(startIndex, topicUrlsListLen):
+                topicUrl = topicUrlsList[topicIndex]
+                topicApiUrl = topicApiUrlList[topicIndex]
+                filenameSlugified = self.fileUtils.filenameSlugify(topicApiNameList[topicIndex])
+                topicName = f"{topicIndex:03}-{filenameSlugified}"
+                self.logger.info(f"""----------------------------------------------------------------------------------
+                Scraping Topic: {topicName}: {topicUrl}
                 """)
                 self.loginUtils.checkIfLoggedIn()
-                courseApiContentJson = self.apiUtils.getCourseApiContentJson(courseApiUrl)
+                topicApiContentJson = self.apiUtils.getCourseApiContentJson(topicApiUrl)
                 self.osUtils.sleep(10)
-                self.scrapeTopic(coursePath, topicName, courseApiContentJson, courseTopicUrl)
+                self.scrapeTopic(coursePath, topicName, topicApiContentJson, topicUrl)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ExtensionScraper:scrapeCourse: {lineNumber}: {e}")
 
 
-    def scrapeTopic(self, coursePath, topicName, courseApiContentJson, courseTopicUrl):
+    def scrapeTopic(self, coursePath, topicName, topicApiContentJson, topicUrl):
         try:
             self.seleniumBasicUtils.browser = self.browser
             self.removeUtils.browser = self.browser
             self.showUtils.browser = self.browser
             self.singleFileUtils.browser = self.browser
             self.screenshotUtils.browser = self.browser
-            self.browser.get(courseTopicUrl)
+            self.browser.get(topicUrl)
             self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
             self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
@@ -132,18 +136,18 @@ class CourseTopicScraper:
                 self.fileUtils.createTopicHtml(topicFilePath, pageData)
             elif self.configJson["fileType"] == "png":
                 self.fileUtils.createPngFile(topicFilePath, pageData)
-            elif self.configJson["fileType"] == "pdf":
-                self.fileUtils.createPdfFile(topicFilePath, pageData)
+            elif self.configJson["fileType"] == "png2pdf":
+                self.fileUtils.createPng2PdfFile(topicFilePath, pageData)
             self.logger.info("Topic File Successfully Created")
 
-            if courseApiContentJson:
-                self.logger.debug(f"Course API Content JSON: {courseApiContentJson}")
+            if topicApiContentJson:
+                self.logger.debug(f"Course API Content JSON: {topicApiContentJson}")
                 self.logger.info(f"Downloading Code and Quiz Files if found...")
                 quizComponentIndex = 0
                 codeComponentIndex = 0
                 codeTypes = ["CodeTest", "TabbedCode", "EditorCode", "Code", "WebpackBin", "RunJS"]
                 quizTypes = ["Quiz", "StructuredQuiz"]
-                for componentIndex, component in enumerate(courseApiContentJson):
+                for componentIndex, component in enumerate(topicApiContentJson):
                     componentType = component["type"]
                     if any(item in componentType for item in codeTypes) and "content" in component:
                         self.codeUtils.downloadCodeFiles(courseTopicPath, component, codeComponentIndex)

@@ -88,7 +88,8 @@ class FileUtility:
             fh.write(base64.urlsafe_b64decode(base64Img))
 
 
-    def createPdfFile(self, topicFilePath, base64Img):
+    def createPng2PdfFile(self, topicFilePath, base64Img):
+        topicFilePath = topicFilePath[:-7] + "pdf"
         imageData = base64.b64decode(base64Img)
         imageIterable = [imageData]
         pdf_bytes = img2pdf.convert(imageIterable)
