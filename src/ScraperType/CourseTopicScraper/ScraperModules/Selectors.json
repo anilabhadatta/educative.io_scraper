@@ -15,7 +15,8 @@
     "askQuestionDarkModeToolbar": "div[id*='view-collection-article-content-root'] > :not(#handleArticleScroll):not(:last-child), div[id*='view-collection-article-content-root']:not(:has(#handleArticleScroll)) > :not(:last-child)",
     "streakNode": "div[aria-labelledby*='simple-modal-title']",
     "bodyChildNodes": "body > *",
-    "headChildNodes": "head > *"
+    "headChildNodes": "head > *",
+    "sidebar": "div[aria-label*='toggle sidebar']"
   },
   "ShowUtility": {
     "showMarkDownQuizSolution": "Show Answer",

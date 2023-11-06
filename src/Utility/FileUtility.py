@@ -72,9 +72,16 @@ class FileUtility:
 
 
     @staticmethod
-    def createTopicHtml(htmlFilePath, htmlPageData):
-        with open(htmlFilePath, "w+", encoding="utf-8") as fh:
+    def createTopicHtml(topicFilePath, htmlPageData):
+        with open(topicFilePath, "w+", encoding="utf-8") as fh:
             fh.write(htmlPageData)
+
+
+    @staticmethod
+    def createHtml2PdfFile(topicFilePath, pdfPageData):
+        topicFilePath = topicFilePath[:-8] + "pdf"
+        with open(topicFilePath, "wb") as pdfOutput:
+            pdfPageData.write(pdfOutput)
 
 
     @staticmethod
@@ -84,17 +91,18 @@ class FileUtility:
 
 
     def createPngFile(self, topicFilePath, base64Img):
+        imageData = base64.urlsafe_b64decode(base64Img)
         with open(topicFilePath, "wb") as fh:
-            fh.write(base64.urlsafe_b64decode(base64Img))
+            fh.write(imageData)
 
 
     def createPng2PdfFile(self, topicFilePath, base64Img):
         topicFilePath = topicFilePath[:-7] + "pdf"
-        imageData = base64.b64decode(base64Img)
+        imageData = base64.urlsafe_b64decode(base64Img)
         imageIterable = [imageData]
-        pdf_bytes = img2pdf.convert(imageIterable)
+        pdfBytes = img2pdf.convert(imageIterable)
         with open(topicFilePath, "wb") as pdfOutput:
-            pdfOutput.write(pdf_bytes)
+            pdfOutput.write(pdfBytes)
 
 
     def getHtmlWithImage(self, base64Png, topicName):

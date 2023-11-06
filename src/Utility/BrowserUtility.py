@@ -47,8 +47,7 @@ class BrowserUtility:
                 options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
             self.browser = webdriver.Remote(command_executor='http://127.0.0.1:9515', options=options)
             self.browser.set_window_size(1920, 1080)
-            self.browser.command_executor._commands["send_command"] = (
-                "POST", '/session/$sessionId/chromium/send_command')
+            self.browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
             self.logger.info("Browser Initiated")
             return self.browser
         except Exception as e:

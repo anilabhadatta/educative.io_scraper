@@ -90,27 +90,6 @@ class SeleniumBasicUtility:
             raise Exception(f"SeleniumBasicUtility:addNameAttributeInNextBackButton: {lineNumber}: {e}")
 
 
-    def screenshotAsCdp(self, canvas, scale=1):
-        self.logger.info("Taking screenshot as CDP")
-        size, location = canvas.size, canvas.location
-        width, height = size['width'], size['height']
-        x, y = location['x'], location['y']
-
-        params = {
-            "format": "png",
-            "captureBeyondViewport": True,
-            "clip": {
-                "width": width,
-                "height": height,
-                "x": x,
-                "y": y,
-                "scale": scale
-            }
-        }
-        screenshot = self.sendCommand("Page.captureScreenshot", params)
-        return screenshot['data']
-
-
     def sendCommand(self, command, params):
         self.logger.debug(f"Sending command: {command} with params: {params}")
         resource = "/session/%s/chromium/send_command_and_get_result" % self.browser.session_id

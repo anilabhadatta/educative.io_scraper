@@ -4,6 +4,7 @@ from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
 from src.ScraperType.CourseTopicScraper.ScraperModules.ApiUtility import ApiUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.CodeUtility import CodeUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.PrintFileUtility import PrintFileUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.QuizUtility import QuizUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.RemoveUtility import RemoveUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.ScreenshotUtility import ScreenshotUtility
@@ -34,6 +35,7 @@ class CourseTopicScraper:
         self.showUtils = ShowUtility(configJson)
         self.singleFileUtils = SingleFileUtility(configJson)
         self.screenshotUtils = ScreenshotUtility(configJson)
+        self.printFileUtils = PrintFileUtility(configJson)
 
 
     def start(self):
@@ -105,6 +107,7 @@ class CourseTopicScraper:
             self.showUtils.browser = self.browser
             self.singleFileUtils.browser = self.browser
             self.screenshotUtils.browser = self.browser
+            self.printFileUtils.browser = self.browser
             self.browser.get(topicUrl)
             self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
             self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
@@ -123,13 +126,16 @@ class CourseTopicScraper:
             topicFilePath = os.path.join(courseTopicPath, f"{topicName}.{self.configJson['fileType']}")
             self.fileUtils.createFolderIfNotExists(courseTopicPath)
             if self.configJson["scrapingMethod"] == "SingleFile-HTML":
-                self.singleFileUtils.fixAllObjectTags()
-                self.singleFileUtils.injectImportantScripts()
-                self.singleFileUtils.makeCodeSelectable()
-                pageData = self.singleFileUtils.getSingleFileHtml(topicName)
+                if self.configJson["fileType"] == "html":
+                    self.singleFileUtils.fixAllObjectTags()
+                    self.singleFileUtils.injectImportantScripts()
+                    self.singleFileUtils.makeCodeSelectable()
+                    pageData = self.singleFileUtils.getSingleFileHtml(topicName)
+                elif self.configJson["fileType"] == "html2pdf":
+                    pageData = self.printFileUtils.printPdfAsCdp(topicName)
             if not pageData:
                 pageData = self.screenshotUtils.getFullPageScreenshot(topicName)
-                if self.configJson["fileType"] == "html":
+                if "html" in self.configJson["fileType"]:
                     pageData = self.fileUtils.getHtmlWithImage(pageData, topicName)
 
             if self.configJson["fileType"] == "html":
@@ -138,6 +144,8 @@ class CourseTopicScraper:
                 self.fileUtils.createPngFile(topicFilePath, pageData)
             elif self.configJson["fileType"] == "png2pdf":
                 self.fileUtils.createPng2PdfFile(topicFilePath, pageData)
+            elif self.configJson["fileType"] == "html2pdf":
+                self.fileUtils.createHtml2PdfFile(topicFilePath, pageData)
             self.logger.info("Topic File Successfully Created")
 
             if topicApiContentJson:
@@ -158,4 +166,4 @@ class CourseTopicScraper:
                 self.logger.info(f"Code and Quiz Files Downloaded if found.")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
-            raise Exception(f"ExtensionScraper:scrapeTopic: {lineNumber}: {e}")
+            raise Exception(f"CourseTopicScraperMain:scrapeTopic: {lineNumber}: {e}")

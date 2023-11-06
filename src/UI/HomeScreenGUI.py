@@ -56,7 +56,7 @@ class HomeScreen:
         self.scraperTypeVar = tk.StringVar()
         self.scraperTypes = ["Course-Topic-Scraper", "All-Course-Urls-Text-File-Generator"]
         self.fileTypeVar = tk.StringVar()
-        self.fileTypes = ["html", "png2pdf", "png"]
+        self.fileTypes = ["html2pdf", "html", "png2pdf", "png"]
 
         self.fileUtil = FileUtility()
         self.downloadUtil = DownloadUtility()
@@ -82,10 +82,11 @@ class HomeScreen:
             self.scrapingMethodCombobox.config(state="enabled")
             self.fileTypeCombobox.config(state="enabled")
             if self.scrapingMethodVar.get() == "SingleFile-HTML":
-                self.fileTypeVar.set("html")
-                self.fileTypeCombobox.config(state="disabled")
-            elif self.scrapingMethodVar.get() == "Full-Page-Screenshot":
-                self.fileTypeCombobox.config(state="enabled")
+                if self.fileTypeVar.get() == "png" or self.fileTypeVar.get() == "png2pdf":
+                    self.fileTypeVar.set("html")
+                self.fileTypeCombobox['values'] = self.fileTypes[:2]
+            else:
+                self.fileTypeCombobox['values'] = self.fileTypes[1:]
 
 
     def createHomeScreen(self, version):

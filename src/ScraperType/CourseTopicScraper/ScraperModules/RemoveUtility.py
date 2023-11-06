@@ -60,8 +60,8 @@ class RemoveUtility:
     def removeUnwantedElements(self):
         try:
             self.logger.info("Removing unwanted elements")
-            nodesToDelete = [self.selectors["navNode"], self.selectors["privacyNode"],
-                             self.selectors["askQuestionDarkModeToolbar"], self.selectors["streakNode"]]
+            nodesToDelete = [self.selectors["navNode"], self.selectors["privacyNode"], self.selectors["streakNode"],
+                             self.selectors["askQuestionDarkModeToolbar"], self.selectors["sidebar"]]
             selectors = ", ".join([f'{node}' for node in nodesToDelete])
             removeTagsJsScript = f"""
             var elements = document.querySelectorAll("{selectors}");
