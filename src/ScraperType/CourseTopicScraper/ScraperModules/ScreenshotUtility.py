@@ -21,13 +21,11 @@ class ScreenshotUtility:
 
     def getFullPageScreenshot(self, topicName):
         self.logger.info(f"getFullPageScreenshot: Getting full page screenshot for {topicName}")
-        articlePageSelector = self.selectors["articlePage"]
-        generalPageSelector = self.selectors["generalPage"]
+        rootContentSelector = self.selectors["rootContent"]
         self.seleniumBasicUtils.browser = self.browser
         try:
-            canvas = (self.browser.find_elements(By.XPATH, articlePageSelector) or
-                      self.browser.find_elements(By.XPATH, generalPageSelector))
-            base64Png = self.screenshotAsCdp(canvas[0], 1)
+            canvas = self.browser.find_elements(By.XPATH, rootContentSelector)[-1]
+            base64Png = self.screenshotAsCdp(canvas, 1)
             self.osUtils.sleep(2)
             self.logger.info("getFullPageScreenshot: Successfully Received Full Page Screenshot...")
             return base64Png
@@ -36,28 +34,21 @@ class ScreenshotUtility:
             raise Exception(f"ScreenshotHtmlUtility:getFullPageScreenshot: {lineNumber}: {e}")
 
 
-    def screenshotAsCdp(self, canvas, scale=1, shiftx=0, shifty=0, padwidth=0, padheight=0):
+    def screenshotAsCdp(self, canvas, scale=1):
         try:
             self.logger.info("Taking screenshot as CDP")
-
-            try:
-                size = canvas.size
-                location = canvas.location
-                width, height = size['width'], size['height']
-                x, y = location['x'], location['y']
-            except:
-                rect = self.browser.execute_script("return arguments[0].getBoundingClientRect();", canvas)
-                width, height = rect['width'], rect['height']
-                x, y = rect['left'], rect['top']
+            size, location = canvas.size, canvas.location
+            width, height = size['width'], size['height']
+            x, y = location['x'], location['y']
 
             params = {
                 "format": "png",
                 "captureBeyondViewport": True,
                 "clip": {
-                    "width": round(width + padwidth),
-                    "height": round(height + padheight),
-                    "x": round(x + shiftx),
-                    "y": round(y + shifty),
+                    "width": width,
+                    "height": height,
+                    "x": x,
+                    "y": y,
                     "scale": scale
                 }
             }

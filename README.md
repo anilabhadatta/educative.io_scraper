@@ -15,7 +15,7 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. I developed it solely for research
 purposes and take no responsibility for its misuse.
 
-Repository Version: v3.2.4 (Latest)
+Repository Version: v3.2.5 (Latest)
 Master Branch: v3-master</code></pre>
 
 ###                                

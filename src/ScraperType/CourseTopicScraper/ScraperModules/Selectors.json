@@ -30,8 +30,7 @@
     "codeContainerClass": "monaco-editor"
   },
   "ScreenshotHtmlUtility": {
-    "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
-    "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]"
+    "rootContent": "//div[contains(@class, 'ed-grid-main')]//div[count(div)>=3][1]"
   },
   "ApiUtility": {
     "nextData": "script[id*='__NEXT_DATA__']"
