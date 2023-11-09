@@ -66,7 +66,9 @@ class QuizUtility:
                 questionOptionsText = ""
                 for optionIndex, option in enumerate(questionOptions):
                     optionText = option["text"]
-                    explanation = option["explanation"]["mdText"]
+                    explanation = ""
+                    if "explanation" in option:
+                        explanation = option["explanation"]["mdText"]
                     correct = "Correct" if option["correct"] else "Incorrect"
                     questionOptionsText += f"""
 {optionIndex + 1}. {optionText}

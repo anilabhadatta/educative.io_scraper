@@ -9,7 +9,7 @@ from src.Utility.FileUtility import FileUtility
 
 class EducativeScraper:
     def __init__(self):
-        self.version = "v3.2.3 Master Branch"
+        self.version = "v3.2.4 Master Branch"
         print(f"""
                 Educative Scraper ({self.version}), developed by Anilabha Datta
                 Project Link: https://github.com/anilabhadatta/educative.io_scraper/tree/v3-dev
