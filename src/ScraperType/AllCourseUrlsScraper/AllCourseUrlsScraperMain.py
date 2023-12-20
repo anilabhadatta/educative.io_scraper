@@ -9,4 +9,4 @@ class AllCourseUrlsScraper:
 
 
     def start(self):
-        self.logger.info("AllTopicUrls scraper Not implemented.")
+        self.logger.info("All Course Urls scraper Not implemented.")

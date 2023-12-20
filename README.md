@@ -6,16 +6,14 @@ and Chromium-based browsers, this tool effortlessly scrapes and saves Educative.
 learn at your own pace, even without an internet connection.
 
 Contributions:
-I wholeheartedly welcome contributions from individuals in any capacity to enhance this project. Whether you're a developer,
-designer, or enthusiast, your involvement is invaluable. Show your support by starring and forking the repository – your
-contributions make a difference! Together, we can make this project even better. Join us in building a community of learners
+I wholeheartedly welcome contributions from individuals in any capacity to enhance this project. Together, we can make this project even better. Join us in building a community of learners
 and contributors. Thank you for your support!
 
 Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. I developed it solely for research
 purposes and take no responsibility for its misuse.
 
-Repository Version: v3.2.5 (Latest)
+Repository Version: v3.2.6 (Latest)
 Master Branch: v3-master</code></pre>
 
 ###                                

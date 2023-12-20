@@ -6,7 +6,6 @@ urllib3==1.26.13
 websockets==11.0.3
 wget==3.2
 pyinstaller==5.13.2
-GitPython==3.1.37
 psutil==5.9.5
 img2pdf==0.5.0
 pypdf==3.17.0

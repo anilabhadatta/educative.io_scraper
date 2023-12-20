@@ -75,7 +75,7 @@ class ApiUtility:
             topicApiUrlList = []
             topicNameList = []
             baseApiUrl = f"https://educative.io/api/collection/{authorId}/{collectionId}/page/"
-            categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT"]
+            categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT"]
             for category in categories:
                 if any(cType in category["type"] for cType in categoryType) and (
                         isinstance(category["id"], int) or len(category["id"]) <= 10):

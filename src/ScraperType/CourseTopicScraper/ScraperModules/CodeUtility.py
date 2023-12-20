@@ -1,6 +1,6 @@
 import os
 
-from git.repo.base import Repo
+from git_clone import git_clone
 
 from src.Utility.OSUtility import OSUtility
 from src.Logging.Logger import Logger
@@ -172,11 +172,39 @@ class CodeUtility:
         try:
             self.logger.info("Downloading WebpackBin...")
             content = self.component["content"]
-            if "codeContents" in content and "importedGithubPath" in content["codeContents"]:
-                importedGithubPath = content["codeContents"]["importedGithubPath"]
-                importedGithubPath = "/".join(importedGithubPath.split("/")[:5])
-                Repo.clone_from(importedGithubPath, self.codeFolderPath)
+            if "codeContents" in content:
+                codeContents = content["codeContents"]["children"][0]
+                self.downloadRecursivelyFromWebpackBin(codeContents, self.codeFolderPath)
             self.logger.info(f"WebpackBin Downloaded at: {self.codeFolderPath}")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CodeUtility:downloadWebpackBin: {lineNumber}: {e}")
+
+
+    def downloadRecursivelyFromWebpackBin(self, codeContents, codeFolderPath):
+        try:
+            self.logger.info(f"Inside codeFolderPath: {codeFolderPath}")
+            if "children" in codeContents:
+                for child in codeContents["children"]:
+                    leaf = child["leaf"]
+                    module = child["module"]
+                    if not leaf:
+                        self.logger.info("Creating Folder")
+                        nextFolderPath = os.path.join(codeFolderPath, module)
+                        self.fileUtils.createFolderIfNotExists(nextFolderPath)
+                        self.downloadRecursivelyFromWebpackBin(child, nextFolderPath)
+                    else:
+                        fileContent = child["data"]["content"]
+                        textFilePath = os.path.join(codeFolderPath, f"{module}")
+                        self.logger.info(f"Creating file: {module}")
+                        self.fileUtils.createTextFile(textFilePath, fileContent)
+
+            if "leaf" in codeContents and codeContents["leaf"]:
+                module = codeContents["module"]
+                fileContent = codeContents["data"]["content"]
+                textFilePath = os.path.join(codeFolderPath, f"{module}")
+                self.logger.info(f"Creating file: {module}")
+                self.fileUtils.createTextFile(textFilePath, fileContent)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"CodeUtility:downloadRecursivelyFromWebpackBin: {lineNumber}: {e}")

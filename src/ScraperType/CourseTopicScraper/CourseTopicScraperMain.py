@@ -21,7 +21,7 @@ class CourseTopicScraper:
         self.browser = None
         self.configJson = configJson
         self.outputFolderPath = self.configJson["saveDirectory"]
-        self.logger = Logger(configJson, "ExtensionScraper").logger
+        self.logger = Logger(configJson, "CourseTopicScraper").logger
         self.fileUtils = FileUtility()
         self.osUtils = OSUtility(configJson)
         self.apiUtils = ApiUtility(configJson)
@@ -39,7 +39,7 @@ class CourseTopicScraper:
 
 
     def start(self):
-        self.logger.info("ExtensionScraper initiated...")
+        self.logger.info("CourseTopicScraper initiated...")
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
         for textFileUrl in urlsTextFile:
             try:
@@ -52,11 +52,11 @@ class CourseTopicScraper:
                 self.scrapeCourse(textFileUrl)
             except Exception as e:
                 lineNumber = e.__traceback__.tb_lineno
-                raise Exception(f"ExtensionScraper:start: {lineNumber}: {e}")
+                raise Exception(f"CourseTopicScraper:start: {lineNumber}: {e}")
             finally:
                 if self.browser is not None:
                     self.browser.quit()
-        self.logger.info("ExtensionScraper completed.")
+        self.logger.info("CourseTopicScraper completed.")
 
 
     def scrapeCourse(self, textFileUrl):
@@ -73,6 +73,7 @@ class CourseTopicScraper:
             topicUrlsListLen = len(topicUrlsList)
 
             self.logger.debug(f"Course Topic URLs: {topicUrlsList}")
+            self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
             self.logger.debug(f"Course Collections JSON: {courseCollectionsJson}")
             self.logger.info(
                 f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
@@ -97,7 +98,7 @@ class CourseTopicScraper:
                 self.scrapeTopic(coursePath, topicName, topicApiContentJson, topicUrl)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
-            raise Exception(f"ExtensionScraper:scrapeCourse: {lineNumber}: {e}")
+            raise Exception(f"CourseTopicScraper:scrapeCourse: {lineNumber}: {e}")
 
 
     def scrapeTopic(self, coursePath, topicName, topicApiContentJson, topicUrl):
