@@ -81,7 +81,10 @@ class SingleFileUtility:
                         return null;
                     });
             }
-            
+            window.__define = window.define;
+            window.__require = window.require;
+            window.define = undefined;
+            window.require = undefined;
             var baseurl = 'https://anilabhadatta.github.io/SingleFile/';
             var urls = [
             'lib/single-file-bootstrap.js',
