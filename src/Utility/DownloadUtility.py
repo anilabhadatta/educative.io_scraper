@@ -52,9 +52,10 @@ class DownloadUtility:
 
         self.fileUtil.deleteFileIfExists(chromeDriverOutputPath)
         if self.osUtil.getCurrentOS() != "win":
-            self.logger.debug("Changing Permissions of ChromeDriver...")
+            self.logger.info("Changing Permissions of ChromeDriver...")
+            subprocess.check_call(['chmod', '-R', '+x', constants.chromeDriverPath])
             subprocess.check_call(['chmod', 'u+x', constants.chromeDriverPath])
-            self.logger.debug("Permissions Changed.")
+            self.logger.info("Permissions Changed.")
 
 
     def downloadChromeBinary(self, app, progressVar, configJson):
@@ -80,7 +81,7 @@ class DownloadUtility:
 
         self.fileUtil.deleteFileIfExists(chromeBinaryOutputPath)
         if self.osUtil.getCurrentOS() != "win":
-            self.logger.info("Changing Permissions of ChromeDriver...")
+            self.logger.info("Changing Permissions of ChromeBinary...")
             subprocess.check_call(['chmod', '-R', '+x', constants.chromeBinaryFolderPath])
             subprocess.check_call(['chmod', 'u+x', constants.chromeBinaryPath])
             self.logger.info("Permissions Changed.")
