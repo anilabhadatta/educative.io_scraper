@@ -50,7 +50,7 @@ class ShowUtility:
             buttons.forEach(button => {{
               if (button.textContent.trim() === "{showCodeSolutionSelector}" && button.disabled === false) {{
                   button.click();
-                  document.querySelector("{confirmButtonSelector}").click();
+                  document.querySelector("{confirmButtonSelector}")?.click();
                   button.disabled = true;
                   count++;
             }}}});
