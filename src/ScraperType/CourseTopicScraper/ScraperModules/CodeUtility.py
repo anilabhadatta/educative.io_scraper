@@ -173,8 +173,9 @@ class CodeUtility:
             self.logger.info("Downloading WebpackBin...")
             content = self.component["content"]
             if "codeContents" in content:
-                codeContents = content["codeContents"]["children"][0]
-                self.downloadRecursivelyFromWebpackBin(codeContents, self.codeFolderPath)
+                children = content["codeContents"]["children"]
+                for codeContents in children:
+                    self.downloadRecursivelyFromWebpackBin(codeContents, self.codeFolderPath)
             self.logger.info(f"WebpackBin Downloaded at: {self.codeFolderPath}")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
