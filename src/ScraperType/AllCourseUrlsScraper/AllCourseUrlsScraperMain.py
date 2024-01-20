@@ -36,7 +36,7 @@ class AllCourseUrlsScraper:
                 'http': "http://" + self.configJson["proxy"],
                 'https': "http://" + self.configJson["proxy"],
             }
-        self.logger.info(f"Current IP: {requests.get("https://httpbin.org/ip", proxies=self.proxies).content}")
+        self.logger.info(f"Current IP: {requests.get('https://httpbin.org/ip', proxies=self.proxies).content}")
 
 
     def start(self):
