@@ -9,3 +9,4 @@ pyinstaller==5.13.2
 psutil==5.9.5
 img2pdf==0.5.0
 pypdf==3.17.0
+beautifulsoup4==4.12.3

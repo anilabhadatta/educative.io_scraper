@@ -1,7 +1,5 @@
 import os
 
-from git_clone import git_clone
-
 from src.Utility.OSUtility import OSUtility
 from src.Logging.Logger import Logger
 from src.Utility.FileUtility import FileUtility
