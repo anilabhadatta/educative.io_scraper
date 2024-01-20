@@ -76,27 +76,29 @@ class ApiUtility:
             topicNameList = []
             baseApiUrl = f"https://educative.io/api/collection/{authorId}/{collectionId}/page/"
             categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT", "CLOUD_LAB"]
-            idx = 0
+            topicIdx = 0
             toc = []
             for category in categories:
                 if any(cType in category["type"] for cType in categoryType) and (
                         isinstance(category["id"], int) or len(category["id"]) <= 10):
                     if not category["pages"]:
-                        topicApiUrlList.append(baseApiUrl + str(category["id"]) + f"?work_type={courseType}")
+                        topicApiUrl = baseApiUrl + str(category["id"]) + f"?work_type={courseType}"
+                        topicApiUrlList.append(topicApiUrl)
                         topicNameList.append(category["title"])
-                        category_topic = (idx, category["title"], baseApiUrl + str(category["id"]) + f"?work_type={courseType}")
+                        category_topic = (topicIdx, category["title"], topicApiUrl)
                         toc.append(category_topic)
-                        idx += 1
+                        topicIdx += 1
                     else:
                         category_topic = {"category": category["title"], "topics": []}
                         toc.append(category_topic)
 
-                    for page in category["pages"]:
-                        topicApiUrlList.append(baseApiUrl + str(page["id"]) + f"?work_type={courseType}")
-                        topicNameList.append(page["title"])
-                        category_topic["topics"].append(
-                            (idx, page["title"], baseApiUrl + str(page["id"]) + f"?work_type={courseType}"))
-                        idx += 1
+                        for page in category["pages"]:
+                            topicApiUrl = baseApiUrl + str(page["id"]) + f"?work_type={courseType}"
+                            topicApiUrlList.append(topicApiUrl)
+                            topicNameList.append(page["title"])
+                            category_topic["topics"].append((topicIdx, page["title"], topicApiUrl))
+                            topicIdx += 1
+
             return {
                 "courseTitle": courseTitle,
                 "topicApiUrlList": topicApiUrlList,
