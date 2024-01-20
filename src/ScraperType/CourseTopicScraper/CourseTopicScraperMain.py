@@ -12,6 +12,7 @@ from src.ScraperType.CourseTopicScraper.ScraperModules.SeleniumBasicUtility impo
 from src.ScraperType.CourseTopicScraper.ScraperModules.ShowUtility import ShowUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.SingleFileUtility import SingleFileUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.UrlUtility import UrlUtility
+from src.Utility.TOCUtility import TOCUtility
 from src.Utility.BrowserUtility import BrowserUtility
 from src.Utility.FileUtility import FileUtility
 from src.Utility.OSUtility import OSUtility
@@ -83,6 +84,8 @@ class CourseTopicScraper:
             courseTitle = self.fileUtils.filenameSlugify(courseCollectionsJson["courseTitle"])
             coursePath = os.path.join(self.outputFolderPath, courseTitle)
             self.fileUtils.createFolderIfNotExists(coursePath)
+            TOCUtility.serializeTocAndStore(courseCollectionsJson["courseTitle"], courseUrl, coursePath,
+                                            courseCollectionsJson["toc"], topicUrlsList)
 
             for topicIndex in range(startIndex, topicUrlsListLen):
                 topicUrl = topicUrlsList[topicIndex]
