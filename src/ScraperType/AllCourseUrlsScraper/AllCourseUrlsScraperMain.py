@@ -53,6 +53,7 @@ class AllCourseUrlsScraper:
             self.logger.info(f"Received Course Links {len(allCourseLinks)} and Path Links {len(allPathsLinks)}")
             self.generateCourseTopicLinks(allCourseLinks)
             self.generatePathTopicLinks(allPathsLinks)
+            self.logger.info("Completed Scraping Topic Urls")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CourseTopicScraper:start: {lineNumber}: {e}")
@@ -101,8 +102,8 @@ class AllCourseUrlsScraper:
 
     def generatePathTopicLinks(self, allPathsLinks):
         xPathForModules = "//a[contains(@href,'/module/') and contains(@href,'module/lesson/')=false]"
-        self.browser = self.browserUtils.loadBrowser()
         try:
+            self.browser = self.browserUtils.loadBrowser()
             for pathLink in allPathsLinks:
                 if pathLink[0] in self.courseLinkLogData:
                     self.logger.info(f"Skipping {pathLink[0]}")
