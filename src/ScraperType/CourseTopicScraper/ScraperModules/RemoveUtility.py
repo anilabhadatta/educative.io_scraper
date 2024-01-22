@@ -61,7 +61,7 @@ class RemoveUtility:
         try:
             self.logger.info("Removing unwanted elements")
             nodesToDelete = [self.selectors["navNode"], self.selectors["privacyNode"], self.selectors["streakNode"],
-                             self.selectors["askQuestionDarkModeToolbar"], self.selectors["sidebar"]]
+                             self.selectors["askQuestionDarkModeToolbar"], self.selectors["sidebar"], self.selectors["fixed"]]
             selectors = ", ".join([f'{node}' for node in nodesToDelete])
             removeTagsJsScript = f"""
             var elements = document.querySelectorAll("{selectors}");

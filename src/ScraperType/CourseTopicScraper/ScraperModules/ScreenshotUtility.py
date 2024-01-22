@@ -25,7 +25,7 @@ class ScreenshotUtility:
         self.seleniumBasicUtils.browser = self.browser
         try:
             canvas = self.browser.find_elements(By.XPATH, rootContentSelector)[-1]
-            base64Png = self.screenshotAsCdp(canvas, 1)
+            base64Png = self.screenshotAsCdp(canvas, 0.8)
             self.osUtils.sleep(2)
             self.logger.info("getFullPageScreenshot: Successfully Received Full Page Screenshot...")
             return base64Png
@@ -34,7 +34,7 @@ class ScreenshotUtility:
             raise Exception(f"ScreenshotHtmlUtility:getFullPageScreenshot: {lineNumber}: {e}")
 
 
-    def screenshotAsCdp(self, canvas, scale=1):
+    def screenshotAsCdp(self, canvas, scale=0.8):
         try:
             self.logger.info("Taking screenshot as CDP")
             size, location = canvas.size, canvas.location
@@ -52,8 +52,20 @@ class ScreenshotUtility:
                     "scale": scale
                 }
             }
-            screenshot = self.seleniumBasicUtils.sendCommand("Page.captureScreenshot", params)
-            return screenshot['data']
+            retry = 0
+            screenshotDataToReturn = None
+            while retry < 2:
+                try:
+                    screenshot = self.seleniumBasicUtils.sendCommand("Page.captureScreenshot", params)
+                    if "data" in screenshot:
+                        screenshotDataToReturn = screenshot["data"]
+                        self.logger.info("Successfully captured Screenshot")
+                        break
+                except Exception:
+                    pass
+                retry += 1
+                self.logger.info(f"Found Error taking Screenshot, retrying {retry} out of 2")
+            return screenshotDataToReturn
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ScreenshotUtility:screenshotAsCdp: {lineNumber}: {e}")

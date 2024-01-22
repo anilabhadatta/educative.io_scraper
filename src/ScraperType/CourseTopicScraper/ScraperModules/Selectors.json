@@ -16,7 +16,8 @@
     "streakNode": "div[aria-labelledby*='simple-modal-title']",
     "bodyChildNodes": "body > *",
     "headChildNodes": "head > *",
-    "sidebar": "div[aria-label*='toggle sidebar']"
+    "sidebar": "div[aria-label*='toggle sidebar']",
+    "fixed": "div[class*='fixed']"
   },
   "ShowUtility": {
     "showMarkDownQuizSolution": "Show Answer",
@@ -30,7 +31,7 @@
     "codeContainerClass": "monaco-editor"
   },
   "ScreenshotHtmlUtility": {
-    "rootContent": "//div[contains(@class, 'ed-grid-main')]//div[count(div)>=3][1]"
+    "rootContent": "//*[@id='view-collection-article-content-root']"
   },
   "ApiUtility": {
     "nextData": "script[id*='__NEXT_DATA__']"
