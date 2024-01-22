@@ -96,7 +96,7 @@ class CourseTopicScraper:
                 Scraping Topic: {topicName}: {topicUrl}
                 """)
                 self.loginUtils.checkIfLoggedIn()
-                topicApiContentJson = self.apiUtils.getCourseApiContentJson(topicApiUrl)
+                topicApiContentJson = self.apiUtils.getTopicApiContentJson(topicApiUrl)
                 self.osUtils.sleep(10)
                 self.scrapeTopic(coursePath, topicName, topicApiContentJson, topicUrl)
         except Exception as e:

@@ -39,6 +39,28 @@ class ApiUtility:
         return self.browser.execute_script(apiJsonScript)
 
 
+    def getTopicApiContentJson(self, topicApiUrl):
+        try:
+            self.logger.info(f"Getting Topic API Content JSON from URL: {topicApiUrl}")
+            retry = 1
+            jsonDataToReturn = None
+            while retry < 2:
+                try:
+                    jsonData = self.executeJsToGetJson(topicApiUrl)
+                    if "components" in jsonData:
+                        jsonDataToReturn = jsonData["components"]
+                        self.logger.info("Successfully fetched JSON API data")
+                        break
+                except Exception:
+                    pass
+                retry += 1
+                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 2: {topicApiUrl}")
+            return jsonDataToReturn
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
+
+
     def getCourseApiContentJson(self, courseApiUrl):
         try:
             self.logger.info(f"Getting Course API Content JSON from URL: {courseApiUrl}")
@@ -47,8 +69,8 @@ class ApiUtility:
             while retry < 2:
                 try:
                     jsonData = self.executeJsToGetJson(courseApiUrl)
-                    if "components" in jsonData:
-                        jsonDataToReturn = jsonData["components"]
+                    if "instance" in jsonData:
+                        jsonDataToReturn = jsonData["instance"]
                         self.logger.info("Successfully fetched JSON API data")
                         break
                 except Exception:
@@ -69,8 +91,8 @@ class ApiUtility:
                 courseType = "module"
             else:
                 courseType = "collection"
-            jsonData = self.executeJsToGetJson(courseApiUrl)
-            jsonData = jsonData["instance"]["details"]
+            jsonData = self.getCourseApiContentJson(courseApiUrl)
+            jsonData = jsonData["details"]
             authorId = str(jsonData["author_id"])
             collectionId = str(jsonData["collection_id"])
             categories = jsonData["toc"]["categories"]
