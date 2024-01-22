@@ -45,11 +45,14 @@ class ApiUtility:
             retry = 1
             jsonDataToReturn = None
             while retry < 2:
-                jsonData = self.executeJsToGetJson(courseApiUrl)
-                if "components" in jsonData:
-                    jsonDataToReturn = jsonData["components"]
-                    self.logger.info("Successfully fetched JSON API data")
-                    break
+                try:
+                    jsonData = self.executeJsToGetJson(courseApiUrl)
+                    if "components" in jsonData:
+                        jsonDataToReturn = jsonData["components"]
+                        self.logger.info("Successfully fetched JSON API data")
+                        break
+                except Exception:
+                    pass
                 retry += 1
                 self.logger.info(f"Found Error fetching Json, retrying {retry} out of 2: {courseApiUrl}")
             return jsonDataToReturn
