@@ -173,7 +173,12 @@ class CodeUtility:
             if "codeContents" in content:
                 children = content["codeContents"]["children"]
                 for codeContents in children:
-                    self.downloadRecursivelyFromWebpackBin(codeContents, self.codeFolderPath)
+                    nextFolderPath = self.codeFolderPath
+                    if "leaf" in codeContents and not codeContents['leaf']:
+                        module = codeContents["module"]
+                        nextFolderPath = os.path.join(nextFolderPath, module)
+                        self.fileUtils.createFolderIfNotExists(nextFolderPath)
+                    self.downloadRecursivelyFromWebpackBin(codeContents, nextFolderPath)
             self.logger.info(f"WebpackBin Downloaded at: {self.codeFolderPath}")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
