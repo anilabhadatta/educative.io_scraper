@@ -145,7 +145,7 @@ class ApiUtility:
             if "/module/" not in topicUrl:
                 self.seleniumBasicUtils.browser = self.browser
                 self.seleniumBasicUtils.expandAllSections()
-            self.logger.info(f"Course URL Selector: {topicUrlSelector}")
+            self.logger.info(f"Topic URL Selector: {topicUrlSelector}")
             topicUrlJsScript = f"""
             var topicUrls = document.evaluate("{topicUrlSelector}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
             var hrefData  = [];

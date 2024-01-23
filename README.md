@@ -13,7 +13,7 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. I developed it solely for research
 purposes and take no responsibility for its misuse.
 
-Repository Version: v3.3.2 (Latest)
+Repository Version: v3.3.3 (Latest)
 Master Branch: v3-master</code></pre>
 
 ###                                
