@@ -137,9 +137,11 @@ class ApiUtility:
 
     def getCourseTopicUrlsList(self, topicUrl, courseUrl):
         try:
-            self.logger.info(f"Getting Course Topic URLs List from URL: {courseUrl}")
+            self.logger.info(f"Getting Course Topic URLs List from Course URL: {courseUrl}")
             self.browser.get(courseUrl)
+            self.logger.info(f"Topic URL: {topicUrl}")
             topicUrlSelector = self.urlUtils.getTopicUrlSelector(topicUrl)
+            self.logger.info(f"Topic URL Selector: {topicUrlSelector}")
             WebDriverWait(self.browser, self.timeout).until(
                 EC.presence_of_element_located((By.XPATH, topicUrlSelector)))
             if "/module/" not in topicUrl:

@@ -46,9 +46,9 @@ class CodeUtility:
             prependCode, appendCode, tabTitle, testCasePrependCode, entryFileName = "", "", "", "", "main"
             content = self.component["content"]
             if "entryFileName" in content:
-                entryFileName = content["entryFileName"]
+                entryFileName = self.fileUtils.filenameSlugify(content["entryFileName"])
             if "title" in content:
-                tabTitle = content["title"]
+                tabTitle = self.fileUtils.filenameSlugify(content["title"])
             if "hiddenCodeContent" in content:
                 if "prependCode" in content["hiddenCodeContent"]:
                     prependCode = content["hiddenCodeContent"]["prependCode"]
@@ -69,7 +69,7 @@ class CodeUtility:
             self.fileUtils.createTextFile(textFilePath, codeContents)
             if "additionalContent" in content:
                 for additionalContent in content["additionalContent"]:
-                    additionalContentFileName = additionalContent["fileName"]
+                    additionalContentFileName = self.fileUtils.filenameSlugify(additionalContent["fileName"])
                     additionalContentCode = additionalContent["content"]
                     textFilePath = os.path.join(self.codeFolderPath, f"{tabTitle}{additionalContentFileName}.txt")
                     self.fileUtils.createTextFile(textFilePath, additionalContentCode)
@@ -85,7 +85,7 @@ class CodeUtility:
             self.logger.info("Downloading Editor Code...")
             content = self.component["content"]
             if "content" in content and "language" in content:
-                language = content["language"]
+                language = self.fileUtils.filenameSlugify(content["language"])
                 codeContent = content["content"]
                 textFilePath = os.path.join(self.codeFolderPath, f"{language}Code.txt")
                 self.fileUtils.createTextFile(textFilePath, codeContent)
@@ -128,14 +128,14 @@ class CodeUtility:
                 subFiles = additionalFiles[additionalFile]
                 for subFile in subFiles:
                     codeContents = subFiles[subFile]["codeContents"]["content"]
-                    language = subFiles[subFile]["codeContents"]["language"]
+                    language = self.fileUtils.filenameSlugify(subFiles[subFile]["codeContents"]["language"])
                     textFilePath = os.path.join(self.codeFolderPath, f"{language}{subFile}.txt")
                     self.fileUtils.createTextFile(textFilePath, codeContents)
 
             mainCodeContent = content["languageContents"]
             for mainCode in mainCodeContent:
                 codeContents = mainCodeContent[mainCode]["codeContents"]["content"]
-                language = mainCodeContent[mainCode]["codeContents"]["language"]
+                language = self.fileUtils.filenameSlugify(mainCodeContent[mainCode]["codeContents"]["language"])
                 textFilePath = os.path.join(self.codeFolderPath, f"{language}main.txt")
                 self.fileUtils.createTextFile(textFilePath, codeContents)
             self.logger.info(f"CodeTest Downloaded at: {self.codeFolderPath}")
@@ -152,11 +152,11 @@ class CodeUtility:
                 solutionPanels = content["solutionPanels"]
                 for solutionPanel in solutionPanels:
                     solutionContent = solutionPanels[solutionPanel]
-                    textFilePath = os.path.join(self.codeFolderPath, f"Solution{solutionPanel}.txt")
+                    textFilePath = os.path.join(self.codeFolderPath, f"Solution{self.fileUtils.filenameSlugify(solutionPanel)}.txt")
                     self.fileUtils.createTextFile(textFilePath, solutionContent)
             files = content["files"]
             for file in files:
-                fileType = file["type"]
+                fileType = self.fileUtils.filenameSlugify(file["type"])
                 fileContent = file["content"]
                 textFilePath = os.path.join(self.codeFolderPath, f"{fileType}.txt")
                 self.fileUtils.createTextFile(textFilePath, fileContent)
@@ -175,7 +175,7 @@ class CodeUtility:
                 for codeContents in children:
                     nextFolderPath = self.codeFolderPath
                     if "leaf" in codeContents and not codeContents['leaf']:
-                        module = codeContents["module"]
+                        module = self.fileUtils.filenameSlugify(codeContents["module"])
                         nextFolderPath = os.path.join(nextFolderPath, module)
                         self.fileUtils.createFolderIfNotExists(nextFolderPath)
                     self.downloadRecursivelyFromWebpackBin(codeContents, nextFolderPath)
@@ -191,7 +191,7 @@ class CodeUtility:
             if "children" in codeContents:
                 for child in codeContents["children"]:
                     leaf = child["leaf"]
-                    module = child["module"]
+                    module = self.fileUtils.filenameSlugify(child["module"])
                     if not leaf:
                         self.logger.info("Creating Folder")
                         nextFolderPath = os.path.join(codeFolderPath, module)
@@ -204,7 +204,7 @@ class CodeUtility:
                         self.fileUtils.createTextFile(textFilePath, fileContent)
 
             if "leaf" in codeContents and codeContents["leaf"]:
-                module = codeContents["module"]
+                module = self.fileUtils.filenameSlugify(codeContents["module"])
                 fileContent = codeContents["data"]["content"]
                 textFilePath = os.path.join(codeFolderPath, f"{module}")
                 self.logger.info(f"Creating file: {module}")
