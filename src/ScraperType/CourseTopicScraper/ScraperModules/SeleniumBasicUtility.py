@@ -14,7 +14,7 @@ class SeleniumBasicUtility:
         self.fileUtils = FileUtility()
         self.osUtils = OSUtility(configJson)
         self.browser = None
-        self.timeout = 10
+        self.timeout = 5
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["SeleniumBasicUtility"]
         self.logger = Logger(configJson, "SeleniumBasicUtility").logger
@@ -64,8 +64,8 @@ class SeleniumBasicUtility:
     def loadingPageAndCheckIfSomethingWentWrong(self):
         self.logger.info("Loading page and checking if something went wrong")
         self.osUtils.sleep(self.timeout)
-        if "Something Went Wrong" in self.browser.page_source:
-            raise Exception(f"SeleniumBasicUtility:loadingPageAndCheckIfSomethingWentWrong: Something Went Wrong")
+        # if "Something Went Wrong" in self.browser.page_source:
+        #     raise Exception(f"SeleniumBasicUtility:loadingPageAndCheckIfSomethingWentWrong: Something Went Wrong")
 
 
     def addNameAttributeInNextBackButton(self):

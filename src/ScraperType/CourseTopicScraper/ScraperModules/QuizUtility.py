@@ -58,19 +58,20 @@ class QuizUtility:
         try:
             self.logger.info("Downloading Quiz...")
             content = self.component["content"]
-            questions = content["questions"]
-            self.generatedText = ""
-            for questionIndex, question in enumerate(questions):
-                questionText = question["questionText"]
-                questionOptions = question["questionOptions"]
-                questionOptionsText = ""
-                for optionIndex, option in enumerate(questionOptions):
-                    optionText = option["text"]
-                    explanation = ""
-                    if "explanation" in option:
-                        explanation = option["explanation"]["mdText"]
-                    correct = "Correct" if option["correct"] else "Incorrect"
-                    questionOptionsText += f"""
+            if "questions" in content:
+                questions = content["questions"]
+                self.generatedText = ""
+                for questionIndex, question in enumerate(questions):
+                    questionText = question["questionText"]
+                    questionOptions = question["questionOptions"]
+                    questionOptionsText = ""
+                    for optionIndex, option in enumerate(questionOptions):
+                        optionText = option["text"]
+                        explanation = ""
+                        if "explanation" in option:
+                            explanation = option["explanation"]["mdText"]
+                        correct = "Correct" if option["correct"] else "Incorrect"
+                        questionOptionsText += f"""
 {optionIndex + 1}. {optionText}
 {correct}
 {explanation}
