@@ -1,5 +1,6 @@
 import os
 
+from selenium.webdriver import Keys, ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -170,7 +171,11 @@ class ApiUtility:
 
     def getCourseUrl(self, topicUrl):
         try:
-            self.browser.get(topicUrl)
+            try:
+                self.browser.get(topicUrl)
+            except:
+                self.logger.info("Page Loading Issue, pressing ESC to stop page load")
+                ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
             courseTypeSelector = f"a[href*='/{topicUrl.split('/')[3]}/']"
             self.logger.info(f"Course Type Selector: {courseTypeSelector}")
             WebDriverWait(self.browser, self.timeout).until(

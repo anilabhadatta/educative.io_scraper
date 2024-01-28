@@ -1,5 +1,8 @@
 import os
 
+from selenium.webdriver import Keys, ActionChains
+from selenium.webdriver.common.by import By
+
 from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
 from src.ScraperType.CourseTopicScraper.ScraperModules.ApiUtility import ApiUtility
@@ -112,7 +115,11 @@ class CourseTopicScraper:
             self.singleFileUtils.browser = self.browser
             self.screenshotUtils.browser = self.browser
             self.printFileUtils.browser = self.browser
-            self.browser.get(topicUrl)
+            try:
+                self.browser.get(topicUrl)
+            except:
+                self.logger.info("Page Loading Issue, pressing ESC to stop page load")
+                ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
             self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
             self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
