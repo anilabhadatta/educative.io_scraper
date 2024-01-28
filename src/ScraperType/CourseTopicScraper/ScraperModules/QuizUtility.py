@@ -77,7 +77,7 @@ class QuizUtility:
 {explanation}
 ----------------------------
 """
-                self.generatedText += f"""
+                    self.generatedText += f"""
 ## Question {questionIndex + 1}
 {questionText}
 ### Options
