@@ -47,6 +47,7 @@ class BrowserUtility:
                 options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
             self.browser = webdriver.Remote(command_executor='http://127.0.0.1:9515', options=options)
             self.browser.set_window_size(1920, 1080)
+            self.browser.set_script_timeout(60)
             self.browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
             self.logger.info("Browser Initiated")
             return self.browser
@@ -103,8 +104,10 @@ class BrowserUtility:
     def scrollPage(self):
         self.logger.info("Scrolling Page")
         totalHeight = int(self.getCurrentHeight())
-        for i in range(1, totalHeight, 10):
+        for i in range(1, totalHeight, 500):
             self.browser.execute_script("window.scrollTo(0, {});".format(i))
+        self.browser.execute_script("window.scrollTo(0, {});".format(totalHeight))
+        self.browser.execute_script("window.scrollTo(0, 0);")
         self.osUtils.sleep(2)
 
 

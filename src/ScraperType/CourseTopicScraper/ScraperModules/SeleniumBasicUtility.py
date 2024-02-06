@@ -51,10 +51,10 @@ class SeleniumBasicUtility:
             articlePageSelector = self.selectors["articlePage"]
             generalPageSelector = self.selectors["generalPage"]
             try:
-                WebDriverWait(self.browser, self.timeout).until(
+                WebDriverWait(self.browser, self.timeout+5).until(
                     EC.visibility_of_element_located((By.XPATH, articlePageSelector)))
             except Exception as e:
-                WebDriverWait(self.browser, self.timeout).until(
+                WebDriverWait(self.browser, self.timeout+5).until(
                     EC.visibility_of_element_located((By.XPATH, generalPageSelector)))
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
