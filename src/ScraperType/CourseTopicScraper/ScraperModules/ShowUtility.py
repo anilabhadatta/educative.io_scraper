@@ -47,12 +47,16 @@ class ShowUtility:
             showCodeSolutionSelector = self.selectors["showCodeSolution"]
             confirmButtonSelector = self.selectors["confirmShowSolution"]
             showCodeSolutionJsScript = f"""
+            async function clickForceShow() {{
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              document.querySelector("{confirmButtonSelector}").click();
+            }}
             var buttons = document.querySelectorAll('button');
             var count = 0;
             buttons.forEach(button => {{
               if (button.textContent.trim() === "{showCodeSolutionSelector}" && button.disabled === false) {{
                   button.click();
-                  document.querySelector("{confirmButtonSelector}")?.click();
+                  clickForceShow();
                   button.disabled = true;
                   count++;
             }}}});
