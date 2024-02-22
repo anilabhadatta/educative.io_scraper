@@ -55,7 +55,7 @@ class ApiUtility:
                 except Exception:
                     pass
                 retry += 1
-                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 2: {topicApiUrl}")
+                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 3: {topicApiUrl}")
             return jsonDataToReturn
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
@@ -77,7 +77,7 @@ class ApiUtility:
                 except Exception:
                     pass
                 retry += 1
-                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 2: {courseApiUrl}")
+                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 3: {courseApiUrl}")
             return jsonDataToReturn
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
