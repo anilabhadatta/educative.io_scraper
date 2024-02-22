@@ -342,7 +342,6 @@ class HomeScreen:
                 process.join()
             except psutil.NoSuchProcess:
                 pass
-        asyncio.get_event_loop().run_until_complete(browserUtil.getCurrentUrlViaWebsocket())
         asyncio.get_event_loop().run_until_complete(browserUtil.shutdownChromeViaWebsocket())
         self.processes = []
         self.updateButtonState()

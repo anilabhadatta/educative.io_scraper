@@ -9,12 +9,14 @@ from src.Logging.Logger import Logger
 from src.ScraperType.CourseTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.UrlUtility import UrlUtility
 from src.Utility.FileUtility import FileUtility
+from src.Utility.OSUtility import OSUtility
 
 
 class ApiUtility:
     def __init__(self, configJson):
         self.browser = None
         self.timeout = 10
+        self.osUtils = OSUtility(configJson)
         self.urlUtils = UrlUtility()
         self.fileUtils = FileUtility()
         self.seleniumBasicUtils = SeleniumBasicUtility(configJson)
@@ -55,6 +57,7 @@ class ApiUtility:
                 except Exception:
                     pass
                 retry += 1
+                self.osUtils.sleep(2)
                 self.logger.info(f"Found Error fetching Json, retrying {retry} out of 3: {topicApiUrl}")
             return jsonDataToReturn
         except Exception as e:
@@ -77,6 +80,7 @@ class ApiUtility:
                 except Exception:
                     pass
                 retry += 1
+                self.osUtils.sleep(2)
                 self.logger.info(f"Found Error fetching Json, retrying {retry} out of 3: {courseApiUrl}")
             return jsonDataToReturn
         except Exception as e:
