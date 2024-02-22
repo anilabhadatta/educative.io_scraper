@@ -104,9 +104,8 @@ class BrowserUtility:
     def scrollPage(self):
         self.logger.info("Scrolling Page")
         totalHeight = int(self.getCurrentHeight())
-        for i in range(1, totalHeight, 500):
-            self.browser.execute_script("window.scrollTo(0, {});".format(i))
-        self.browser.execute_script("window.scrollTo(0, {});".format(totalHeight))
+        for i in range(0, totalHeight, 50):
+            self.browser.execute_script(f"window.scrollTo({i}, {i+50});")
         self.browser.execute_script("window.scrollTo(0, 0);")
         self.osUtils.sleep(2)
 
