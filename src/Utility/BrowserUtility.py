@@ -34,8 +34,8 @@ class BrowserUtility:
             self.logger.info("Loading Browser...")
             userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], "Default")
             options = uc.ChromeOptions()
-            # if self.configJson["headless"]:
-            #     options.add_argument('--headless=new')
+            if self.configJson["headless"]:
+                options.add_argument('--headless=new')
             options.add_argument("--start-maximized")
             options.add_argument('--disable-gpu')
             options.add_argument('--no-sandbox')
@@ -50,7 +50,7 @@ class BrowserUtility:
             # dstChromeDriverPAth = self.recreateChromedriver()
             if self.configJson["isProxy"]:
                 options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
-            self.browser = uc.Chrome(headless=self.configJson["headless"],driver_executable_path=constants.chromeDriverPath, options=options, user_data_dir=userDataDir)
+            self.browser = uc.Chrome(use_subprocess=True,driver_executable_path=constants.chromeDriverPath, options=options, user_data_dir=userDataDir)
             self.browser.set_window_size(1920, 1080)
             self.browser.set_script_timeout(60)
             remoteDebuggingAddress = self.browser.capabilities['goog:chromeOptions']['debuggerAddress']
@@ -78,9 +78,12 @@ class BrowserUtility:
     def terminateChrome(self):
         if self.browser is not None:
             self.browser.quit()
-            pid = self.browser.service.process.pid
-            Process(pid=pid).terminate()
-            self.logger.info(f"Killed chromedriver {str(pid)}")
+            try:
+                pid = self.browser.service.process.pid
+                Process(pid=pid).terminate()
+                self.logger.info(f"Killed chromedriver {str(pid)}")
+            except:
+                self.logger.info(f"No chromedriver found")
 
 
     def saveWebSocketUrl(self, remoteDebuggingAddress, pid):
