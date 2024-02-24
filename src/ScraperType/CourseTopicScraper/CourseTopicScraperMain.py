@@ -1,4 +1,5 @@
 import os
+from psutil import Process
 
 from selenium.webdriver import Keys, ActionChains
 from selenium.webdriver.common.by import By
@@ -32,7 +33,6 @@ class CourseTopicScraper:
         self.urlUtils = UrlUtility()
         self.codeUtils = CodeUtility(configJson)
         self.quizUtils = QuizUtility(configJson)
-        self.browserUtils = BrowserUtility(configJson)
         self.loginUtils = LoginAccount(configJson)
         self.seleniumBasicUtils = SeleniumBasicUtility(configJson)
         self.removeUtils = RemoveUtility(configJson)
@@ -47,6 +47,7 @@ class CourseTopicScraper:
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
         for textFileUrl in urlsTextFile:
             try:
+                self.browserUtils = BrowserUtility(self.configJson)
                 if "?showContent=true" not in textFileUrl:
                     textFileUrl += "?showContent=true"
                 self.logger.info(f"Started Scraping from Text File URL: {textFileUrl}")
@@ -54,12 +55,11 @@ class CourseTopicScraper:
                 self.apiUtils.browser = self.browser
                 self.loginUtils.browser = self.browser
                 self.scrapeCourse(textFileUrl)
+                self.browserUtils.terminateChrome()
             except Exception as e:
+                self.browserUtils.terminateChrome()
                 lineNumber = e.__traceback__.tb_lineno
                 raise Exception(f"CourseTopicScraper:start: {lineNumber}: {e}")
-            finally:
-                if self.browser is not None:
-                    self.browser.quit()
         self.logger.info("CourseTopicScraper completed.")
 
 
@@ -124,7 +124,6 @@ class CourseTopicScraper:
             self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
             self.browserUtils.scrollPage()
-            # self.browserUtils.setWindowSize()
             self.removeUtils.removeBlurWithCSS()
             self.removeUtils.removeMarkAsCompleted()
             self.removeUtils.removeUnwantedElements()
@@ -132,6 +131,8 @@ class CourseTopicScraper:
             self.showUtils.showCodeSolutions()
             self.showUtils.showHints()
             self.showUtils.showSlides()
+            self.browserUtils.setWindowSize()
+            self.browserUtils.scrollPage()
             pageData = None
             courseTopicPath = os.path.join(coursePath, topicName)
             topicFilePath = os.path.join(courseTopicPath, f"{topicName}.{self.configJson['fileType']}")

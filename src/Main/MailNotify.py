@@ -15,5 +15,5 @@ class MailNotify:
         headers = {
             "content-type": "application/json",
         }
-        response = requests.request("POST", url, json=payload, headers=headers)
-        print(response.status_code)
+        # response = requests.request("POST", url, json=payload, headers=headers)
+        # print(response.status_code)

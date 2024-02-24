@@ -1,5 +1,9 @@
 import json
 import os
+import random
+import shutil
+import string
+from psutil import Process
 import requests
 import websockets
 
@@ -30,8 +34,8 @@ class BrowserUtility:
             self.logger.info("Loading Browser...")
             userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], "Default")
             options = uc.ChromeOptions()
-            if self.configJson["headless"]:
-                options.add_argument('--headless=new')
+            # if self.configJson["headless"]:
+            #     options.add_argument('--headless=new')
             options.add_argument("--start-maximized")
             options.add_argument('--disable-gpu')
             options.add_argument('--no-sandbox')
@@ -43,13 +47,15 @@ class BrowserUtility:
             options.add_argument("--disable-features=IsolateOrigins,site-per-process")
             options.add_argument('--log-level=3')
             options.binary_location = constants.chromeBinaryPath
+            # dstChromeDriverPAth = self.recreateChromedriver()
             if self.configJson["isProxy"]:
                 options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
-            self.browser = uc.Chrome(driver_executable_path=constants.chromeDriverPath, options=options, user_data_dir=userDataDir)
+            self.browser = uc.Chrome(headless=self.configJson["headless"],driver_executable_path=constants.chromeDriverPath, options=options, user_data_dir=userDataDir)
             self.browser.set_window_size(1920, 1080)
             self.browser.set_script_timeout(60)
             remoteDebuggingAddress = self.browser.capabilities['goog:chromeOptions']['debuggerAddress']
-            self.saveWebSocketUrl(remoteDebuggingAddress)
+            pid = str(self.browser.service.process.pid)
+            self.saveWebSocketUrl(remoteDebuggingAddress, pid)
             self.browser.command_executor._commands["send_command"] = ("POST", '/session/$sessionId/chromium/send_command')
             self.logger.info(f"Browser Initiated")
             return self.browser
@@ -59,21 +65,40 @@ class BrowserUtility:
                 raise Exception(f"BrowserUtility:loadBrowser: {lineNumber}: Chromedriver might not be running in background, Please click on Start Chromedriver.")
             raise Exception(f"BrowserUtility:loadBrowser: {lineNumber}: {e}")
 
+    def recreateChromedriver(self):
+        srcChromeDriverPath = constants.chromeDriverPath
+        directory, filename = os.path.split(srcChromeDriverPath)
+        fileName = ''.join(random.choice(string.ascii_lowercase) for _ in range(6)) + filename
+        dstChromeDriverPAth = os.path.join(directory, fileName)
+        shutil.copy2(srcChromeDriverPath, dstChromeDriverPAth)
 
-    def saveWebSocketUrl(self, remoteDebuggingAddress):
-        self.logger.debug("getDevToolsUrl called")
+        return dstChromeDriverPAth
+
+
+    def terminateChrome(self):
+        if self.browser is not None:
+            self.browser.quit()
+            pid = self.browser.service.process.pid
+            Process(pid=pid).terminate()
+            self.logger.info(f"Killed chromedriver {str(pid)}")
+
+
+    def saveWebSocketUrl(self, remoteDebuggingAddress, pid):
+        self.logger.info("saveWebSocketUrl called")
         devToolJsonUrl = f"http://{remoteDebuggingAddress}/json/version"
         response = requests.get(devToolJsonUrl)
         devToolUrl = json.loads(response.content)['webSocketDebuggerUrl']
-        with open(self.devToolsFilePath, 'w') as f:
-            f.write(devToolUrl)
-        self.logger.info("getDevToolsUrl completed with devToolUrl: " + devToolUrl)
+        content = devToolUrl + "\n" + pid
+        self.fileUtils.createTextFile(self.devToolsFilePath, content)
+        self.logger.info(f"saveWebSocketUrl completed with devToolUrl: {devToolUrl} pid : {pid}")
 
 
     async def shutdownChromeViaWebsocket(self):
         self.logger.debug("shutdownChromeViaWebsocket called")
         try:
-            devToolUrl = self.fileUtils.loadTextFile(self.devToolsFilePath)[0]
+            content = self.fileUtils.loadTextFile(self.devToolsFilePath)
+            devToolUrl = content[0]
+            pid = content[1]
             async with websockets.connect(devToolUrl) as websocket:
                 message = {
                     "id": 1,
@@ -81,7 +106,8 @@ class BrowserUtility:
                 }
                 await websocket.send(json.dumps(message))
                 await websocket.recv()
-                self.logger.info("Browser closed via websocket")
+                Process(pid=int(pid)).terminate()
+                self.logger.info(f"Browser closed via websocket {devToolUrl} pid: {pid}")
         except Exception as e:
             self.logger.error("No Browser was open to close via websocket")
 
@@ -93,8 +119,9 @@ class BrowserUtility:
     def scrollPage(self):
         self.logger.info("Scrolling Page")
         totalHeight = int(self.getCurrentHeight())
-        for i in range(0, totalHeight, 50):
-            self.browser.execute_script(f"window.scrollTo({i}, {i+50});")
+        for i in range(0, totalHeight, 500):
+            self.osUtils.sleep(0.5)
+            self.browser.execute_script(f"window.scrollTo({i}, {i+500});")
         self.browser.execute_script("window.scrollTo(0, 0);")
         self.osUtils.sleep(2)
 

@@ -33,8 +33,7 @@ class LoginAccount:
             self.logger.error(f"start: {lineNumber}: {e}")
         finally:
             self.logger.debug("Exiting...")
-            if self.browser is not None:
-                self.browser.quit()
+            self.browserUtil.terminateChrome()
 
 
     def checkIfLoggedIn(self):
