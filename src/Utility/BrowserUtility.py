@@ -25,14 +25,13 @@ class BrowserUtility:
             self.logger = Logger(configJson, "BrowserUtility").logger
         self.osUtils = OSUtility(configJson)
         self.fileUtils = FileUtility()
-        self.devToolsFilePath = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], "Default",
-                                             "DevToolsActivePort")
+        self.userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], "Default")
+        self.devToolsFilePath = os.path.join(self.userDataDir, "DevToolsActivePort")
 
 
     def loadBrowser(self):
         try:
             self.logger.info("Loading Browser...")
-            userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], "Default")
             options = uc.ChromeOptions()
             if self.configJson["headless"]:
                 options.add_argument('--headless=new')
@@ -47,10 +46,9 @@ class BrowserUtility:
             options.add_argument("--disable-features=IsolateOrigins,site-per-process")
             options.add_argument('--log-level=3')
             options.binary_location = constants.chromeBinaryPath
-            # dstChromeDriverPAth = self.recreateChromedriver()
             if self.configJson["isProxy"]:
                 options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
-            self.browser = uc.Chrome(use_subprocess=True,driver_executable_path=constants.chromeDriverPath, options=options, user_data_dir=userDataDir)
+            self.browser = uc.Chrome(driver_executable_path=constants.chromeDriverPath, options=options, user_data_dir=self.userDataDir)
             self.browser.set_window_size(1920, 1080)
             self.browser.set_script_timeout(60)
             remoteDebuggingAddress = self.browser.capabilities['goog:chromeOptions']['debuggerAddress']
@@ -65,25 +63,27 @@ class BrowserUtility:
                 raise Exception(f"BrowserUtility:loadBrowser: {lineNumber}: Chromedriver might not be running in background, Please click on Start Chromedriver.")
             raise Exception(f"BrowserUtility:loadBrowser: {lineNumber}: {e}")
 
-    def recreateChromedriver(self):
-        srcChromeDriverPath = constants.chromeDriverPath
-        directory, filename = os.path.split(srcChromeDriverPath)
-        fileName = ''.join(random.choice(string.ascii_lowercase) for _ in range(6)) + filename
-        dstChromeDriverPAth = os.path.join(directory, fileName)
-        shutil.copy2(srcChromeDriverPath, dstChromeDriverPAth)
 
-        return dstChromeDriverPAth
+    def killProcess(self, pid):
+        try:
+            Process(pid=pid).terminate()
+            self.logger.info(f"Killed chromedriver {str(pid)}")
+        except:
+            self.logger.info(f"No chromedriver process found")
 
 
-    def terminateChrome(self):
-        if self.browser is not None:
-            self.browser.quit()
-            try:
-                pid = self.browser.service.process.pid
-                Process(pid=pid).terminate()
-                self.logger.info(f"Killed chromedriver {str(pid)}")
-            except:
-                self.logger.info(f"No chromedriver found")
+    def deleteLockFiles(self):
+        try:
+            files = os.listdir(self.userDataDir)
+            for file in files:
+                if file.startswith("Singleton"):
+                    filePath = os.path.join(self.userDataDir, file)
+                    if not os.path.isdir(filePath):
+                        os.remove(filePath)
+                        self.logger.info(f"Deleted: {filePath}")
+            self.logger.info(f"Deletion of files with prefix Singleton completed.")
+        except Exception as e:
+            self.logger.info(f"An error occurred while deleting lock files: {e}")
 
 
     def saveWebSocketUrl(self, remoteDebuggingAddress, pid):
@@ -109,10 +109,12 @@ class BrowserUtility:
                 }
                 await websocket.send(json.dumps(message))
                 await websocket.recv()
-                Process(pid=int(pid)).terminate()
                 self.logger.info(f"Browser closed via websocket {devToolUrl} pid: {pid}")
         except Exception as e:
             self.logger.error("No Browser was open to close via websocket")
+        finally:
+            self.killProcess(int(pid))
+            self.deleteLockFiles()
 
 
     def getCurrentHeight(self):

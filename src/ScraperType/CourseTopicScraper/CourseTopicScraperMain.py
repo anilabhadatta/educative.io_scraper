@@ -1,3 +1,4 @@
+import asyncio
 import os
 from psutil import Process
 
@@ -40,6 +41,7 @@ class CourseTopicScraper:
         self.singleFileUtils = SingleFileUtility(configJson)
         self.screenshotUtils = ScreenshotUtility(configJson)
         self.printFileUtils = PrintFileUtility(configJson)
+        self.browserUtils = BrowserUtility(self.configJson)
 
 
     def start(self):
@@ -47,7 +49,6 @@ class CourseTopicScraper:
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
         for textFileUrl in urlsTextFile:
             try:
-                self.browserUtils = BrowserUtility(self.configJson)
                 if "?showContent=true" not in textFileUrl:
                     textFileUrl += "?showContent=true"
                 self.logger.info(f"Started Scraping from Text File URL: {textFileUrl}")
@@ -55,9 +56,9 @@ class CourseTopicScraper:
                 self.apiUtils.browser = self.browser
                 self.loginUtils.browser = self.browser
                 self.scrapeCourse(textFileUrl)
-                self.browserUtils.terminateChrome()
+                asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
             except Exception as e:
-                self.browserUtils.terminateChrome()
+                asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
                 lineNumber = e.__traceback__.tb_lineno
                 raise Exception(f"CourseTopicScraper:start: {lineNumber}: {e}")
         self.logger.info("CourseTopicScraper completed.")

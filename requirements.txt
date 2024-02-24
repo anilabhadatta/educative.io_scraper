@@ -1,6 +1,6 @@
 python-slugify==7.0.0
 requests==2.31.0
-selenium==4.7.2
+undetected-chromedriver==3.5.5
 sortedcontainers==2.4.0
 urllib3==1.26.13
 websockets==11.0.3
