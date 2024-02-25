@@ -9,8 +9,8 @@ I wholeheartedly welcome contributions from individuals in any capacity to enhan
 Thank you for your support!
 
 Disclaimer:
-I want to clarify that I am not accountable for any inappropriate use of this scraper. I developed it solely for research
-purposes and take no responsibility for its misuse.
+I want to clarify that I am not accountable for any inappropriate use of this scraper. 
+I developed it solely for research purposes and take no responsibility for its misuse.
 
 Repository Version: v3.4 (Latest-recommended) multiple fixes and added undetected-chromedriver
 Master Branch: v3-master</code></pre>
@@ -48,7 +48,7 @@ cd educative.io_scraper
       --run: Activates the environment and starts the scraper. [Default = True]
       --create: Creates a shortcut executable file linked to the scraper directory.
       
-      Note: If you have updated to v3.4.0+, run with --install arg again, 
+      Note: If you have updated to v3.4.0+, run with --install arg again (clean install) and delete old UserDataDir, 
             If you have updated to v3.1.0+, Redownload Chrome Binary and Chrome driver.
             
             If the git repository is moved to a different location after creating
@@ -111,7 +111,6 @@ cd educative.io_scraper
         <li> After setting up the tunnel, enter the IP:PORT of the localhost proxy that you configured in the Proxy Login Automator.</li>
         <br>
       </ul>
-    - Click on `Start Chromedriver` to start the Chromedriver.
     - Click on `Login Account` to log in to your Educative.io account and click on `Close Browser Button` to close the
       browser after the login is completed.
     - Click on `Start Scraper` to begin scraping the courses.
@@ -123,5 +122,6 @@ cd educative.io_scraper
       <div align="center">
       <br><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/48487849/264581350-dd669e5a-739c-4ff1-a7b3-6beb2eba5437.png" style="width: 80%; height:80%;">
       </div>
+    - It is required that you don't stop the scraper when the browser is being loaded, otherwise, it will break and you will need to stop the Chromedriver and chrome processes running in background.
     - An index is `NOT` required in the URL's text file, Simply paste the URLs of the topic from which you
       want to start/resume scraping.
