@@ -12,12 +12,13 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.4 (Latest-Recommended) multiple fixes and added undetected-chromedriver
+Repository Version: v3.4.1 (Latest-Recommended) multiple fixes and added undetected-chromedriver
 Master Branch: v3-master</code></pre>
 ```
-Note: 1. If you have updated to v3.4.0+, 
+Note: 1. If you have updated to v3.4.1+, 
       -  Run with --install arg again OR manually clean install
-      -  Delete the old UserDataDir      
+      -  Delete the old UserDataDir
+      -  No existing chrome browser should be running in background      
       2. If you have updated to v3.1.0+, Redownload Chrome Binary and Chrome driver.
 ```
 ###                                
@@ -125,6 +126,5 @@ cd educative.io_scraper
       <div align="center">
       <br><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/48487849/264581350-dd669e5a-739c-4ff1-a7b3-6beb2eba5437.png" style="width: 80%; height:80%;">
       </div>
-    - It is required that you don't stop the scraper when the browser is being loaded, otherwise, it will break and you will need to stop the Chromedriver and chrome processes running in background.
     - An index is `NOT` required in the URL's text file, Simply paste the URLs of the topic from which you
       want to start/resume scraping.
