@@ -1,19 +1,18 @@
 # Educative.io Scraper -- Educative.io Downloader
 
 <pre><code style="white-space : pre-wrap !important;">Description: 
-Discover the power of automation with my Python-based Educative.io Course Scraper. Harnessing the capabilities of Selenium
-and Chromium-based browsers, this tool effortlessly scrapes and saves Educative.io courses for offline use enabling you to
+This tool effortlessly scrapes and saves Educative.io courses for offline use enabling you to
 learn at your own pace, even without an internet connection.
 
 Contributions:
-I wholeheartedly welcome contributions from individuals in any capacity to enhance this project. Together, we can make this project even better. Join us in building a community of learners
-and contributors. Thank you for your support!
+I wholeheartedly welcome contributions from individuals in any capacity to enhance this project.
+Thank you for your support!
 
 Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. I developed it solely for research
 purposes and take no responsibility for its misuse.
 
-Repository Version: v3.3.6 (Latest)
+Repository Version: v3.4 (Latest-recommended) multiple fixes and added undetected-chromedriver
 Master Branch: v3-master</code></pre>
 
 ###                                
@@ -49,7 +48,7 @@ cd educative.io_scraper
       --run: Activates the environment and starts the scraper. [Default = True]
       --create: Creates a shortcut executable file linked to the scraper directory.
       
-      Note: If you have updated to v3.3.0+, run with --install arg again, 
+      Note: If you have updated to v3.4.0+, run with --install arg again, 
             If you have updated to v3.1.0+, Redownload Chrome Binary and Chrome driver.
             
             If the git repository is moved to a different location after creating
@@ -58,16 +57,17 @@ cd educative.io_scraper
 
 
 - #### Manual Steps:
+    - ```pip install virtualenv```
     - #### Windows:
       ```
-      python -m venv env
+      python -m venv env <or> virtualenv env
       env\Scripts\activate
       pip install -r requirements.txt
       python EducativeScraper.py
       ```
     - #### MacOS/Linux:
       ```
-      python3 -m venv env
+      python3 -m venv env <or> virtualenv env
       source env/bin/activate
       pip3 install -r requirements.txt
       python3 EducativeScraper.py

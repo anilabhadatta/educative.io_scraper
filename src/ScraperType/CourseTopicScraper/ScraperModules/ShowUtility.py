@@ -119,10 +119,8 @@ class ShowUtility:
                 self.logger.info("No slides found")
             else:
                 self.browserUtils.browser = self.browser
-                self.osUtils.sleep(5)
                 self.browserUtils.scrollPage()
-                self.osUtils.sleep(5)
-                self.browserUtils.scrollPage()
+                self.osUtils.sleep(10)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ShowUtility:showSlides: {lineNumber}: {e}")
