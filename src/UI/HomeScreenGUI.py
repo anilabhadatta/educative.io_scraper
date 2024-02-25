@@ -196,7 +196,7 @@ class HomeScreen:
         self.downloadChromeBinaryButton = tk.Button(buttonScraperFrame, text="Download Chrome Binary", width=20,
                                                     command=self.downloadChromeBinary)
         self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
-                                                 command=self.startChromeDriver, width=19)
+                                                 command=self.startChromeDriver, width=19, state="disabled")
         self.loginAccountButton = tk.Button(buttonScraperFrame, text="Login Account", command=self.loginAccount,
                                             width=20)
         self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper,
@@ -361,7 +361,7 @@ class HomeScreen:
     def EnableDisableButtons(self, state):
         self.downloadChromeDriverButton.config(state=state)
         self.downloadChromeBinaryButton.config(state=state)
-        self.startChromeDriverButton.config(state=state)
+        # self.startChromeDriverButton.config(state=state)
         self.startScraperButton.config(state=state)
         self.loginAccountButton.config(state=state)
 

@@ -114,7 +114,7 @@ class FileUtility:
         </head>
         <body style="background-color: rgb(21 21 30); zoom: 80%">
             <div style="text-align: center">
-                <img style="display: block;margin-left: auto; margin-right: auto;" src="data:image/png;base64,{base64Png}" alt="">
+                <img style="max-width: 100%; display: block; margin-left: auto; margin-right: auto;" src="data:image/png;base64,{base64Png}" alt="">
             </div>
         </body>
         </html>

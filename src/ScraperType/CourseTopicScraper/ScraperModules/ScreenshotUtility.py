@@ -25,7 +25,8 @@ class ScreenshotUtility:
         self.seleniumBasicUtils.browser = self.browser
         try:
             canvas = self.browser.find_elements(By.XPATH, rootContentSelector)[-1]
-            base64Png = self.screenshotAsCdp(canvas, 0.8)
+            base64Png = self.browser.get_screenshot_as_base64()
+            # base64Png = self.screenshotAsCdp(canvas, 0.8)
             self.osUtils.sleep(2)
             self.logger.info("getFullPageScreenshot: Successfully Received Full Page Screenshot...")
             return base64Png
@@ -40,7 +41,7 @@ class ScreenshotUtility:
             size, location = canvas.size, canvas.location
             width, height = size['width'], size['height']
             x, y = location['x'], location['y']
-
+            self.logger.info(f"width {width}, height {height} x {x} y {y}")
             params = {
                 "format": "png",
                 "captureBeyondViewport": True,

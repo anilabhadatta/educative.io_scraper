@@ -1,13 +1,8 @@
 import json
 import os
-import random
-import shutil
-import string
 from psutil import Process
 import requests
 import websockets
-
-from selenium import webdriver
 
 from src.Common.Constants import constants
 from src.Utility.FileUtility import FileUtility
@@ -98,10 +93,10 @@ class BrowserUtility:
 
     async def shutdownChromeViaWebsocket(self):
         self.logger.debug("shutdownChromeViaWebsocket called")
+        content = self.fileUtils.loadTextFile(self.devToolsFilePath)
+        devToolUrl = content[0]
+        pid = content[1]
         try:
-            content = self.fileUtils.loadTextFile(self.devToolsFilePath)
-            devToolUrl = content[0]
-            pid = content[1]
             async with websockets.connect(devToolUrl) as websocket:
                 message = {
                     "id": 1,
