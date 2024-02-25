@@ -14,7 +14,12 @@ I developed it solely for research purposes and take no responsibility for its m
 
 Repository Version: v3.4 (Latest-recommended) multiple fixes and added undetected-chromedriver
 Master Branch: v3-master</code></pre>
-
+```
+Note: 1. If you have updated to v3.4.0+, 
+      -  run with --install arg again OR manually clean install
+      -  delete the old UserDataDir      
+      2. If you have updated to v3.1.0+, Redownload Chrome Binary and Chrome driver.
+```
 ###                                
 
 ## To view the downloaded courses, you can use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
@@ -47,12 +52,9 @@ cd educative.io_scraper
       --install: Creates a virtual environment and installs the required dependencies.
       --run: Activates the environment and starts the scraper. [Default = True]
       --create: Creates a shortcut executable file linked to the scraper directory.
-      
-      Note: If you have updated to v3.4.0+, run with --install arg again (clean install) and delete old UserDataDir, 
-            If you have updated to v3.1.0+, Redownload Chrome Binary and Chrome driver.
             
             If the git repository is moved to a different location after creating
-            the executable then recreate it again to set the current repository path.
+            the executable then recreate it again to set the new repository path.
       ```
 
 
