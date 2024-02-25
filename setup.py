@@ -22,6 +22,10 @@ class Setup:
         os.chdir(self.rootDir)
 
 
+    def installVirtualEnvInLinux(self):
+        self.command = f"sudo apt-get install python3-virtualenv -y && exit"
+        subprocess.run(self.command, shell=True)
+
     def installTkinterInLinux(self):
         self.command = f"sudo apt-get install python3-tk -y && exit"
         subprocess.run(self.command, shell=True)
@@ -35,10 +39,12 @@ class Setup:
     def installDependencies(self):
         self.removeFolderIfExists(self.envPath)
         self.command = f"{self.pythonPrefix} -m venv env && {self.envActivation} && {self.pipPrefix} install -r requirements.txt && exit"
-        subprocess.run(self.command, shell=True)
         if self.currentOS == "Linux":
             self.installTkinterInLinux()
             self.installPython3DevInLinux()
+            self.installVirtualEnvInLinux()
+            self.command = f"virtualenv env && {self.envActivation} && {self.pipPrefix} install -r requirements.txt && exit"
+        subprocess.run(self.command, shell=True)
 
 
     def createExecutable(self):
