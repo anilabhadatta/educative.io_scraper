@@ -12,12 +12,12 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.4 (Latest-recommended) multiple fixes and added undetected-chromedriver
+Repository Version: v3.4 (Latest-Recommended) multiple fixes and added undetected-chromedriver
 Master Branch: v3-master</code></pre>
 ```
 Note: 1. If you have updated to v3.4.0+, 
-      -  run with --install arg again OR manually clean install
-      -  delete the old UserDataDir      
+      -  Run with --install arg again OR manually clean install
+      -  Delete the old UserDataDir      
       2. If you have updated to v3.1.0+, Redownload Chrome Binary and Chrome driver.
 ```
 ###                                
@@ -59,9 +59,9 @@ cd educative.io_scraper
 
 
 - #### Manual Steps:
-    - ```pip install virtualenv```
     - #### Windows:
       ```
+      pip install virtualenv
       python -m venv env <or> virtualenv env
       env\Scripts\activate
       pip install -r requirements.txt
@@ -69,6 +69,7 @@ cd educative.io_scraper
       ```
     - #### MacOS/Linux:
       ```
+      pip3 install virtualenv
       python3 -m venv env <or> virtualenv env
       source env/bin/activate
       pip3 install -r requirements.txt

@@ -175,6 +175,7 @@ class ApiUtility:
 
     def getCourseUrl(self, topicUrl):
         try:
+            self.logger.info("Getting Course url")
             try:
                 self.browser.get(topicUrl)
             except:

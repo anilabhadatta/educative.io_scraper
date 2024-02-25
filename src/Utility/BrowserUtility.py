@@ -1,6 +1,7 @@
 import json
 import os
-from psutil import Process
+
+import psutil
 import requests
 import websockets
 
@@ -54,17 +55,24 @@ class BrowserUtility:
             return self.browser
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
-            if "Failed to establish a new connection" in str(e) and 48 == lineNumber:
-                raise Exception(f"BrowserUtility:loadBrowser: {lineNumber}: Chromedriver might not be running in background, Please click on Start Chromedriver.")
             raise Exception(f"BrowserUtility:loadBrowser: {lineNumber}: {e}")
 
 
-    def killProcess(self, pid):
+    def killProcessByPid(self, pid, pname="chromedriver"):
+        self.logger.info(f"Trying to terminate {pname} (PID {pid}).")
         try:
-            Process(pid=pid).terminate()
-            self.logger.info(f"Killed chromedriver {str(pid)}")
+            psutil.Process(pid=pid).terminate()
+            self.logger.info(f"Process {pname} (PID {pid}) terminated successfully.")
         except:
-            self.logger.info(f"No chromedriver process found")
+            self.logger.info(f"No {pname} process found")
+
+
+    def killProcessByName(self, processNameArr):
+        for process in psutil.process_iter():
+            pname = process.name()
+            pid = process.pid
+            if pname in processNameArr:
+                self.killProcessByPid(pid, pname)
 
 
     def deleteLockFiles(self):
@@ -104,12 +112,13 @@ class BrowserUtility:
                 }
                 await websocket.send(json.dumps(message))
                 await websocket.recv()
-                self.logger.info(f"Browser closed via websocket {devToolUrl} pid: {pid}")
+                self.logger.info(f"Browser closed via websocket {devToolUrl}")
         except Exception as e:
             self.logger.error("No Browser was open to close via websocket")
         finally:
-            self.killProcess(int(pid))
+            # self.killProcessByPid(int(pid))
             self.deleteLockFiles()
+            self.killProcessByName(["chrome", "chrome.exe", "chromedriver", "chromedriver.exe"])
 
 
     def getCurrentHeight(self):
