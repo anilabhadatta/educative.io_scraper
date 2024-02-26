@@ -1,5 +1,6 @@
 import os
 
+from selenium.common import TimeoutException
 from selenium.webdriver import Keys, ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -178,9 +179,10 @@ class ApiUtility:
             self.logger.info("Getting Course url")
             try:
                 self.browser.get(topicUrl)
-            except:
+            except TimeoutException:
                 self.logger.info("Page Loading Issue, pressing ESC to stop page load")
-                ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
+                # ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
+                self.browser.execute_script("window.stop();")
             courseTypeSelector = f"a[href*='/{topicUrl.split('/')[3]}/']"
             self.logger.info(f"Course Type Selector: {courseTypeSelector}")
             WebDriverWait(self.browser, self.timeout).until(
