@@ -20,6 +20,7 @@ Note: 1. If you have updated to v3.4.1+,
       -  Delete the old UserDataDir
       -  No existing chrome browser should be running in background      
       2. If you have updated to v3.1.0+, Redownload Chrome Binary and Chrome driver.
+      3. Send a mail notification status, Setup here: /src/Main/MailNotify.py
 ```
 ###                                
 
