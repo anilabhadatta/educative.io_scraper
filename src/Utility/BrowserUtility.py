@@ -69,10 +69,13 @@ class BrowserUtility:
 
     def killProcessByName(self, processNameArr):
         for process in psutil.process_iter():
-            pname = process.name()
-            pid = process.pid
-            if pname in processNameArr:
-                self.killProcessByPid(pid, pname)
+            try:
+                pname = process.name()
+                pid = process.pid
+                if pname in processNameArr:
+                    self.killProcessByPid(pid, pname)
+            except:
+                self.logger.info(f"No {process} process found")
 
 
     def deleteLockFiles(self):
