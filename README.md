@@ -18,8 +18,9 @@ Master Branch: v3-master</code></pre>
 Note: 1. If you have updated to v3.4.2+, 
       -  Run with --install arg again OR manually clean install
       -  Delete the old UserDataDir
-      -  No existing chrome browser should be running in background      
+      -  No existing Chrome browser should be running in the background      
       -  Redownload Chrome Binary and Chrome driver.
+      -  Undetected may not work in Mac Arm, so uncheck the option to use the default webdriver.
       2. Send a mail notification status, Setup here: /src/Main/MailNotify.py
 ```
 ###                                
@@ -79,7 +80,7 @@ cd educative.io_scraper
       ```
       <div align="center">
          <figure>
-            <img src="https://github.com/anilabhadatta/educative.io_scraper/assets/48487849/a5fc6d9a-cfa2-45fa-b834-fbda99d1666a" style="width: 50%; height:50%;">
+            <img src="https://github.com/anilabhadatta/educative.io_scraper/assets/48487849/82f550af-083f-41f7-b597-9caf90a80960" style="width: 50%; height:50%;">
             <br>
             <figcaption>Recommeded GUI Settings</figcaption>
          </figure>
