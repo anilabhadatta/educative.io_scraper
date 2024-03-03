@@ -32,7 +32,7 @@ Note: 1. If you have updated to v3.4.1+,
 
 ```
 Git
-Python 3.9+
+Python 3.12 or more
 OS: Win(x86/x64) - Mac(ARM64/x64) - Linux(ARM64/x64)
 ```
 
