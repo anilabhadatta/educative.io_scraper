@@ -19,8 +19,11 @@ class Constants:
 
         config = configparser.ConfigParser()
         config.read(self.commonConfigPath)
-        self.chromeDriverPath = os.path.join(self.chromeDriverFolderPath,
-                                             config["ChromeDriverPath"][self.chromedriverConfigKey])
+        self.chromeDriverSubFolderPath = config["ChromeDriverPath"][self.chromedriverConfigKey]
+        chromeDriverPathSeparated = self.chromeDriverSubFolderPath.split("/")
+        self.ucDriverSubFolderPath = os.path.sep.join(chromeDriverPathSeparated[:-1] + ["uc"+chromeDriverPathSeparated[-1]])
+        self.chromeDriverPath = os.path.join(self.chromeDriverFolderPath, self.chromeDriverSubFolderPath)
+        self.ucDriverPath = os.path.join(self.chromeDriverFolderPath, self.ucDriverSubFolderPath)
         self.chromeBinaryPath = os.path.join(self.chromeBinaryFolderPath,
                                              config["ChromeBinaryPath"][self.chromebinaryConfigKey])
 

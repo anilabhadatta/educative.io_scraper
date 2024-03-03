@@ -12,15 +12,15 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.4.1 (Latest-Recommended) multiple fixes and added undetected-chromedriver
+Repository Version: v3.4.2 (Recommended) multiple fixes and added undetected-chromedriver
 Master Branch: v3-master</code></pre>
 ```
-Note: 1. If you have updated to v3.4.1+, 
+Note: 1. If you have updated to v3.4.2+, 
       -  Run with --install arg again OR manually clean install
       -  Delete the old UserDataDir
       -  No existing chrome browser should be running in background      
-      2. If you have updated to v3.1.0+, Redownload Chrome Binary and Chrome driver.
-      3. Send a mail notification status, Setup here: /src/Main/MailNotify.py
+      -  Redownload Chrome Binary and Chrome driver.
+      2. Send a mail notification status, Setup here: /src/Main/MailNotify.py
 ```
 ###                                
 
