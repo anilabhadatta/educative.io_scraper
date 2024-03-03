@@ -23,7 +23,7 @@ class BrowserUtility:
             self.logger = Logger(configJson, "BrowserUtility").logger
         self.osUtils = OSUtility(configJson)
         self.fileUtils = FileUtility()
-        self.userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], f"ucDriver-{self.configJson["ucdriver"]}")
+        self.userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], f"ucDriver-{self.configJson['ucdriver']}")
         self.devToolsFilePath = os.path.join(self.userDataDir, "DevToolsActivePort")
 
 
