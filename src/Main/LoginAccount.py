@@ -1,3 +1,5 @@
+import asyncio
+
 from src.Logging.Logger import Logger
 from src.Utility.BrowserUtility import BrowserUtility
 
@@ -33,7 +35,7 @@ class LoginAccount:
             self.logger.error(f"start: {lineNumber}: {e}")
         finally:
             self.logger.debug("Exiting...")
-            self.browserUtil.terminateChrome()
+            asyncio.get_event_loop().run_until_complete(self.browserUtil.shutdownChromeViaWebsocket())
 
 
     def checkIfLoggedIn(self):

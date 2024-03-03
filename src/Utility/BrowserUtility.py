@@ -4,6 +4,8 @@ import os
 import psutil
 import requests
 import websockets
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 
 from src.Common.Constants import constants
 from src.Utility.FileUtility import FileUtility
@@ -21,30 +23,20 @@ class BrowserUtility:
             self.logger = Logger(configJson, "BrowserUtility").logger
         self.osUtils = OSUtility(configJson)
         self.fileUtils = FileUtility()
-        self.userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], "Default")
+        self.userDataDir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], f"ucDriver-{self.configJson["ucdriver"]}")
         self.devToolsFilePath = os.path.join(self.userDataDir, "DevToolsActivePort")
 
 
     def loadBrowser(self):
         try:
             self.logger.info("Loading Browser...")
-            options = uc.ChromeOptions()
-            if self.configJson["headless"]:
-                options.add_argument('--headless=new')
-            options.add_argument("--start-maximized")
-            options.add_argument('--disable-gpu')
-            options.add_argument('--no-sandbox')
-            options.add_argument('--ignore-certificate-errors-spki-list')
-            options.add_argument('--ignore-ssl-errors')
-            options.add_argument("--disable-web-security")
-            options.add_argument('--allow-running-insecure-content')
-            options.add_argument("--disable-site-isolation-trials")
-            options.add_argument("--disable-features=IsolateOrigins,site-per-process")
-            options.add_argument('--log-level=3')
-            options.binary_location = constants.chromeBinaryPath
-            if self.configJson["isProxy"]:
-                options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
-            self.browser = uc.Chrome(driver_executable_path=constants.chromeDriverPath, options=options, user_data_dir=self.userDataDir)
+            options = self.setChromeOptions()
+            if self.configJson["ucdriver"]:
+                self.browser = uc.Chrome(driver_executable_path=constants.ucDriverPath, options=options, user_data_dir=self.userDataDir)
+            else:
+                options.add_argument(f'user-data-dir={self.userDataDir}')
+                chromeService = Service(executable_path=constants.chromeDriverPath)
+                self.browser = webdriver.Chrome(service=chromeService, options=options)
             self.browser.set_window_size(1920, 1080)
             self.browser.set_script_timeout(60)
             remoteDebuggingAddress = self.browser.capabilities['goog:chromeOptions']['debuggerAddress']
@@ -56,6 +48,26 @@ class BrowserUtility:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"BrowserUtility:loadBrowser: {lineNumber}: {e}")
+
+
+    def setChromeOptions(self):
+        options = uc.ChromeOptions()
+        if self.configJson["headless"]:
+            options.add_argument('--headless=new')
+        if self.configJson["isProxy"]:
+            options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
+        options.add_argument("--start-maximized")
+        options.add_argument('--disable-gpu')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--ignore-certificate-errors-spki-list')
+        options.add_argument('--ignore-ssl-errors')
+        options.add_argument("--disable-web-security")
+        options.add_argument('--allow-running-insecure-content')
+        options.add_argument("--disable-site-isolation-trials")
+        options.add_argument("--disable-features=IsolateOrigins,site-per-process")
+        options.add_argument('--log-level=3')
+        options.binary_location = constants.chromeBinaryPath
+        return options
 
 
     def killProcessByPid(self, pid, pname="chromedriver"):

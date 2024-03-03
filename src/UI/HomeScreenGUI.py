@@ -30,13 +30,14 @@ class HomeScreen:
         self.checkboxes = []
 
         self.app = tk.Tk()
-        self.app.iconphoto(True, tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon.png")))
+        self.app.iconphoto(True, tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon.gif")))
         self.app.geometry("400x400")
         self.app.title("Educative Scraper")
 
         self.configFilePath = tk.StringVar()
         self.userDataDirVar = tk.StringVar()
         self.headlessVar = tk.BooleanVar(value=False)
+        self.ucdriverVar = tk.BooleanVar(value=False)
         self.courseUrlsFilePathVar = tk.StringVar()
         self.saveDirectoryVar = tk.StringVar()
         self.isProxyVar = tk.BooleanVar(value=True)
@@ -151,6 +152,8 @@ class HomeScreen:
         proxyEntry.grid(row=len(optionCheckboxes)-1, column=1, sticky="w", padx=(30, 2), pady=2)
         proxyLabel = tk.Label(checkboxesFrame, text="Format: Host:Port")
         proxyLabel.grid(row=len(optionCheckboxes)-1, column=2, sticky="w", padx=2, pady=0)
+        ucdriverCheckbox = tk.Checkbutton(checkboxesFrame, text="Undetected Chromedriver", variable=self.ucdriverVar, wraplength=400, anchor="w")
+        ucdriverCheckbox.grid(row=len(optionCheckboxes)-2, column=1, sticky="w", padx=25, pady=2)
 
         scraperOptionFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
         checkboxesFrame.grid(row=1, column=0, padx=0, pady=3, sticky="nw")
@@ -293,6 +296,7 @@ class HomeScreen:
         self.fileTypeVar.set(self.config["fileType"])
         self.scraperTypeVar.set(self.config["scraperType"])
         self.scrapingMethodVar.set(self.config["scrapingMethod"])
+        self.ucdriverVar.set(self.config["ucdriver"])
 
 
     def createConfigJson(self):
@@ -306,7 +310,8 @@ class HomeScreen:
             'proxy': self.proxyVar.get(),
             'scraperType': self.scraperTypeVar.get(),
             "scrapingMethod": self.scrapingMethodVar.get(),
-            'fileType': self.fileTypeVar.get()
+            'fileType': self.fileTypeVar.get(),
+            'ucdriver': self.ucdriverVar.get()
         }
 
 
