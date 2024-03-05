@@ -51,11 +51,16 @@ class SeleniumBasicUtility:
             articlePageSelector = self.selectors["articlePage"]
             generalPageSelector = self.selectors["generalPage"]
             try:
-                WebDriverWait(self.browser, self.timeout+5).until(
-                    EC.visibility_of_element_located((By.XPATH, articlePageSelector)))
-            except Exception as e:
-                WebDriverWait(self.browser, self.timeout+5).until(
-                    EC.visibility_of_element_located((By.XPATH, generalPageSelector)))
+                try:
+                    WebDriverWait(self.browser, self.timeout+5).until(
+                        EC.visibility_of_element_located((By.XPATH, articlePageSelector)))
+                except Exception as e:
+                    self.browser.save_screenshot("image.png")
+                    WebDriverWait(self.browser, self.timeout+5).until(
+                        EC.visibility_of_element_located((By.XPATH, generalPageSelector)))
+            except:
+                return False
+            return True
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SeleniumBasicUtility:waitWebdriverToLoadTopicPage: {lineNumber}: {e}")

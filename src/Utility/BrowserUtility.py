@@ -133,7 +133,7 @@ class BrowserUtility:
         finally:
             # self.killProcessByPid(int(pid))
             self.deleteLockFiles()
-            self.killProcessByName(["chrome", "chrome.exe", "chromedriver", "chromedriver.exe"])
+            self.killProcessByName(["chrome", "chrome.exe", "chromedriver", "chromedriver.exe", "ucchromedriver", "ucchromedriver.exe"])
 
 
     def getCurrentHeight(self):

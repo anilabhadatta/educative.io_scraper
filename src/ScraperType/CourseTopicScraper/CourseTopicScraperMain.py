@@ -116,13 +116,20 @@ class CourseTopicScraper:
             self.singleFileUtils.browser = self.browser
             self.screenshotUtils.browser = self.browser
             self.printFileUtils.browser = self.browser
-            try:
-                self.browser.get(topicUrl)
-            except:
-                self.logger.info("Page Loading Issue, pressing ESC to stop page load")
-                ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
-            self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
-            self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
+            retries = 0
+            while retries < 3:
+                self.logger.info(f"Trying to load webpage {retries} of 2")
+                try:
+                    # self.browser.get(topicUrl)
+                    self.browser.execute_script(f"window.location.href = '{topicUrl}'")
+                    self.osUtils.sleep(5)
+                except:
+                    self.logger.info("Page Loading Issue, pressing ESC to stop page load")
+                    self.browser.execute_script("window.stop();")
+                    # ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
+                if self.seleniumBasicUtils.waitWebdriverToLoadTopicPage():
+                    break
+            # self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
             self.browserUtils.scrollPage()
             self.removeUtils.removeBlurWithCSS()
