@@ -183,13 +183,19 @@ class ApiUtility:
                 self.logger.info("Page Loading Issue, pressing ESC to stop page load")
                 # ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
                 self.browser.execute_script("window.stop();")
-            courseTypeSelector = f"a[href*='/{topicUrl.split('/')[3]}/']"
+            courseTypeSelector = f"//a[contains(@href, '/{topicUrl.split('/')[3]}/')]/span[contains(text(), 'Home')]/.."
             self.logger.info(f"Course Type Selector: {courseTypeSelector}")
             WebDriverWait(self.browser, self.timeout).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, courseTypeSelector)))
+                EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
             courseUrlJsScript = f"""
-            var courseUrl = "https://www.educative.io" + document.querySelector("{courseTypeSelector}").getAttribute('href') + "?showContent=true";
-            return courseUrl;
+            var anchorElement = document.evaluate(
+                                "{courseTypeSelector}", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null
+                            ).singleNodeValue;
+                            var hrefValue = "";
+                            if (anchorElement) {{
+                                hrefValue = anchorElement.getAttribute('href');
+                            }}
+            return "https://www.educative.io" + hrefValue + "?showContent=true";
             """
             courseUrl = self.browser.execute_script(courseUrlJsScript)
             return courseUrl
