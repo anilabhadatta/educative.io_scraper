@@ -68,7 +68,7 @@ class CourseTopicScraper:
         try:
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
             courseApiUrl = self.apiUtils.getNextData()
-            topicUrlsList = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
+            topicUrlsList, pathFolderName = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
             startIndex = topicUrlsList.index(textFileUrl) if textFileUrl in topicUrlsList else 0
             self.loginUtils.checkIfLoggedIn()
             courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
@@ -86,7 +86,11 @@ class CourseTopicScraper:
                 raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
 
             courseTitle = self.fileUtils.filenameSlugify(courseCollectionsJson["courseTitle"])
-            coursePath = os.path.join(self.outputFolderPath, courseTitle)
+            if pathFolderName:
+                pathFolderName = self.fileUtils.filenameSlugify(pathFolderName)
+                coursePath = os.path.join(self.outputFolderPath, pathFolderName, courseTitle)
+            else:
+                coursePath = os.path.join(self.outputFolderPath, courseTitle)
             self.fileUtils.createFolderIfNotExists(coursePath)
             TOCUtility.serializeTocAndStore(courseCollectionsJson["courseTitle"], courseUrl, coursePath,
                                             courseCollectionsJson["toc"], topicUrlsList)

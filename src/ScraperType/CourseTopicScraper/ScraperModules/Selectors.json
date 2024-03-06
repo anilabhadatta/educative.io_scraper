@@ -34,6 +34,7 @@
     "rootContent": "//*[@id='view-collection-article-content-root']"
   },
   "ApiUtility": {
-    "nextData": "script[id*='__NEXT_DATA__']"
+    "nextData": "script[id*='__NEXT_DATA__']",
+    "pathSelector": "//a[contains(@href, '/path/')]/../..//p[contains(text(), 'Module')]/a"
   }
 }

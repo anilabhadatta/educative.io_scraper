@@ -1,7 +1,6 @@
 import os
 
 from selenium.common import TimeoutException
-from selenium.webdriver import Keys, ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -153,6 +152,9 @@ class ApiUtility:
             if "/module/" not in topicUrl:
                 self.seleniumBasicUtils.browser = self.browser
                 self.seleniumBasicUtils.expandAllSections()
+            pathFolderName = None
+            if "/module/" in topicUrl:
+                pathFolderName = self.getPathFolderName()
             self.logger.info(f"Topic URL Selector: {topicUrlSelector}")
             topicUrlJsScript = f"""
             var topicUrls = document.evaluate("{topicUrlSelector}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -168,7 +170,7 @@ class ApiUtility:
             return hrefData;
             """
             topicUrls = self.browser.execute_script(topicUrlJsScript)
-            return topicUrls
+            return topicUrls, pathFolderName
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseTopicUrlsList: {lineNumber}: {e}")
@@ -181,7 +183,6 @@ class ApiUtility:
                 self.browser.get(topicUrl)
             except TimeoutException:
                 self.logger.info("Page Loading Issue, pressing ESC to stop page load")
-                # ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
                 self.browser.execute_script("window.stop();")
             courseTypeSelector = f"//a[contains(@href, '/{topicUrl.split('/')[3]}/')]/span[contains(text(), 'Home')]/.."
             self.logger.info(f"Course Type Selector: {courseTypeSelector}")
@@ -217,3 +218,18 @@ class ApiUtility:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getNextData: {lineNumber}: {e}")
+
+
+    def getPathFolderName(self):
+        try:
+            self.logger.info("Module, getting path folder name")
+            pathNameSelector = self.selectors["pathSelector"]
+            pathScript = f"""
+            var anchorElement = document.evaluate(
+                    "{pathNameSelector}", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            return anchorElement.text;
+            """
+            return self.browser.execute_script(pathScript)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getPathFolderName: {lineNumber}: {e}")
