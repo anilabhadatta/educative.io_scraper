@@ -133,6 +133,7 @@ class CourseTopicScraper:
                     # ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
                 if self.seleniumBasicUtils.waitWebdriverToLoadTopicPage():
                     break
+                retries += 1
             # self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
             self.browserUtils.scrollPage()
