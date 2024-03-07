@@ -70,7 +70,7 @@ class QuizUtility:
                         explanation = ""
                         if "explanation" in option:
                             explanation = option["explanation"]["mdText"]
-                        correct = "Correct" if option["correct"] else "Incorrect"
+                        correct = "Correct" if "correct" in option and option["correct"] else "Incorrect"
                         questionOptionsText += f"""
 {optionIndex + 1}. {optionText}
 {correct}
