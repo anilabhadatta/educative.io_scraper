@@ -147,6 +147,7 @@ class ApiUtility:
             self.logger.info(f"Topic URL: {topicUrl}")
             topicUrlSelector = self.urlUtils.getTopicUrlSelector(topicUrl)
             self.logger.info(f"Topic URL Selector: {topicUrlSelector}")
+            self.osUtils.sleep(2)
             WebDriverWait(self.browser, self.timeout).until(
                 EC.presence_of_element_located((By.XPATH, topicUrlSelector)))
             if "/module/" not in topicUrl:
