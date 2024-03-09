@@ -12,7 +12,7 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.4.7 (Recommended) multiple fixes and added undetected-chromedriver
+Repository Version: v3.4.8 (Recommended) multiple fixes and added undetected-chromedriver
 Master Branch: v3-master</code></pre>
 ```
 Note: 1. If you have updated to v3.4.2+, 
