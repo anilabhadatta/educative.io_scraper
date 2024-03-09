@@ -105,6 +105,8 @@ class CourseTopicScraper:
                 """)
                 self.loginUtils.checkIfLoggedIn()
                 topicApiContentJson = self.apiUtils.getTopicApiContentJson(topicApiUrl)
+                if not topicApiContentJson:
+                    raise Exception("Can't find api content. Issue occured")
                 self.osUtils.sleep(10)
                 self.scrapeTopic(coursePath, topicName, topicApiContentJson, topicUrl)
         except Exception as e:
@@ -124,15 +126,16 @@ class CourseTopicScraper:
             while retries < 3:
                 self.logger.info(f"Trying to load webpage {retries} of 2")
                 try:
-                    # self.browser.get(topicUrl)
                     self.browser.execute_script(f"window.location.href = '{topicUrl}'")
                     self.osUtils.sleep(5)
                 except:
                     self.logger.info("Page Loading Issue, pressing ESC to stop page load")
                     self.browser.execute_script("window.stop();")
-                    # ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
-                if self.seleniumBasicUtils.waitWebdriverToLoadTopicPage():
+                res = self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
+                if res:
                     break
+                if not res and retries == 2:
+                    raise Exception("Exception Caused: due to captcha or page load issue")
                 retries += 1
             # self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()

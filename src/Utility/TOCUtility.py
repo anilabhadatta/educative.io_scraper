@@ -26,7 +26,3 @@ class TOCUtility:
                     topicIdx += 1
         resultJson = json.dumps({"course": courseTitle, "url": courseUrl, "toc": tocFinal}, indent= 4)
         fileUtils.createTextFile(os.path.join(courseBasePath, "__toc__.json"), resultJson)
-
-
-        
-
