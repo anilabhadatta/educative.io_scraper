@@ -131,8 +131,11 @@ class CourseTopicScraper:
                     self.logger.info("Page Loading Issue, pressing ESC to stop page load")
                     self.browser.execute_script("window.stop();")
                     # ActionChains(self.browser).send_keys(Keys.ESCAPE).perform()
-                if self.seleniumBasicUtils.waitWebdriverToLoadTopicPage():
+                res = self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
+                if res:
                     break
+                if not res and retries == 2:
+                    raise Exception("Exception Caused: due to captcha or page load issue")
                 retries += 1
             # self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
