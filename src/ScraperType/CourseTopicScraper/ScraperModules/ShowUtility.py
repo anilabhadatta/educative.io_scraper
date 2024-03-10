@@ -49,12 +49,12 @@ class ShowUtility:
             showCodeSolutionJsScript = f"""
             async function clickForceShow() {{
               await new Promise(resolve => setTimeout(resolve, 2000));
-              document.querySelector("{confirmButtonSelector}").click();
+              document.querySelector("{confirmButtonSelector}")?.click();
             }}
             var buttons = document.querySelectorAll('button');
             var count = 0;
             buttons.forEach(button => {{
-              if (button.textContent.trim() === "{showCodeSolutionSelector}" && button.disabled === false) {{
+              if (button.textContent.trim().includes("{showCodeSolutionSelector}") && button.disabled === false) {{
                   button.click();
                   clickForceShow();
                   button.disabled = true;
