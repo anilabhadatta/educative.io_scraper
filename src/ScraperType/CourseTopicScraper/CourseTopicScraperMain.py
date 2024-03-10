@@ -55,6 +55,7 @@ class CourseTopicScraper:
                 self.browser = self.browserUtils.loadBrowser()
                 self.apiUtils.browser = self.browser
                 self.loginUtils.browser = self.browser
+                self.browser.set_window_size(1920, 1080)
                 self.scrapeCourse(textFileUrl)
                 asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
             except Exception as e:
