@@ -105,7 +105,7 @@ class FileUtility:
             pdfOutput.write(pdfBytes)
 
 
-    def getHtmlWithImage(self, base64Png, topicName):
+    def getHtmlWithImage(self, pageData, topicName):
         return f"""
         <!DOCTYPE html>
         <html lang="en">
@@ -113,8 +113,8 @@ class FileUtility:
             <title>{topicName}</title>
         </head>
         <body style="background-color: rgb(21 21 30); zoom: 80%">
-            <div style="text-align: center">
-                <img style="max-width: 100%; display: block; margin-left: auto; margin-right: auto;" src="data:image/png;base64,{base64Png}" alt="">
+            <div style="text-align: center; overflow-x: hidden;">
+                {pageData}
             </div>
         </body>
         </html>

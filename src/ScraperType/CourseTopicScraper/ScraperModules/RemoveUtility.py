@@ -69,7 +69,7 @@ class RemoveUtility:
                 if (element.tagName === "STYLE" || element.tagName === "DIV" && element.id === "__next") {{
                     // do nothing
                 }} else {{
-                element.parentNode.removeChild(element);
+                    element.style.display = "none";
                 }}
             }});
             """

@@ -39,6 +39,7 @@ class BrowserUtility:
                 self.browser = webdriver.Chrome(service=chromeService, options=options)
             self.browser.set_window_size(1920, 1080)
             self.browser.set_script_timeout(60)
+            self.browser.set_page_load_timeout(15)
             remoteDebuggingAddress = self.browser.capabilities['goog:chromeOptions']['debuggerAddress']
             pid = str(self.browser.service.process.pid)
             self.saveWebSocketUrl(remoteDebuggingAddress, pid)

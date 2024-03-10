@@ -46,20 +46,19 @@ class ApiUtility:
         try:
             self.logger.info(f"Getting Topic API Content JSON from URL: {topicApiUrl}")
             retry = 1
-            jsonDataToReturn = None
             while retry < 3:
                 try:
                     jsonData = self.executeJsToGetJson(topicApiUrl)
                     if "components" in jsonData:
-                        jsonDataToReturn = jsonData["components"]
                         self.logger.info("Successfully fetched JSON API data")
-                        break
+                        return jsonData["components"]
                 except Exception:
                     pass
                 retry += 1
+                if retry == 3:
+                    raise Exception("Could not Topic fetch data from API")
                 self.osUtils.sleep(2)
-                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 3: {topicApiUrl}")
-            return jsonDataToReturn
+                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 2: {topicApiUrl}")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
@@ -69,20 +68,19 @@ class ApiUtility:
         try:
             self.logger.info(f"Getting Course API Content JSON from URL: {courseApiUrl}")
             retry = 1
-            jsonDataToReturn = None
             while retry < 3:
                 try:
                     jsonData = self.executeJsToGetJson(courseApiUrl)
                     if "instance" in jsonData:
-                        jsonDataToReturn = jsonData["instance"]
                         self.logger.info("Successfully fetched JSON API data")
-                        break
+                        return jsonData["instance"]
                 except Exception:
                     pass
                 retry += 1
+                if retry == 3:
+                    raise Exception("Could not Course fetch data from API")
                 self.osUtils.sleep(2)
-                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 3: {courseApiUrl}")
-            return jsonDataToReturn
+                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 2: {courseApiUrl}")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
@@ -182,7 +180,7 @@ class ApiUtility:
             self.logger.info("Getting Course url")
             try:
                 self.browser.get(topicUrl)
-            except TimeoutException:
+            except:
                 self.logger.info("Page Loading Issue, pressing ESC to stop page load")
                 self.browser.execute_script("window.stop();")
             courseTypeSelector = f"//a[contains(@href, '/{topicUrl.split('/')[3]}/')]/span[contains(text(), 'Home')]/.."
@@ -193,10 +191,10 @@ class ApiUtility:
             var anchorElement = document.evaluate(
                                 "{courseTypeSelector}", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null
                             ).singleNodeValue;
-                            var hrefValue = "";
-                            if (anchorElement) {{
-                                hrefValue = anchorElement.getAttribute('href');
-                            }}
+            var hrefValue = "";
+            if (anchorElement) {{
+                hrefValue = anchorElement.getAttribute('href');
+            }}
             return "https://www.educative.io" + hrefValue + "?showContent=true";
             """
             courseUrl = self.browser.execute_script(courseUrlJsScript)
