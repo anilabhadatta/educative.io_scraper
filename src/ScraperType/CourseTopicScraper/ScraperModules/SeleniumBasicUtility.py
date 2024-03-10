@@ -66,13 +66,6 @@ class SeleniumBasicUtility:
             raise Exception(f"SeleniumBasicUtility:waitWebdriverToLoadTopicPage: {lineNumber}: {e}")
 
 
-    def loadingPageAndCheckIfSomethingWentWrong(self):
-        self.logger.info("Loading page and checking if something went wrong")
-        self.osUtils.sleep(self.timeout)
-        # if "Something Went Wrong" in self.browser.page_source:
-        #     raise Exception(f"SeleniumBasicUtility:loadingPageAndCheckIfSomethingWentWrong: Something Went Wrong")
-
-
     def addNameAttributeInNextBackButton(self):
         try:
             self.logger.info("Adding name attribute in next/back button")

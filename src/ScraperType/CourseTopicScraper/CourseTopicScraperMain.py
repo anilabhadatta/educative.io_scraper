@@ -1,9 +1,5 @@
 import asyncio
 import os
-from psutil import Process
-
-from selenium.webdriver import Keys, ActionChains
-from selenium.webdriver.common.by import By
 
 from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
@@ -55,6 +51,7 @@ class CourseTopicScraper:
                 self.browser = self.browserUtils.loadBrowser()
                 self.apiUtils.browser = self.browser
                 self.loginUtils.browser = self.browser
+                self.browser.set_window_size(1920, 1080)
                 self.scrapeCourse(textFileUrl)
                 asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
             except Exception as e:
@@ -105,8 +102,6 @@ class CourseTopicScraper:
                 """)
                 self.loginUtils.checkIfLoggedIn()
                 topicApiContentJson = self.apiUtils.getTopicApiContentJson(topicApiUrl)
-                if not topicApiContentJson:
-                    raise Exception("Can't find api content. Issue occured")
                 self.osUtils.sleep(10)
                 self.scrapeTopic(coursePath, topicName, topicApiContentJson, topicUrl)
         except Exception as e:
@@ -122,22 +117,19 @@ class CourseTopicScraper:
             self.singleFileUtils.browser = self.browser
             self.screenshotUtils.browser = self.browser
             self.printFileUtils.browser = self.browser
-            retries = 0
+            retries = 1
             while retries < 3:
                 self.logger.info(f"Trying to load webpage {retries} of 2")
                 try:
-                    self.browser.execute_script(f"window.location.href = '{topicUrl}'")
-                    self.osUtils.sleep(5)
+                    self.browser.get(topicUrl)
                 except:
                     self.logger.info("Page Loading Issue, pressing ESC to stop page load")
                     self.browser.execute_script("window.stop();")
-                res = self.seleniumBasicUtils.waitWebdriverToLoadTopicPage()
-                if res:
+                if self.seleniumBasicUtils.waitWebdriverToLoadTopicPage():
                     break
-                if not res and retries == 2:
-                    raise Exception("Exception Caused: due to captcha or page load issue")
                 retries += 1
-            # self.seleniumBasicUtils.loadingPageAndCheckIfSomethingWentWrong()
+                if retries == 3:
+                    raise Exception("Exception Caused: due to captcha or page load issue")
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
             self.browserUtils.scrollPage()
             self.removeUtils.removeBlurWithCSS()

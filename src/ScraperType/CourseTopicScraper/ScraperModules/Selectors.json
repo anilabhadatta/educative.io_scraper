@@ -21,7 +21,7 @@
   },
   "ShowUtility": {
     "showMarkDownQuizSolution": "Show Answer",
-    "showCodeSolution": "Show Solution",
+    "showCodeSolution": "Show",
     "confirmShowSolution": "button[aria-label*='confirm']",
     "showHints": "g[id*='noun_lightbulb']",
     "showSlides": "svg[aria-label*='view all slides']"
