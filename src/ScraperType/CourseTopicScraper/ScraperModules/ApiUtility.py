@@ -55,10 +55,9 @@ class ApiUtility:
                 except Exception:
                     pass
                 retry += 1
-                if retry == 3:
-                    raise Exception("Could not Topic fetch data from API")
                 self.osUtils.sleep(2)
                 self.logger.info(f"Found Error fetching Json, retrying {retry} out of 2: {topicApiUrl}")
+            return None
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
