@@ -45,9 +45,6 @@ class ApiUtility:
     def getTopicApiContentJson(self, topicApiUrl):
         try:
             self.logger.info(f"Getting Topic API Content JSON from URL: {topicApiUrl}")
-            url = topicApiUrl.split("/")
-            if "project?showContent=true" == url[-1] or "assessment?showContent=true" == url[-1]:
-                return None
             retry = 1
             while retry < 3:
                 try:
@@ -58,10 +55,9 @@ class ApiUtility:
                 except Exception:
                     pass
                 retry += 1
-                if retry == 3:
-                    raise Exception("Could not Topic fetch data from API")
                 self.osUtils.sleep(2)
                 self.logger.info(f"Found Error fetching Json, retrying {retry} out of 2: {topicApiUrl}")
+            return None
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
