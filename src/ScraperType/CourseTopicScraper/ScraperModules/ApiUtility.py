@@ -45,6 +45,9 @@ class ApiUtility:
     def getTopicApiContentJson(self, topicApiUrl):
         try:
             self.logger.info(f"Getting Topic API Content JSON from URL: {topicApiUrl}")
+            url = topicApiUrl.split("/")
+            if "project?showContent=true" == url[-1] or "assessment?showContent=true" == url[-1]:
+                return None
             retry = 1
             while retry < 3:
                 try:
