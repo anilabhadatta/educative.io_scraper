@@ -104,7 +104,7 @@ class CourseTopicScraper:
                 topicApiContentJson = self.apiUtils.getTopicApiContentJson(topicApiUrl)
                 if not topicApiContentJson:
                     url = topicUrl.split("/")
-                    if not ("project?showContent=true" == url[-1] or "assessment?showContent=true" == url[-1]):
+                    if not (url[-1] in ["assessment?showContent=true", "cloudlab?showContent=true", "project?showContent=true"]):
                         raise Exception("Cannot fetch content from Topic Api Url")
                 self.osUtils.sleep(10)
                 self.scrapeTopic(coursePath, topicName, topicApiContentJson, topicUrl)
