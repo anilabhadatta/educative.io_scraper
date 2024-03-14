@@ -90,7 +90,7 @@ class FileUtility:
     @staticmethod
     def createTextFile(textFilePath, data):
         if os.path.isdir(textFilePath):
-            textFilePath = os.path.join(textFilePath, "".join(random.choices(string.ascii_lowercase, k=5)), "_file.txt")
+            textFilePath = os.path.join(textFilePath, "".join(random.choices(string.ascii_lowercase, k=5))+"_file.txt")
         with open(textFilePath, "w+", encoding="utf-8") as fh:
             fh.write(data)
 
