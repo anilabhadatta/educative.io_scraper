@@ -38,7 +38,7 @@ class BrowserUtility:
                                       binary_location=constants.chromeBinaryPath, headless2=self.configJson["headless"],
                                       proxy=proxy, chromium_arg="--disable-web-security,--allow-running-insecure-content,"
                                                                 "--ignore-certificate-errors-spki-list,--ignore-ssl-errors",
-                                      headed=self.configJson["headless"], driver_version=self.configJson['binaryversion'])
+                                      headed=not self.configJson["headless"], driver_version=self.configJson['binaryversion'])
             else:
                 options.add_argument(f'user-data-dir={self.userDataDir}')
                 chromeService = Service(executable_path=constants.chromeDriverPath)
