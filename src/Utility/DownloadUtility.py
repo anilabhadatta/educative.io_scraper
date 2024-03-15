@@ -57,7 +57,8 @@ class DownloadUtility:
             subprocess.check_call(['chmod', '-R', '+x', constants.chromeDriverPath])
             subprocess.check_call(['chmod', 'u+x', constants.chromeDriverPath])
             self.logger.info("Permissions Changed.")
-        shutil.copy2(constants.chromeDriverPath, constants.ucDriverPath)
+        # This uc driver is not automatically handled by seleniumbase
+        # shutil.copy2(constants.chromeDriverPath, constants.ucDriverPath)
 
 
     def downloadChromeBinary(self, app, progressVar, configJson):

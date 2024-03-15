@@ -12,15 +12,16 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.5.1 (Recommended) multiple fixes and added undetected-chromedriver
+Repository Version: v3.5.2 (Recommended)
 Master Branch: v3-master</code></pre>
 ```
-Note: 1. If you have updated to v3.4.2+, 
+Note: 1. If you have updated to v3.5.2+, 
+      -  Undetected driver replaced by seleniumbase (Bypass Cloudflare Turnstile)
       -  Run with --install arg again OR manually clean install
       -  Delete the old UserDataDir
       -  No existing Chrome browser should be running in the background      
-      -  Redownload Chrome Binary and Chrome driver.
-      -  Undetected may not work in Mac Arm, so uncheck the option to use the default webdriver.
+      -  Redownload Chrome Binary and Chrome driver. (v3.4.2+)
+      -  Undetected/SeleniumBase may not work in Mac Arm, so uncheck the option to use the default webdriver. (v3.4.2+)
       2. Send a mail notification status, Setup here: /src/Main/MailNotify.py
 ```
 ###                                
