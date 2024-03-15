@@ -311,7 +311,8 @@ class HomeScreen:
             'scraperType': self.scraperTypeVar.get(),
             "scrapingMethod": self.scrapingMethodVar.get(),
             'fileType': self.fileTypeVar.get(),
-            'ucdriver': self.ucdriverVar.get()
+            'ucdriver': self.ucdriverVar.get(),
+            'binaryversion': self.config["binaryversion"]
         }
 
 
