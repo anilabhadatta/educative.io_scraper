@@ -12,10 +12,10 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.5.5 (Recommended)
+Repository Version: v3.5.6 (Recommended)
 Master Branch: v3-master</code></pre>
 ```
-Note: 1. If you have updated to v3.5.5+, 
+Note: 1. If you have updated to v3.5.6+, 
       -  Undetected driver replaced by SeleniumBase (Bypass Cloudflare Turnstile)
       -  Run with --install arg again OR manually clean install
       -  Delete the old UserDataDir
