@@ -15,7 +15,7 @@ class Constants:
         self.chromedriverConfigKey = "chromedriver-" + self.osUtil.getCurrentOSConfigKey()
         self.chromebinaryConfigKey = "chrome-" + self.osUtil.getCurrentOSConfigKey()
         self.chromeDriverFolderPath = os.path.join(self.ROOT_DIR, 'src', 'ChromeDrivers', self.osUtil.getCurrentOS())
-        self.chromeBinaryFolderPath = os.path.join('.', 'src', 'ChromeBinary', self.osUtil.getCurrentOS())
+        self.chromeBinaryFolderPath = os.path.join(self.ROOT_DIR, 'src', 'ChromeBinary', self.osUtil.getCurrentOS())
 
         config = configparser.ConfigParser()
         config.read(self.commonConfigPath)
