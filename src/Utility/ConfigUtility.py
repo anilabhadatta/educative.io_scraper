@@ -39,4 +39,10 @@ class ConfigUtility:
         defaultConfigParse = configparser.ConfigParser()
         defaultConfigParse.read(constants.commonConfigPath)
         defaultConfigKeys = set(defaultConfigParse.options(sectionName))
-        return configKeys == defaultConfigKeys
+
+        binaryversionKeyExists = 'binaryversion' in configKeys and 'binaryversion' in defaultConfigKeys
+        binaryversionValuesMatch = (
+                self.config.get(sectionName, 'binaryversion') == defaultConfigParse.get(sectionName, 'binaryversion')
+        ) if binaryversionKeyExists else True
+
+        return configKeys == defaultConfigKeys and binaryversionValuesMatch

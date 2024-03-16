@@ -6,12 +6,11 @@ import requests
 import websockets
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-
+from seleniumbase import Driver
 from src.Common.Constants import constants
 from src.Utility.FileUtility import FileUtility
 from src.Utility.OSUtility import OSUtility
 from src.Logging.Logger import Logger
-import undetected_chromedriver as uc
 
 class BrowserUtility:
     def __init__(self, configJson=None):
@@ -32,7 +31,14 @@ class BrowserUtility:
             self.logger.info("Loading Browser...")
             options = self.setChromeOptions()
             if self.configJson["ucdriver"]:
-                self.browser = uc.Chrome(driver_executable_path=constants.ucDriverPath, options=options, user_data_dir=self.userDataDir)
+                proxy = None
+                if self.configJson["isProxy"]:
+                    proxy = self.configJson["proxy"]
+                self.browser = Driver(undetectable=True, user_data_dir=self.userDataDir,
+                                      binary_location=constants.chromeBinaryPath, headless2=self.configJson["headless"],
+                                      proxy=proxy, chromium_arg="--disable-web-security,--allow-running-insecure-content,"
+                                                                "--ignore-certificate-errors-spki-list,--ignore-ssl-errors",
+                                      headed=not self.configJson["headless"], driver_version=self.configJson['binaryversion'])
             else:
                 options.add_argument(f'user-data-dir={self.userDataDir}')
                 chromeService = Service(executable_path=constants.chromeDriverPath)
@@ -52,7 +58,7 @@ class BrowserUtility:
 
 
     def setChromeOptions(self):
-        options = uc.ChromeOptions()
+        options = webdriver.ChromeOptions()
         if self.configJson["headless"]:
             options.add_argument('--headless=new')
         if self.configJson["isProxy"]:
@@ -134,7 +140,8 @@ class BrowserUtility:
         finally:
             # self.killProcessByPid(int(pid))
             self.deleteLockFiles()
-            self.killProcessByName(["chrome", "chrome.exe", "chromedriver", "chromedriver.exe", "ucchromedriver", "ucchromedriver.exe"])
+            self.killProcessByName(["chrome", "chrome.exe", "chromedriver", "chromedriver.exe", "uc_driver",
+                                    "uc_driver.exe", "ucchromedriver", "ucchromedriver.exe"])
 
 
     def getCurrentHeight(self):
