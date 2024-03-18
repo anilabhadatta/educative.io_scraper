@@ -51,14 +51,14 @@ class Setup:
         self.createFolderIfNotExists(self.tempDirPath)
         self.createTempExecutableSetupFile()
         self.getIconPath()
-        self.command = f"{self.envActivation}  && pyinstaller --clean --noconfirm --onefile --console --icon {self.iconRoot} {self.tempSetupFilePath} && exit"
+        self.command = f"{self.envActivation}  && pyinstaller --clean --noconfirm --onefile --console --icon \"{self.iconRoot}\" \"{self.tempSetupFilePath}\" && exit"
         subprocess.run(self.command, shell=True)
         self.removeFolderIfExists(self.tempDirPath)
 
 
     def runScraper(self):
         if os.path.isdir(self.envPath):
-            self.command = f"{self.envActivation} && {self.pythonPrefix} {self.educativeScraperFilePath} && exit"
+            self.command = f"{self.envActivation} && {self.pythonPrefix} \"{self.educativeScraperFilePath}\" && exit"
             subprocess.run(self.command, shell=True)
         else:
             print(f"Please run '{self.pythonPrefix} setup.py --install' to install the virtual env and dependencies")
@@ -70,7 +70,7 @@ class Setup:
 import subprocess
 import os
 os.chdir(r"{self.rootDir}")
-command = rf"{self.envActivation} && {self.pythonPrefix} {self.educativeScraperFilePath} && exit"
+command = rf"{self.envActivation} && {self.pythonPrefix} \"{self.educativeScraperFilePath}\" && exit"
 subprocess.call(command, shell=True)
                     """)
 
