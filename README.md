@@ -12,13 +12,13 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.5.6 (Recommended)
+Repository Version: v3.5.8 (Recommended)
 Master Branch: v3-master</code></pre>
 ```
-Note: 1. If you have updated to v3.5.6+, 
+Note: 1. If you have updated to v3.5.7+, 
       -  Undetected driver replaced by SeleniumBase (Bypass Cloudflare Turnstile)
       -  Run with --install arg again OR manually clean install
-      -  Delete the old UserDataDir
+      -  Delete the old UserDataDir (v3.5.5+)
       -  No existing Chrome browser should be running in the background (v3.4.2+)     
       -  Redownload Chrome Binary and Chrome driver. (v3.4.2+)
       -  Undetected/SeleniumBase may not work in Mac Arm, Uncheck the option to use the default webdriver. (v3.4.2+)

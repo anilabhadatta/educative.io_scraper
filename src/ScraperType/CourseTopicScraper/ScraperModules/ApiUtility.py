@@ -184,8 +184,14 @@ class ApiUtility:
                 self.browser.execute_script("window.stop();")
             courseTypeSelector = f"//a[contains(@href, '/{topicUrl.split('/')[3]}/')]/span[contains(text(), 'Home')]/.."
             self.logger.info(f"Course Type Selector: {courseTypeSelector}")
-            WebDriverWait(self.browser, self.timeout).until(
-                EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
+            try:
+                WebDriverWait(self.browser, self.timeout).until(
+                    EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
+            except:
+                courseTypeSelector = "//a[contains(@href, '/collection/')]/span[contains(text(), 'Home')]/.."
+                self.logger.info(f"New Course Type Selector: {courseTypeSelector}")
+                WebDriverWait(self.browser, self.timeout).until(
+                    EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
             courseUrlJsScript = f"""
             var anchorElement = document.evaluate(
                                 "{courseTypeSelector}", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null
