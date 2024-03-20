@@ -49,7 +49,7 @@ class CodeUtility:
                 entryFileName = self.fileUtils.filenameSlugify(content["entryFileName"])
             if "title" in content:
                 tabTitle = self.fileUtils.filenameSlugify(content["title"])
-            if "hiddenCodeContent" in content:
+            if "hiddenCodeContent" in content and content["hiddenCodeContent"]:
                 if "prependCode" in content["hiddenCodeContent"]:
                     prependCode = content["hiddenCodeContent"]["prependCode"]
                 if "appendCode" in content["hiddenCodeContent"]:
