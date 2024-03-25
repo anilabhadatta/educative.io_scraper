@@ -8,6 +8,7 @@ import tkinter.filedialog
 from tkinter import ttk
 
 import psutil
+from PIL import Image, ImageTk
 
 from src.Common.Constants import constants
 from src.Logging.Logger import Logger
@@ -30,7 +31,9 @@ class HomeScreen:
         self.checkboxes = []
 
         self.app = tk.Tk()
-        self.app.iconphoto(True, tk.PhotoImage(file=os.path.join(constants.commonFolderPath, "icon.gif")))
+        imagePath = os.path.join(constants.commonFolderPath, "icon.gif")
+        pilImage = Image.open(imagePath)
+        self.app.iconphoto(True, ImageTk.PhotoImage(pilImage))
         self.app.geometry("400x400")
         self.app.title("Educative Scraper")
 
@@ -152,7 +155,7 @@ class HomeScreen:
         proxyEntry.grid(row=len(optionCheckboxes)-1, column=1, sticky="w", padx=(30, 2), pady=2)
         proxyLabel = tk.Label(checkboxesFrame, text="Format: Host:Port")
         proxyLabel.grid(row=len(optionCheckboxes)-1, column=2, sticky="w", padx=2, pady=0)
-        ucdriverCheckbox = tk.Checkbutton(checkboxesFrame, text="Undetected Chromedriver", variable=self.ucdriverVar, wraplength=400, anchor="w")
+        ucdriverCheckbox = tk.Checkbutton(checkboxesFrame, text="SeleniumBase(uc mode)", variable=self.ucdriverVar, wraplength=400, anchor="w")
         ucdriverCheckbox.grid(row=len(optionCheckboxes)-2, column=1, sticky="w", padx=25, pady=2)
 
         scraperOptionFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
