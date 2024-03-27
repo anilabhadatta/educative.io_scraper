@@ -96,7 +96,7 @@ class UpdateTxtFileFromLog:
     
 
     def checkCountOfLastTopicUrls(self, lastTopicUrl):
-        if lastTopicUrl in self.lastTopicUrlsList:
+        if self.lastTopicUrlsList.count(lastTopicUrl) >= 2:
             message = f"Failed to start scraping 3 times for {lastTopicUrl}. Exiting..."
             self.logger.error(message)
             self.mailNotify.send_email(message)

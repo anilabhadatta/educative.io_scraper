@@ -102,7 +102,7 @@ class HomeScreen:
         self.clickedByUser = True
 
 
-    def checkButtonState(self):
+    def autoStartScraperOnConditions(self):
         if self.startScraperButton['state'] == 'normal' and \
             not self.updateTextFromLog.getBlockScraper() and \
             self.configJson['autoresume']:
@@ -229,7 +229,7 @@ class HomeScreen:
         self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper,
                                             width=19)
         self.checkButtonStateVar.set(self.startScraperButton['state'])
-        self.checkButtonStateVar.trace("w", lambda *args: self.checkButtonState())
+        self.checkButtonStateVar.trace("w", lambda *args: self.autoStartScraperOnConditions())
         self.startScraperButton.bind("<Button-1>", self.trackUserClick)
         self.terminateProcessButton = tk.Button(buttonScraperFrame, text="Stop Scraper/Close Browser",
                                                 command=self.terminateProcess,
@@ -352,6 +352,8 @@ class HomeScreen:
             print("Clicked by User")
             self.updateTextFromLog.setBlockScraper(False)
             self.updateTextFromLog.resetLastTopicUrlsList()
+            if not self.updateTextFromLog.updateTextFileFromLogMain():
+                self.logger.info("No URL found in log file. Starting Scraper from first url...")
         startScraper = StartScraper()
         self.process = multiprocessing.Process(target=startScraper.start, args=(self.configJson,))
         self.process.start()
@@ -363,6 +365,7 @@ class HomeScreen:
     def loginAccount(self):
         self.logger.debug("loginAccount called")
         self.createConfigJson()
+        self.updateTextFromLog.setBlockScraper(True)
         loginAccount = LoginAccount()
         self.process = multiprocessing.Process(target=loginAccount.start, args=(self.configJson,))
         self.process.start()
@@ -375,7 +378,6 @@ class HomeScreen:
         self.logger.debug("terminateProcess called")
         self.logger.info("Terminating Process...")
         self.updateTextFromLog.setBlockScraper(True)
-        self.updateTextFromLog.resetLastTopicUrlsList()
         browserUtil = BrowserUtility(self.configJson)
         for process in self.processes:
             try:
