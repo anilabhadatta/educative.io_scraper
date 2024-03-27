@@ -56,6 +56,18 @@ class FileUtility:
         with open(filePath, "r") as f:
             lines = f.readlines()
             return [line.strip() for line in lines]
+        
+
+    @staticmethod
+    def loadTextFileNonStrip(filePath):
+        with open(filePath, "r") as f:
+            return f.readlines()
+    
+
+    @staticmethod
+    def writeLines(filePath, newLines):
+        with open(filePath, "w") as file:
+            file.writelines(newLines)
 
 
     @staticmethod
