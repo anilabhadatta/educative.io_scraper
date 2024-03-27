@@ -363,8 +363,6 @@ class HomeScreen:
     def loginAccount(self):
         self.logger.debug("loginAccount called")
         self.createConfigJson()
-        self.updateTextFromLog.setBlockScraper(True)
-        self.updateTextFromLog.resetLastTopicUrlsList()
         loginAccount = LoginAccount()
         self.process = multiprocessing.Process(target=loginAccount.start, args=(self.configJson,))
         self.process.start()
@@ -376,6 +374,8 @@ class HomeScreen:
     def terminateProcess(self):
         self.logger.debug("terminateProcess called")
         self.logger.info("Terminating Process...")
+        self.updateTextFromLog.setBlockScraper(True)
+        self.updateTextFromLog.resetLastTopicUrlsList()
         browserUtil = BrowserUtility(self.configJson)
         for process in self.processes:
             try:

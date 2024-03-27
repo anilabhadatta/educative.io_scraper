@@ -89,10 +89,10 @@ class UpdateTxtFileFromLog:
                 self.fileUtil.writeLines(urlsTextFilePath, newLines)
                 self.logger.info("URL replaced in urls.txt file")
                 return True
+            raise Exception("Index to replace is None")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"updateUrlsFile: {lineNumber}: {e}")
-        return False
     
 
     def checkCountOfLastTopicUrls(self, lastTopicUrl):
@@ -119,12 +119,12 @@ class UpdateTxtFileFromLog:
             self.logger.info(f"Refactored URL: {refactoredUrl}")
             urlsTextFilePath = self.config['courseurlsfilepath']
             self.logger.info(f"Updating Urls Text File: {urlsTextFilePath}")
-            if self.updateUrlsFile(urlsTextFilePath, refactoredUrl, lastTopicUrl):
-                return True
+            return self.updateUrlsFile(urlsTextFilePath, refactoredUrl, lastTopicUrl)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
-            self.logger.error(f"updateTextFileFromLogMain: {lineNumber}: {e}")
-        return False
+            message = f"updateTextFileFromLogMain: {lineNumber}: {e}"
+            self.logger.error(message)
+            self.mailNotify.send_email(message)
 
 
 if __name__ == '__main__':
