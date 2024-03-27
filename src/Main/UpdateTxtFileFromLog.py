@@ -22,10 +22,15 @@ class UpdateTxtFileFromLog:
         self.configUtil = ConfigUtility()
         self.fileUtil = FileUtility()
         self.mailNotify = MailNotify()
-        self.config = self.configUtil.loadConfig()['ScraperConfig']
-        self.logger = Logger(self.config, "UpdateTxtFileFromLog").logger
+        self.config = None
+        self.logger = None
         self.lastTopicUrlsList = []
         self.blockScraper = False
+        self.loadConfigAndLogger()
+
+    def loadConfigAndLogger(self):
+        self.config = self.configUtil.loadConfig()['ScraperConfig']
+        self.logger = Logger(self.config, "UpdateTxtFileFromLog").logger
 
 
     def getBlockScraper(self):
@@ -107,6 +112,7 @@ class UpdateTxtFileFromLog:
 
     def updateTextFileFromLogMain(self):
         try:
+            self.loadConfigAndLogger()
             logFileData = self.getLogFileData()
             lastTopicUrl = self.getLastTopicUrl(logFileData)
             if "?showContent=true" not in lastTopicUrl:

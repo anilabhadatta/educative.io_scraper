@@ -43,6 +43,7 @@ class HomeScreen:
         self.headlessVar = tk.BooleanVar(value=False)
         self.ucdriverVar = tk.BooleanVar(value=False)
         self.autoResumeScraper = tk.BooleanVar(value=False)
+        self.autoFixTextFile = tk.BooleanVar(value=False)
         self.courseUrlsFilePathVar = tk.StringVar()
         self.saveDirectoryVar = tk.StringVar()
         self.isProxyVar = tk.BooleanVar(value=True)
@@ -175,9 +176,11 @@ class HomeScreen:
         proxyLabel = tk.Label(checkboxesFrame, text="Format: Host:Port")
         proxyLabel.grid(row=len(optionCheckboxes)-1, column=2, sticky="w", padx=2, pady=0)
         ucdriverCheckbox = tk.Checkbutton(checkboxesFrame, text="SeleniumBase(uc mode)", variable=self.ucdriverVar, wraplength=400, anchor="w")
-        ucdriverCheckbox.grid(row=len(optionCheckboxes)-2, column=1, sticky="w", padx=25, pady=2)
+        ucdriverCheckbox.grid(row=len(optionCheckboxes)-2, column=1, sticky="w", padx=(25,0), pady=2)
         self.autoResumeScraperCheckbox = tk.Checkbutton(checkboxesFrame, text="Auto Resume Scraper", variable=self.autoResumeScraper, wraplength=400, anchor="w")
-        self.autoResumeScraperCheckbox.grid(row=len(optionCheckboxes)-2, column=2, sticky="w", padx=25, pady=2)
+        self.autoResumeScraperCheckbox.grid(row=len(optionCheckboxes)-2, column=2, sticky="w", padx=(0,0), pady=2)
+        self.autoFixTextFileCheckbox = tk.Checkbutton(checkboxesFrame, text="Auto Fix Url File", variable=self.autoFixTextFile, wraplength=400, anchor="w")
+        self.autoFixTextFileCheckbox.grid(row=len(optionCheckboxes)-2, column=3, sticky="w", padx=(15,0), pady=2)
 
         scraperOptionFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
         checkboxesFrame.grid(row=1, column=0, padx=0, pady=3, sticky="nw")
@@ -325,6 +328,7 @@ class HomeScreen:
         self.scrapingMethodVar.set(self.config["scrapingMethod"])
         self.ucdriverVar.set(self.config["ucdriver"])
         self.autoResumeScraper.set(self.config["autoresume"])
+        self.autoFixTextFile.set(self.config["autofixtextfile"])
 
 
     def createConfigJson(self):
@@ -341,7 +345,8 @@ class HomeScreen:
             'fileType': self.fileTypeVar.get(),
             'ucdriver': self.ucdriverVar.get(),
             'binaryversion': self.config["binaryversion"],
-            'autoresume': self.autoResumeScraper.get()
+            'autoresume': self.autoResumeScraper.get(),
+            'autofixtextfile': self.autoFixTextFile.get()
         }
 
 
@@ -349,10 +354,9 @@ class HomeScreen:
         self.logger.debug("startScraper called")
         self.createConfigJson()
         if self.clickedByUser:
-            print("Clicked by User")
             self.updateTextFromLog.setBlockScraper(False)
             self.updateTextFromLog.resetLastTopicUrlsList()
-            if not self.updateTextFromLog.updateTextFileFromLogMain():
+            if self.configJson['autofixtextfile'] and not self.updateTextFromLog.updateTextFileFromLogMain():
                 self.logger.info("No URL found in log file. Starting Scraper from first url...")
         startScraper = StartScraper()
         self.process = multiprocessing.Process(target=startScraper.start, args=(self.configJson,))
