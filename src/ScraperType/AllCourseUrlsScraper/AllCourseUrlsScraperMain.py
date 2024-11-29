@@ -87,7 +87,8 @@ class AllCourseUrlsScraper:
                     if 'Page Not Found!' in response.text or "Looks like there's been a glitch..." in response.text:
                         raise Exception(f"Page not Found Error on course url: {courseLink[0]}")
                     soup = BeautifulSoup(response.content, 'html.parser')
-                    topicLinks = soup.find_all('a', id=lambda x: x and 'lesson-title' in x)
+                    topicLinks = soup.find_all('a', class_=lambda x: x and 'Lesson_lesson__' in x)
+                    self.logger.info(f"TopicLinks: {topicLinks}")
                     firstTopicLink = "https://www.educative.io" + topicLinks[0].get('href')
                     self.logger.info(firstTopicLink)
                     if firstTopicLink not in self.topicLinkLogData:
