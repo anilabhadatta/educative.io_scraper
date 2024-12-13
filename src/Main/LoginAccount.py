@@ -25,7 +25,7 @@ class LoginAccount:
                          """)
         try:
             self.browser = self.browserUtil.loadBrowser()
-            self.browser.get("https://educative.io/login")
+            self.browser.get("https://educative.io/explore")
             while True:
                 pass
         except KeyboardInterrupt:

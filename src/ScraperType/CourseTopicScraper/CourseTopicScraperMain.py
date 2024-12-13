@@ -1,10 +1,12 @@
 import asyncio
 import os
+from urllib.parse import urlparse
 
 from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
 from src.ScraperType.CourseTopicScraper.ScraperModules.ApiUtility import ApiUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.CodeUtility import CodeUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.NetworkMonitor import NetworkMonitor
 from src.ScraperType.CourseTopicScraper.ScraperModules.PrintFileUtility import PrintFileUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.QuizUtility import QuizUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.RemoveUtility import RemoveUtility
@@ -38,6 +40,9 @@ class CourseTopicScraper:
         self.screenshotUtils = ScreenshotUtility(configJson)
         self.printFileUtils = PrintFileUtility(configJson)
         self.browserUtils = BrowserUtility(self.configJson)
+        self.networkMonitor = NetworkMonitor(self.configJson)
+        selectorPath = os.path.join(os.path.dirname(__file__), "ScraperModules", "Selectors.json")
+        self.selectors = self.fileUtils.loadJsonFile(selectorPath)["CourseTopicScraper"]
 
 
     def start(self):
@@ -59,6 +64,25 @@ class CourseTopicScraper:
                 lineNumber = e.__traceback__.tb_lineno
                 raise Exception(f"CourseTopicScraper:start: {lineNumber}: {e}")
         self.logger.info("CourseTopicScraper completed.")
+
+
+    def startManual(self):
+        self.logger.info("CourseTopicScraper Manual initiated...")
+        try:
+            existingDevToolUrl = self.browserUtils.getDevToolsUrl()
+            parsed_url = urlparse(existingDevToolUrl)
+            self.logger.info(existingDevToolUrl)
+            self.browserUtils.devToolUrl = f"{parsed_url.hostname}:{parsed_url.port}"
+            self.browser = self.browserUtils.loadBrowser()
+            self.browser.set_window_size(1920, 1080)
+            # self.networkMonitor.browser = self.browser
+            # self.apiUrls = asyncio.run(self.networkMonitor.getAPIUrls())
+            # self.logger.info(f"Api urls: {self.apiUrls}")
+            self.scrapeTopicManual()
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"CourseTopicScraper:startManual: {lineNumber}: {e}")
+        self.logger.info("CourseTopicScraper Manual completed.")
 
 
     def scrapeCourse(self, textFileUrl):
@@ -112,6 +136,30 @@ class CourseTopicScraper:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CourseTopicScraper:scrapeCourse: {lineNumber}: {e}")
 
+    def scrapeTopicManual(self):
+        try:
+            courseHeaderSelector = self.selectors["courseHeader"]
+            courseHeaderJsScript = f"""return document.querySelectorAll("{courseHeaderSelector}")[0].innerText;"""
+            topicName = self.browser.execute_script(courseHeaderJsScript)
+            filenameSlugified = self.fileUtils.filenameSlugify(topicName)
+
+            sideBarTopicsSelector = self.selectors["sideBarTopics"]
+            sideBarTopicsJsScript = f"""return document.querySelectorAll("{sideBarTopicsSelector}");"""
+            sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
+
+            highlightedTopicProp = self.selectors["highlightedTopic"]
+            highlitedTopicIdx = 000
+            for i, sideBarTopic in enumerate(sideBarTopics):
+                highlitedTopicIdx = i
+                highlightedTopicJsScript = f"""return arguments[0].getAttribute("class").search("{highlightedTopicProp}") !== -1"""
+                ishighlightedTopic = self.browser.execute_script(highlightedTopicJsScript, sideBarTopic)
+                if ishighlightedTopic:
+                    break
+            topicName = f"{highlitedTopicIdx:03}-{filenameSlugified}"
+            self.scrapeTopic(self.outputFolderPath, topicName, None, self.browser.current_url)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"CourseTopicScraper:scrapeTopicManual: {lineNumber}: {e}")
 
     def scrapeTopic(self, coursePath, topicName, topicApiContentJson, topicUrl):
         try:

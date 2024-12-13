@@ -106,7 +106,7 @@ class AllCourseUrlsScraper:
         try:
             self.browser = self.browserUtils.loadBrowser()
             for pathLink in allPathsLinks:
-                if pathLink[0] in self.courseLinkLogData:
+                if pathLink[0] in self.courseLinkLogData or "become-a-python-developer" in pathLink[0]:
                     self.logger.info(f"Skipping {pathLink[0]}")
                     continue
                 self.logger.info(f"Getting Module urls for Path url: {pathLink[0]}")

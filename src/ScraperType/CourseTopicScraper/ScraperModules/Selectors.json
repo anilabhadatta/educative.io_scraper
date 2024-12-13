@@ -1,5 +1,12 @@
 {
+  "CourseTopicScraper" : {
+    "courseHeader" : "p[class*='text-3xl']",
+    "sideBarTopics": "div[data-testid*='progress-bar-svg']",
+    "highlightedTopic": "bg-gray-L200 dark:bg-gray-D1200"
+
+  },
   "SeleniumBasicUtility": {
+    "cloudLabPage": "div[id*='viewer-component']",
     "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
     "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]",
     "nextButton": "Next",

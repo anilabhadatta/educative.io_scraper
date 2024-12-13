@@ -50,15 +50,22 @@ class SeleniumBasicUtility:
             self.logger.info("Waiting for webdriver to load topic page")
             articlePageSelector = self.selectors["articlePage"]
             generalPageSelector = self.selectors["generalPage"]
+            cloudLabPageSelector = self.selectors["cloudLabPage"]
             try:
                 try:
-                    WebDriverWait(self.browser, self.timeout+5).until(
-                        EC.visibility_of_element_located((By.XPATH, articlePageSelector)))
+                    try:
+                        WebDriverWait(self.browser, self.timeout+5).until(
+                            EC.visibility_of_element_located((By.XPATH, articlePageSelector)))
+                    except Exception as e:
+                        self.browser.save_screenshot("image.png")
+                        WebDriverWait(self.browser, self.timeout+5).until(
+                            EC.visibility_of_element_located((By.XPATH, generalPageSelector)))
                 except Exception as e:
-                    self.browser.save_screenshot("image.png")
-                    WebDriverWait(self.browser, self.timeout+5).until(
-                        EC.visibility_of_element_located((By.XPATH, generalPageSelector)))
-            except:
+                    WebDriverWait(self.browser, self.timeout + 5).until(
+                        EC.visibility_of_element_located((By.CSS_SELECTOR, cloudLabPageSelector)))
+            except Exception as e:
+                lineNumber = e.__traceback__.tb_lineno
+                self.logger.error(f"SeleniumBasicUtility:waitWebdriverToLoadTopicPage: {lineNumber}: {e}")
                 return False
             return True
         except Exception as e:

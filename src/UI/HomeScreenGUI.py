@@ -40,6 +40,7 @@ class HomeScreen:
 
         self.configFilePath = tk.StringVar()
         self.userDataDirVar = tk.StringVar()
+        self.autoNextVar = tk.BooleanVar(value=False)
         self.headlessVar = tk.BooleanVar(value=False)
         self.ucdriverVar = tk.BooleanVar(value=False)
         self.autoResumeScraper = tk.BooleanVar(value=False)
@@ -175,6 +176,11 @@ class HomeScreen:
         proxyEntry.grid(row=len(optionCheckboxes)-1, column=1, sticky="w", padx=(30, 2), pady=2)
         proxyLabel = tk.Label(checkboxesFrame, text="Format: Host:Port")
         proxyLabel.grid(row=len(optionCheckboxes)-1, column=2, sticky="w", padx=2, pady=0)
+
+        checkbox = tk.Checkbutton(checkboxesFrame, text="AutoNext", variable=self.autoNextVar, wraplength=400, anchor="w")
+        checkbox.grid(row=len(optionCheckboxes)-1, column=3, sticky="w", padx=0, pady=2)
+        self.checkboxes.append(checkbox)
+
         ucdriverCheckbox = tk.Checkbutton(checkboxesFrame, text="SeleniumBase(uc mode)", variable=self.ucdriverVar, wraplength=400, anchor="w")
         ucdriverCheckbox.grid(row=len(optionCheckboxes)-2, column=1, sticky="w", padx=(25,0), pady=2)
         self.autoResumeScraperCheckbox = tk.Checkbutton(checkboxesFrame, text="Auto Resume Scraper", variable=self.autoResumeScraper, wraplength=400, anchor="w")
@@ -225,8 +231,10 @@ class HomeScreen:
                                                     command=self.downloadChromeDriver)
         self.downloadChromeBinaryButton = tk.Button(buttonScraperFrame, text="Download Chrome Binary", width=20,
                                                     command=self.downloadChromeBinary)
-        self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
-                                                 command=self.startChromeDriver, width=19, state="disabled")
+        # self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
+        #                                          command=self.startChromeDriver, width=19, state="disabled")
+        self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Manual Scraper",
+                                                 command=self.startManualScraper, width=19)
         self.loginAccountButton = tk.Button(buttonScraperFrame, text="Login Account", command=self.loginAccount,
                                             width=20)
         self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper,
@@ -329,6 +337,7 @@ class HomeScreen:
         self.ucdriverVar.set(self.config["ucdriver"])
         self.autoResumeScraper.set(self.config["autoresume"])
         self.autoFixTextFile.set(self.config["autofixtextfile"])
+        self.autoNextVar.set(self.config["autonext"])
 
 
     def createConfigJson(self):
@@ -347,7 +356,8 @@ class HomeScreen:
             'binaryversion': self.config["binaryversion"],
             'autoresume': self.autoResumeScraper.get(),
             'autofixtextfile': self.autoFixTextFile.get(),
-            'blockscraper': self.config["blockscraper"]
+            'blockscraper': self.config["blockscraper"],
+            'autonext': self.autoNextVar.get()
         }
 
 
@@ -361,11 +371,22 @@ class HomeScreen:
             if self.configJson['autofixtextfile'] and not self.updateTextFromLog.updateTextFileFromLogMain():
                 self.logger.info("No URL found in log file. Starting Scraper from first url...")
         startScraper = StartScraper()
-        self.process = multiprocessing.Process(target=startScraper.start, args=(self.configJson, self.updateTextFromLog, ))
+        self.process = multiprocessing.Process(name="Scraper", target=startScraper.start, args=(self.configJson, self.updateTextFromLog, ))
         self.process.start()
         self.processes.append(self.process)
         self.updateButtonState()
         self.logger.debug("startScraper completed")
+
+
+    def startManualScraper(self):
+        self.logger.debug("startManualScraper called")
+        self.createConfigJson()
+        startScraper = StartScraper()
+        self.process = multiprocessing.Process(name="ManualScraper", target=startScraper.startManual, args=(self.configJson, ))
+        self.process.start()
+        self.processes.append(self.process)
+        self.updateManualScraperButtonState()
+        self.logger.debug("startManualScraper completed")
 
 
     def loginAccount(self):
@@ -374,7 +395,7 @@ class HomeScreen:
         self.updateTextFromLog.setConfigExt(self.configJson)
         self.updateTextFromLog.setBlockScraper(True)
         loginAccount = LoginAccount()
-        self.process = multiprocessing.Process(target=loginAccount.start, args=(self.configJson,))
+        self.process = multiprocessing.Process(name="LoginAccount", target=loginAccount.start, args=(self.configJson,))
         self.process.start()
         self.processes.append(self.process)
         self.updateButtonState()
@@ -399,15 +420,28 @@ class HomeScreen:
         self.logger.debug("terminateProcess completed")
 
 
-    def updateButtonState(self):
-        if self.process and self.process.is_alive():
-            self.EnableDisableButtons("disabled")
-            self.terminateProcessButton.config(state="normal")
-        else:
+    def updateButtonState(self, args=""):
+        if self.process and self.process.name != "ManualScraper":
+            if self.process.is_alive():
+                self.EnableDisableButtons("disabled")
+                self.terminateProcessButton.config(state="normal")
+            else:
+                self.EnableDisableButtons("normal")
+                self.terminateProcessButton.config(state="disabled")
+            self.checkButtonStateVar.set(self.startScraperButton['state'])
+        if self.processes == []:
             self.EnableDisableButtons("normal")
             self.terminateProcessButton.config(state="disabled")
-        self.checkButtonStateVar.set(self.startScraperButton['state'])
-        self.app.after(1000, self.updateButtonState)
+        self.app.after(1000, lambda: self.updateButtonState(args=args))
+
+
+    def updateManualScraperButtonState(self):
+        if self.process and self.process.name == "ManualScraper":
+            if self.process.is_alive():
+                self.startChromeDriverButton.config(state="disabled")
+            else:
+                self.startChromeDriverButton.config(state="normal")
+        self.app.after(1000, self.updateManualScraperButtonState)
 
 
     def EnableDisableButtons(self, state):
