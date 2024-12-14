@@ -138,23 +138,28 @@ class CourseTopicScraper:
 
     def scrapeTopicManual(self):
         try:
-            sideBarTopicsSelector = self.selectors["sideBarTopics"]
+            sideBarTopicsSelector = self.selectors["sideBarTopics"][f'{self.selectors["sideBarTopicsCourseType"]}']
             sideBarTopicsJsScript = f"""return document.querySelectorAll("{sideBarTopicsSelector}");"""
             sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
 
-            highlightedTopicProp = self.selectors["highlightedTopic"]
+            highlightedTopicProp = self.selectors["highlightedTopic"][f'{self.selectors["highlightedTopicCourseType"]}']
             for highlightedTopicIdx in range(len(sideBarTopics)):
                 sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
                 highlightedTopicJsScript = f"""return arguments[0].getAttribute("class").search("{highlightedTopicProp}") !== -1"""
                 highlightedTopic = self.browser.execute_script(highlightedTopicJsScript, sideBarTopics[highlightedTopicIdx])
 
                 if highlightedTopic:
-                    courseHeaderSelector = self.selectors["courseHeader"]
+                    courseHeaderSelector = self.selectors["courseHeader"][f'{self.selectors["courseHeaderCourseType"]}']
                     courseHeaderJsScript = f"""return document.querySelectorAll("{courseHeaderSelector}")[0].innerText;"""
                     topicName = self.browser.execute_script(courseHeaderJsScript)
                     filenameSlugified = self.fileUtils.filenameSlugify(topicName)
                     topicName = f"{highlightedTopicIdx:03}-{filenameSlugified}"
-                    self.scrapeTopic(self.outputFolderPath, topicName, None, self.browser.current_url)
+                    topicUrl = self.browser.current_url
+                    self.logger.info(f"""----------------------------------------------------------------------------------
+                                    Scraping Topic: {topicName}: {topicUrl}
+                                    """)
+                    extraArgs = {"removeVScodeProjectWindow" : True, "resizeHorizontalGlutter": True}
+                    self.scrapeTopic(self.outputFolderPath, topicName, None, topicUrl, extraArgs)
 
                     if self.configJson["autonext"] and highlightedTopicIdx + 1 < len(sideBarTopics):
                         clickNextTopicJSScript = f"""arguments[0].click()"""
@@ -168,7 +173,7 @@ class CourseTopicScraper:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CourseTopicScraper:scrapeTopicManual: {lineNumber}: {e}")
 
-    def scrapeTopic(self, coursePath, topicName, topicApiContentJson, topicUrl):
+    def scrapeTopic(self, coursePath, topicName, topicApiContentJson, topicUrl, extraArgs=dict()):
         try:
             self.seleniumBasicUtils.browser = self.browser
             self.removeUtils.browser = self.browser
@@ -206,6 +211,10 @@ class CourseTopicScraper:
                 retries += 1
                 if retries == 3:
                     raise Exception("Exception Caused: due to captcha or page load issue")
+            if "resizeHorizontalGlutter" in extraArgs and extraArgs["resizeHorizontalGlutter"]:
+                self.seleniumBasicUtils.resizeHorizontalGlutter()
+            if "removeVScodeProjectWindow" in extraArgs and extraArgs["removeVScodeProjectWindow"]:
+                self.removeUtils.removeVScodeProjectWindow()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
             self.browserUtils.scrollPage()
             self.removeUtils.removeBlurWithCSS()

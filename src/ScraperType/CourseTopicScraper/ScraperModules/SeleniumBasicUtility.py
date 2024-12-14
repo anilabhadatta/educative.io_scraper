@@ -102,3 +102,14 @@ class SeleniumBasicUtility:
         body = json.dumps({'cmd': command, 'params': params})
         response = self.browser.command_executor._request('POST', url, body)
         return response.get('value')
+
+
+    def resizeHorizontalGlutter(self):
+        self.logger.info("resizeHorizontalGlutter")
+        try:
+            horizonWidthSelector = self.selectors["resizeHorizontalGlutter"]
+            horizonWidthJsScript = f"""document.querySelectorAll("{horizonWidthSelector}")[0].removeAttribute('style');"""
+            self.browser.execute_script(horizonWidthJsScript)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            self.logger.error(f"SeleniumBasicUtility:resizeHorizontalGlutter: {lineNumber}: {e}")
