@@ -138,25 +138,32 @@ class CourseTopicScraper:
 
     def scrapeTopicManual(self):
         try:
-            courseHeaderSelector = self.selectors["courseHeader"]
-            courseHeaderJsScript = f"""return document.querySelectorAll("{courseHeaderSelector}")[0].innerText;"""
-            topicName = self.browser.execute_script(courseHeaderJsScript)
-            filenameSlugified = self.fileUtils.filenameSlugify(topicName)
-
             sideBarTopicsSelector = self.selectors["sideBarTopics"]
             sideBarTopicsJsScript = f"""return document.querySelectorAll("{sideBarTopicsSelector}");"""
             sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
 
             highlightedTopicProp = self.selectors["highlightedTopic"]
-            highlitedTopicIdx = 000
-            for i, sideBarTopic in enumerate(sideBarTopics):
-                highlitedTopicIdx = i
+            for highlightedTopicIdx in range(len(sideBarTopics)):
+                sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
                 highlightedTopicJsScript = f"""return arguments[0].getAttribute("class").search("{highlightedTopicProp}") !== -1"""
-                ishighlightedTopic = self.browser.execute_script(highlightedTopicJsScript, sideBarTopic)
-                if ishighlightedTopic:
-                    break
-            topicName = f"{highlitedTopicIdx:03}-{filenameSlugified}"
-            self.scrapeTopic(self.outputFolderPath, topicName, None, self.browser.current_url)
+                highlightedTopic = self.browser.execute_script(highlightedTopicJsScript, sideBarTopics[highlightedTopicIdx])
+
+                if highlightedTopic:
+                    courseHeaderSelector = self.selectors["courseHeader"]
+                    courseHeaderJsScript = f"""return document.querySelectorAll("{courseHeaderSelector}")[0].innerText;"""
+                    topicName = self.browser.execute_script(courseHeaderJsScript)
+                    filenameSlugified = self.fileUtils.filenameSlugify(topicName)
+                    topicName = f"{highlightedTopicIdx:03}-{filenameSlugified}"
+                    self.scrapeTopic(self.outputFolderPath, topicName, None, self.browser.current_url)
+
+                    if self.configJson["autonext"] and highlightedTopicIdx + 1 < len(sideBarTopics):
+                        clickNextTopicJSScript = f"""arguments[0].click()"""
+                        sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
+                        self.browser.execute_script(clickNextTopicJSScript, sideBarTopics[highlightedTopicIdx + 1])
+                        self.osUtils.sleep(10)
+                    else:
+                        break
+
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CourseTopicScraper:scrapeTopicManual: {lineNumber}: {e}")
@@ -193,6 +200,7 @@ class CourseTopicScraper:
                 except:
                     self.logger.info("Page Loading Issue, pressing ESC to stop page load")
                     self.browser.execute_script("window.stop();")
+                self.browser.set_window_size(1920, 1080)
                 if self.seleniumBasicUtils.waitWebdriverToLoadTopicPage():
                     break
                 retries += 1
