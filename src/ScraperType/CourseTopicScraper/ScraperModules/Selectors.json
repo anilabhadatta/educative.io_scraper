@@ -1,10 +1,29 @@
 {
+  "CourseTopicScraper" : {
+    "courseHeaderCourseType" : "project",
+    "courseHeader" : {
+      "cloudLab" : "p[class*='text-3xl']",
+      "project": "span[class*=body-medium]"
+    },
+    "sideBarTopicsCourseType" : "project",
+    "sideBarTopics": {
+      "cloudLab" : "div[data-testid*='progress-bar-svg']",
+      "project": "div[data-testid*='progress-bar-svg']"
+    },
+    "highlightedTopicCourseType" : "project",
+    "highlightedTopic": {
+      "cloudLab" : "bg-gray-L200 dark:bg-gray-D1200",
+      "project": "bg-gray-L200 dark:bg-gray-D1200"
+    }
+  },
   "SeleniumBasicUtility": {
+    "cloudLabPage": "div[id*='viewer-component']",
     "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
     "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]",
     "nextButton": "Next",
     "backButton": "Back",
-    "expandAllButton": "//button[contains(., 'Expand All Sections')]"
+    "expandAllButton": "//button[contains(., 'Expand All Sections')]",
+    "resizeHorizontalGlutter": "div[style*='30%'][style*='calc']"
   },
   "RemoveUtility": {
     "articleFooter": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]/div[3]",
@@ -17,7 +36,8 @@
     "bodyChildNodes": "body > *",
     "headChildNodes": "head > *",
     "sidebar": "div[aria-label*='toggle sidebar']",
-    "fixed": "div[class*='fixed']"
+    "fixed": "div[class*='fixed']",
+    "vscodeProjectWindow": "div[class*='gutter gutter-horizontal'] + div"
   },
   "ShowUtility": {
     "showMarkDownQuizSolution": "Show Answer",

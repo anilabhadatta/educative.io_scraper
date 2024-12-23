@@ -31,3 +31,21 @@ class StartScraper:
             self.mailNotify.send_email(f"Exception occured in line number {lineNumber}, {e}")
         finally:
             self.logger.debug("Exiting Scraper...")
+
+
+    def startManual(self, configJson):
+        self.logger = Logger(configJson, "StartScraper").logger
+        self.logger.info("""StartScraper Initiated Manually...
+                            To Terminate, Click on Stop ScraperType Button
+                        """)
+        try:
+            CourseTopicScraper(configJson).startManual()
+            # self.mailNotify.send_email("Scraping Complete")
+        except KeyboardInterrupt:
+            self.logger.error("Keyboard Interrupt")
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            self.logger.error(f"startManual: {lineNumber}: {e}")
+            self.mailNotify.send_email(f"Exception occured in line number {lineNumber}, {e}")
+        finally:
+            self.logger.debug("Exiting Scraper...")

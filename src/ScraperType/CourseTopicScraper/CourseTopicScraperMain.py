@@ -1,10 +1,12 @@
 import asyncio
 import os
+from urllib.parse import urlparse
 
 from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
 from src.ScraperType.CourseTopicScraper.ScraperModules.ApiUtility import ApiUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.CodeUtility import CodeUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.NetworkMonitor import NetworkMonitor
 from src.ScraperType.CourseTopicScraper.ScraperModules.PrintFileUtility import PrintFileUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.QuizUtility import QuizUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.RemoveUtility import RemoveUtility
@@ -38,6 +40,9 @@ class CourseTopicScraper:
         self.screenshotUtils = ScreenshotUtility(configJson)
         self.printFileUtils = PrintFileUtility(configJson)
         self.browserUtils = BrowserUtility(self.configJson)
+        self.networkMonitor = NetworkMonitor(self.configJson)
+        selectorPath = os.path.join(os.path.dirname(__file__), "ScraperModules", "Selectors.json")
+        self.selectors = self.fileUtils.loadJsonFile(selectorPath)["CourseTopicScraper"]
 
 
     def start(self):
@@ -59,6 +64,25 @@ class CourseTopicScraper:
                 lineNumber = e.__traceback__.tb_lineno
                 raise Exception(f"CourseTopicScraper:start: {lineNumber}: {e}")
         self.logger.info("CourseTopicScraper completed.")
+
+
+    def startManual(self):
+        self.logger.info("CourseTopicScraper Manual initiated...")
+        try:
+            existingDevToolUrl = self.browserUtils.getDevToolsUrl()
+            parsed_url = urlparse(existingDevToolUrl)
+            self.logger.info(existingDevToolUrl)
+            self.browserUtils.devToolUrl = f"{parsed_url.hostname}:{parsed_url.port}"
+            self.browser = self.browserUtils.loadBrowser()
+            self.browser.set_window_size(1920, 1080)
+            # self.networkMonitor.browser = self.browser
+            # self.apiUrls = asyncio.run(self.networkMonitor.getAPIUrls())
+            # self.logger.info(f"Api urls: {self.apiUrls}")
+            self.scrapeTopicManual()
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"CourseTopicScraper:startManual: {lineNumber}: {e}")
+        self.logger.info("CourseTopicScraper Manual completed.")
 
 
     def scrapeCourse(self, textFileUrl):
@@ -112,8 +136,44 @@ class CourseTopicScraper:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CourseTopicScraper:scrapeCourse: {lineNumber}: {e}")
 
+    def scrapeTopicManual(self):
+        try:
+            sideBarTopicsSelector = self.selectors["sideBarTopics"][f'{self.selectors["sideBarTopicsCourseType"]}']
+            sideBarTopicsJsScript = f"""return document.querySelectorAll("{sideBarTopicsSelector}");"""
+            sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
 
-    def scrapeTopic(self, coursePath, topicName, topicApiContentJson, topicUrl):
+            highlightedTopicProp = self.selectors["highlightedTopic"][f'{self.selectors["highlightedTopicCourseType"]}']
+            for highlightedTopicIdx in range(len(sideBarTopics)):
+                sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
+                highlightedTopicJsScript = f"""return arguments[0].getAttribute("class").search("{highlightedTopicProp}") !== -1"""
+                highlightedTopic = self.browser.execute_script(highlightedTopicJsScript, sideBarTopics[highlightedTopicIdx])
+
+                if highlightedTopic:
+                    courseHeaderSelector = self.selectors["courseHeader"][f'{self.selectors["courseHeaderCourseType"]}']
+                    courseHeaderJsScript = f"""return document.querySelectorAll("{courseHeaderSelector}")[0].innerText;"""
+                    topicName = self.browser.execute_script(courseHeaderJsScript)
+                    filenameSlugified = self.fileUtils.filenameSlugify(topicName)
+                    topicName = f"{highlightedTopicIdx:03}-{filenameSlugified}"
+                    topicUrl = self.browser.current_url
+                    self.logger.info(f"""----------------------------------------------------------------------------------
+                                    Scraping Topic: {topicName}: {topicUrl}
+                                    """)
+                    extraArgs = {"removeVScodeProjectWindow" : True, "resizeHorizontalGlutter": True}
+                    self.scrapeTopic(self.outputFolderPath, topicName, None, topicUrl, extraArgs)
+
+                    if self.configJson["autonext"] and highlightedTopicIdx + 1 < len(sideBarTopics):
+                        clickNextTopicJSScript = f"""arguments[0].click()"""
+                        sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
+                        self.browser.execute_script(clickNextTopicJSScript, sideBarTopics[highlightedTopicIdx + 1])
+                        self.osUtils.sleep(10)
+                    else:
+                        break
+
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"CourseTopicScraper:scrapeTopicManual: {lineNumber}: {e}")
+
+    def scrapeTopic(self, coursePath, topicName, topicApiContentJson, topicUrl, extraArgs=dict()):
         try:
             self.seleniumBasicUtils.browser = self.browser
             self.removeUtils.browser = self.browser
@@ -145,11 +205,16 @@ class CourseTopicScraper:
                 except:
                     self.logger.info("Page Loading Issue, pressing ESC to stop page load")
                     self.browser.execute_script("window.stop();")
+                self.browser.set_window_size(1920, 1080)
                 if self.seleniumBasicUtils.waitWebdriverToLoadTopicPage():
                     break
                 retries += 1
                 if retries == 3:
                     raise Exception("Exception Caused: due to captcha or page load issue")
+            if "resizeHorizontalGlutter" in extraArgs and extraArgs["resizeHorizontalGlutter"]:
+                self.seleniumBasicUtils.resizeHorizontalGlutter()
+            if "removeVScodeProjectWindow" in extraArgs and extraArgs["removeVScodeProjectWindow"]:
+                self.removeUtils.removeVScodeProjectWindow()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
             self.browserUtils.scrollPage()
             self.removeUtils.removeBlurWithCSS()

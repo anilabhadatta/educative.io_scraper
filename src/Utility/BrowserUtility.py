@@ -42,8 +42,17 @@ class BrowserUtility:
                                       headed=not self.configJson["headless"], driver_version=self.configJson['binaryversion'])
             else:
                 options.add_argument(f'user-data-dir={self.userDataDir}')
+                if self.devToolUrl:
+                    options.debugger_address = self.devToolUrl
                 chromeService = Service(executable_path=constants.chromeDriverPath)
                 self.browser = webdriver.Chrome(service=chromeService, options=options)
+                # self.browser.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+                #     "source": """
+                #         Object.defineProperty(navigator, 'webdriver', {
+                #           get: () => undefined
+                #         })
+                #       """
+                # })
             self.browser.set_window_size(1920, 1080)
             self.browser.set_script_timeout(60)
             self.browser.set_page_load_timeout(30)
@@ -120,6 +129,12 @@ class BrowserUtility:
         content = devToolUrl + "\n" + pid
         self.fileUtils.createTextFile(self.devToolsFilePath, content)
         self.logger.info(f"saveWebSocketUrl completed with devToolUrl: {devToolUrl} pid : {pid}")
+
+
+    def getDevToolsUrl(self):
+        content = self.fileUtils.loadTextFile(self.devToolsFilePath)
+        devToolUrl = content[0]
+        return devToolUrl
 
 
     async def shutdownChromeViaWebsocket(self):

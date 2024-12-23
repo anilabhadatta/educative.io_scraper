@@ -26,6 +26,17 @@ class RemoveUtility:
         return self.browser.execute_script(removeBlurJsScript)
 
 
+    def removeVScodeProjectWindow(self):
+        self.logger.info("removeVScodeProjectWindow")
+        try:
+            vscodeProjectWindowSelector = self.selectors["vscodeProjectWindow"]
+            vscodeProjectWindowJsScript = f"""document.querySelectorAll("{vscodeProjectWindowSelector}")[0].setAttribute("style", "display: none;");"""
+            self.browser.execute_script(vscodeProjectWindowJsScript)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            self.logger.error(f"RemoveUtility:removeVScodeProjectWindow: {lineNumber}: {e}")
+
+
     def removeMarkAsCompleted(self):
         try:
             self.logger.info("Removing mark-as-completed/completed tick mark")
