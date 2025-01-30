@@ -182,7 +182,8 @@ class ApiUtility:
             except:
                 self.logger.info("Page Loading Issue, pressing ESC to stop page load")
                 self.browser.execute_script("window.stop();")
-            courseTypeSelector = f"//nav//a[contains(@href, '/{topicUrl.split('/')[3]}/')]/span/.."
+            # courseTypeSelector = f"//nav//a[contains(@href, '/{topicUrl.split('/')[3]}/')]/span/.."
+            courseTypeSelector = f"//div[contains(@id, 'view-collection-article-content-root')]//a[contains(@href, '/{topicUrl.split('/')[3]}/')]"
             self.logger.info(f"Course Type Selector: {courseTypeSelector}")
             try:
                 WebDriverWait(self.browser, self.timeout).until(
