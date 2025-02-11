@@ -116,11 +116,19 @@ class HomeScreen:
 
     def createHomeScreen(self, version):
         self.logger = Logger(self.configJson, "HomeScreen").logger
-        self.loggingLevelVar.trace("w", self.onConfigChange)
-        self.saveDirectoryVar.trace("w", self.onConfigChange)
-        self.logLevelDescVar.trace("w", self.onConfigChange)
-        self.scrapingMethodVar.trace("w", self.updateComboboxStates)
-        self.scraperTypeVar.trace("w", self.updateComboboxStates)
+        if hasattr(self.loggingLevelVar, "trace_add"):
+            self.loggingLevelVar.trace_add("write", self.onConfigChange)
+            self.loggingLevelVar.trace_add("write", self.onConfigChange)
+            self.saveDirectoryVar.trace_add("write", self.onConfigChange)
+            self.logLevelDescVar.trace_add("write", self.onConfigChange)
+            self.scrapingMethodVar.trace_add("write", self.updateComboboxStates)
+            self.scraperTypeVar.trace_add("write", self.updateComboboxStates)
+        else: # Fallback for older versions
+            self.loggingLevelVar.trace("w", self.onConfigChange)
+            self.saveDirectoryVar.trace("w", self.onConfigChange)
+            self.logLevelDescVar.trace("w", self.onConfigChange)
+            self.scrapingMethodVar.trace("w", self.updateComboboxStates)
+            self.scraperTypeVar.trace("w", self.updateComboboxStates)
         self.logger.info("Creating Home Screen...")
 
         configFilePathFrame = tk.Frame(self.app)
@@ -240,7 +248,10 @@ class HomeScreen:
         self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper,
                                             width=19)
         self.checkButtonStateVar.set(self.startScraperButton['state'])
-        self.checkButtonStateVar.trace("w", lambda *args: self.autoStartScraperOnConditions())
+        if hasattr(self.loggingLevelVar, "trace_add"):
+            self.checkButtonStateVar.trace_add("write", lambda *args: self.autoStartScraperOnConditions())
+        else:
+            self.checkButtonStateVar.trace("w", lambda *args: self.autoStartScraperOnConditions())
         self.startScraperButton.bind("<Button-1>", self.trackUserClick)
         self.terminateProcessButton = tk.Button(buttonScraperFrame, text="Stop Scraper/Close Browser",
                                                 command=self.terminateProcess,
