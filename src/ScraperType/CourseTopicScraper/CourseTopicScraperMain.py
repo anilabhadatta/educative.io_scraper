@@ -88,7 +88,7 @@ class CourseTopicScraper:
     def scrapeCourse(self, textFileUrl):
         try:
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
-            courseApiUrl = self.apiUtils.getNextData()
+            courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
             topicUrlsList, pathFolderName = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
             startIndex = topicUrlsList.index(textFileUrl) if textFileUrl in topicUrlsList else 0
             self.loginUtils.checkIfLoggedIn()
