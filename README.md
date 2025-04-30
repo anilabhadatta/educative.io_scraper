@@ -89,7 +89,7 @@ cd educative.io_scraper
       ```
       <div align="center">
          <figure>
-            <img src="<https://github.com/user-attachments/assets/5cb59aab-7ec6-4056-aa93-4886606b9b51" style="width: 50%; height:50%;">
+            <img src="https://github.com/user-attachments/assets/5cb59aab-7ec6-4056-aa93-4886606b9b51" style="width: 50%; height:50%;">
             <br>
             <figcaption>Recommeded GUI Settings</figcaption>
          </figure>
