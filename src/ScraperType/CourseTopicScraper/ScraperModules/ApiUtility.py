@@ -209,41 +209,59 @@ class ApiUtility:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseUrl: {lineNumber}: {e}")
 
-
-    def getAuthorAndCollectionId(self):
+    def getNextData(self):
         try:
-            self.logger.info(f"Getting AuthorAndCollectionId")
-            authorAndCollectionIdScript = f"""
-                                    const resultMap = {{}};
-                                    this.__next_f.forEach(entry => {{
-                                    if (!Array.isArray(entry) || typeof entry[1] !== 'string') return;
-
-                                    const text = entry[1];
-
-                                    // Regular expression to match the author_id and collection_id
-                                    const authorMatch = text.match(/"author_id"\s*:\s*(\d+)/);
-                                    const collectionMatch = text.match(/"collection_id"\s*:\s*(\d+)/);
-
-                                    if (authorMatch && collectionMatch) {{
-                                        const authorId = String(authorMatch[1]);
-                                        const collectionId = String(collectionMatch[1]);
-                                        
-                                        // Add the extracted data to the map
-                                        resultMap['author_id'] = authorId;
-                                        resultMap['collection_id'] = collectionId;
-                                    }}
-                                    }});
-                                    console.log('Printing resultMap');
-                                    console.log(resultMap);
-                                    return resultMap;
-            """
-            resMap = self.browser.execute_script(authorAndCollectionIdScript)
-            self.logger.info(f"Found AuthorAndCollectionId {resMap}")
-            courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(resMap)
+            self.logger.info(f"Could not find authorid, collectionid, trying to get Next Data")
+            nextDataSelector = self.selectors["nextData"]
+            nextDataScript = f"""
+            return JSON.parse(document.querySelectorAll("{nextDataSelector}")[0].textContent);
+                            """
+            nextData = self.browser.execute_script(nextDataScript)
+            nextData = nextData["query"]
+            self.logger.info(f"Found Next Data")
+            courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(nextData)
             return courseApiUrl
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getNextData: {lineNumber}: {e}")
+
+    def getAuthorAndCollectionId(self):
+        try:
+            self.logger.info(f"Getting AuthorAndCollectionId")
+            try:
+                authorAndCollectionIdScript = f"""
+                                        const resultMap = {{}};
+                                        this.__next_f.forEach(entry => {{
+                                        if (!Array.isArray(entry) || typeof entry[1] !== 'string') return;
+
+                                        const text = entry[1];
+
+                                        // Regular expression to match the author_id and collection_id
+                                        const authorMatch = text.match(/"author_id"\s*:\s*(\d+)/);
+                                        const collectionMatch = text.match(/"collection_id"\s*:\s*(\d+)/);
+
+                                        if (authorMatch && collectionMatch) {{
+                                            const authorId = String(authorMatch[1]);
+                                            const collectionId = String(collectionMatch[1]);
+                                            
+                                            // Add the extracted data to the map
+                                            resultMap['authorId'] = authorId;
+                                            resultMap['collectionId'] = collectionId;
+                                        }}
+                                        }});
+                                        console.log('Printing resultMap');
+                                        console.log(resultMap);
+                                        return resultMap;
+                """
+                resMap = self.browser.execute_script(authorAndCollectionIdScript)
+                self.logger.info(f"Found AuthorAndCollectionId {resMap}")
+                courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(resMap)
+            except:
+                courseApiUrl = self.getNextData()
+            return courseApiUrl
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getAuthorAndCollectionId: {lineNumber}: {e}")
 
 
     def getPathFolderName(self):
