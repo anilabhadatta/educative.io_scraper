@@ -89,7 +89,7 @@ cd educative.io_scraper
       ```
       <div align="center">
          <figure>
-            <img src="https://github.com/anilabhadatta/educative.io_scraper/assets/48487849/8d2fc780-dd82-43b5-8c8c-c58b6c2213b9" style="width: 50%; height:50%;">
+            <img src="https://github.com/user-attachments/assets/5cb59aab-7ec6-4056-aa93-4886606b9b51" style="width: 50%; height:50%;">
             <br>
             <figcaption>Recommeded GUI Settings</figcaption>
          </figure>
@@ -139,3 +139,10 @@ cd educative.io_scraper
       </div>
     - An index is `NOT` required in the URL's text file, Simply paste the URLs of the topic from which you
       want to start/resume scraping.
+    - Added Manual Scraper Button (Used to scrap a specific topic opening in the browser)
+         - Important: Disable Seleniumbase checkbox for this. 
+         - Open the the browser using Login Account, Search for a topic in the open tab. 
+         - AutoNext checkbox will work only with Manual Scraper. This will automatically scrape consecutive topics and will finish at the end of the topic of that specific course.
+         - To stop, click on close browser.
+         - Cloudlabs can be scraped using this.
+         - Change configuration as per topic type : "courseType" : "cloudLab" / "project" in selectors.json
