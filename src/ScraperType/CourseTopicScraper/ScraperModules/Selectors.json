@@ -1,16 +1,18 @@
 {
   "CourseTopicScraper" : {
-    "courseHeaderCourseType" : "project",
+    "courseType" : "cloudLab",
     "courseHeader" : {
+      "cloudLab" : "span[class*=body-medium]",
+      "project": "span[class*=body-medium]"
+    },
+    "topicHeader" : {
       "cloudLab" : "p[class*='text-3xl']",
       "project": "span[class*=body-medium]"
     },
-    "sideBarTopicsCourseType" : "project",
     "sideBarTopics": {
       "cloudLab" : "div[data-testid*='progress-bar-svg']",
       "project": "div[data-testid*='progress-bar-svg']"
     },
-    "highlightedTopicCourseType" : "project",
     "highlightedTopic": {
       "cloudLab" : "bg-gray-L200 dark:bg-gray-D1200",
       "project": "bg-gray-L200 dark:bg-gray-D1200"

@@ -145,4 +145,4 @@ cd educative.io_scraper
          - AutoNext checkbox will work only with Manual Scraper. This will automatically scrape consecutive topics and will finish at the end of the topic of that specific course.
          - To stop, click on close browser.
          - Cloudlabs can be scraped using this.
-         - Change configuration as per topic type : "courseHeaderCourseType" : "cloudLab" in selectors.json
+         - Change configuration as per topic type : "courseType" : "cloudLab" / "project" in selectors.json
