@@ -12,10 +12,11 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.8.0 (Recommended)
+Repository Version: v3.9.0 (Recommended)
 Master Branch: v3-master</code></pre>
 ```
 1. Updates Information
+-  Cloudlabs, Projects can now be scraped using Auto/Manual Scraper (v3.9.0) 
 -  SandPack code container support added
 -  SingleFile injection script now uses single-file-cli logic instead of custom (v3.7.4) 
 -  Injectes SingleFile through Local. Script faster by 10 seconds per topic, fixes Iframe (v3.7.3)
@@ -87,9 +88,10 @@ cd educative.io_scraper
       pip3 install -r requirements.txt
       python3 EducativeScraper.py
       ```
+
       <div align="center">
          <figure>
-            <img src="https://github.com/user-attachments/assets/5cb59aab-7ec6-4056-aa93-4886606b9b51" style="width: 50%; height:50%;">
+            <img src="https://github.com/user-attachments/assets/52e81b18-356e-4d9a-bd75-24bd032f4280" style="width: 50%; height:50%;">
             <br>
             <figcaption>Recommeded GUI Settings</figcaption>
          </figure>
@@ -139,10 +141,13 @@ cd educative.io_scraper
       </div>
     - An index is `NOT` required in the URL's text file, Simply paste the URLs of the topic from which you
       want to start/resume scraping.
+    - Added new function to auto scraper
+         - Can automatically scrape Cloudlabs and Projects links added in text file.
+         - Select ModuleType [CLOUDLABS/PROJECTS/COURSE-PATH]
     - Added Manual Scraper Button (Used to scrap a specific topic opening in the browser)
          - Important: Disable Seleniumbase checkbox for this. 
-         - Open the the browser using Login Account, Search for a topic in the open tab. 
+         - Open the the browser using Login/Open Browser, Search for a topic in the opened tab. 
          - AutoNext checkbox will work only with Manual Scraper. This will automatically scrape consecutive topics and will finish at the end of the topic of that specific course.
          - To stop, click on close browser.
-         - Cloudlabs can be scraped using this.
-         - Change configuration as per topic type : "courseType" : "cloudLab" / "project" in selectors.json
+         - Cloudlabs/Projects can be scraped using this.
+         - Change configuration as per topic type in UI field: ModuleType

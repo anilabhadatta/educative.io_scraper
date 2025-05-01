@@ -1,24 +1,30 @@
 {
   "CourseTopicScraper" : {
-    "courseType" : "cloudLab",
     "courseHeader" : {
-      "cloudLab" : "span[class*=body-medium]",
-      "project": "span[class*=body-medium]"
+      "CLOUDLAB" : "span[class*=body-medium]",
+      "PROJECT": "h5[class='heading-five m-0']"
     },
     "topicHeader" : {
-      "cloudLab" : "p[class*='text-3xl']",
-      "project": "span[class*=body-medium]"
+      "CLOUDLAB" : "p[class*='text-3xl']",
+      "PROJECT": "span[class*=body-medium]"
     },
     "sideBarTopics": {
-      "cloudLab" : "div[data-testid*='progress-bar-svg']",
-      "project": "div[data-testid*='progress-bar-svg']"
+      "CLOUDLAB" : "div[data-testid*='progress-bar-svg']",
+      "PROJECT": "div[data-testid*='progress-bar-svg']"
     },
     "highlightedTopic": {
-      "cloudLab" : "bg-gray-L200 dark:bg-gray-D1200",
-      "project": "bg-gray-L200 dark:bg-gray-D1200"
+      "CLOUDLAB" : "bg-gray-L200 dark:bg-gray-D1200",
+      "PROJECT": "bg-gray-L200 dark:bg-gray-D1200"
     }
   },
   "SeleniumBasicUtility": {
+    "startButton" : {
+      "CLOUDLAB" : "//button[(normalize-space(.)='Start Lab' or normalize-space(.)='Continue Lab') and not(@disabled)]",
+      "PROJECT": "//button[(normalize-space(.)='Start Project' or normalize-space(.)='Resume Project') and not(@disabled)]"
+    },
+    "endLabButton" : {
+      "CLOUDLAB" : "//button[normalize-space(.)='End Lab']"
+    },
     "cloudLabPage": "div[id*='viewer-component']",
     "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
     "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]",
