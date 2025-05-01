@@ -11,6 +11,14 @@ class RemoveUtility:
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["RemoveUtility"]
         self.logger = Logger(configJson, "RemoveUtility").logger
+    
+
+    def removeDialogBoxIfVisible(self):
+        removeDialogScript = '''const dialog = document.querySelector("dialog");
+                                if (dialog) {{
+                                    dialog.click();
+                                }}'''
+        self.browser.execute_script(removeDialogScript)
 
 
     def removeBlurWithCSS(self):

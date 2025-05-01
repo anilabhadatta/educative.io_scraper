@@ -81,7 +81,7 @@ class UpdateTxtFileFromLog:
         if "?" in url:
             url = "".join(url.split("?")[:-1])
         url = url.split("/")
-        if url[-1] in ["assessment", "cloudlab", "project"]:
+        if url[-1] in ["assessment", "cloudlab", "project", "mock-interview"]:
             url = url[:-1]
         return "/".join(url[:-1])
 
