@@ -102,12 +102,12 @@ class ApiUtility:
             topicApiUrlList = []
             topicNameList = []
             baseApiUrl = f"https://educative.io/api/collection/{authorId}/{collectionId}/page/"
-            categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT", "CLOUD_LAB"]
+            categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT", "CLOUD_LAB", "LINKED_MOCK_INTERVIEW"]
             topicIdx = 0
             toc = []
             for category in categories:
                 if any(cType in category["type"] for cType in categoryType) and (
-                        isinstance(category["id"], int) or len(category["id"]) <= 10):
+                        isinstance(category["id"], int) or len(category["id"]) <= 10 or category["type"] in ("LINKED_MOCK_INTERVIEW")):
                     if not category["pages"]:
                         topicApiUrl = baseApiUrl + str(category["id"]) + f"?work_type={courseType}"
                         topicApiUrlList.append(topicApiUrl)

@@ -6,7 +6,7 @@ class UrlUtility:
     @staticmethod
     def getTopicUrlSelector(url):
         url = url.split("/")
-        if url[-1] in ["assessment?showContent=true", "cloudlab?showContent=true", "project?showContent=true"]:
+        if url[-1] in ["assessment?showContent=true", "cloudlab?showContent=true", "project?showContent=true", "mock-interview?showContent=true"]:
             url = url[:-1]
         modifiedCourseUrl = "/".join(url[3:-1]) + "/"
         return f"//a[contains(@href, '{modifiedCourseUrl}')]"

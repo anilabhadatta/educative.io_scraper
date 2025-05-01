@@ -131,7 +131,7 @@ class CourseTopicScraper:
                 topicApiContentJson = self.apiUtils.getTopicApiContentJson(topicApiUrl)
                 if not topicApiContentJson:
                     url = topicUrl.split("/")
-                    if not (url[-1] in ["assessment?showContent=true", "cloudlab?showContent=true", "project?showContent=true"]):
+                    if not (url[-1] in ["assessment?showContent=true", "cloudlab?showContent=true", "project?showContent=true", "mock-interview?showContent=true"]):
                         raise Exception("Cannot fetch content from Topic Api Url")
                 self.osUtils.sleep(10)
                 self.scrapeTopic(coursePath, topicName, topicApiContentJson, topicUrl)
@@ -281,6 +281,7 @@ class CourseTopicScraper:
                 self.removeUtils.removeVScodeProjectWindow()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
             self.browserUtils.scrollPage()
+            self.removeUtils.removeDialogBoxIfVisible()
             self.removeUtils.removeBlurWithCSS()
             self.removeUtils.removeMarkAsCompleted()
             self.removeUtils.removeUnwantedElements()
