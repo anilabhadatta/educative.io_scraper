@@ -88,9 +88,10 @@ cd educative.io_scraper
       pip3 install -r requirements.txt
       python3 EducativeScraper.py
       ```
+
       <div align="center">
          <figure>
-            <img src="https://github.com/user-attachments/assets/5cb59aab-7ec6-4056-aa93-4886606b9b51" style="width: 50%; height:50%;">
+            <img src="https://github.com/user-attachments/assets/52e81b18-356e-4d9a-bd75-24bd032f4280" style="width: 50%; height:50%;">
             <br>
             <figcaption>Recommeded GUI Settings</figcaption>
          </figure>
