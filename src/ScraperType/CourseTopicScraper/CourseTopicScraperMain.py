@@ -57,7 +57,10 @@ class CourseTopicScraper:
                 self.apiUtils.browser = self.browser
                 self.loginUtils.browser = self.browser
                 self.browser.set_window_size(1920, 1080)
-                self.scrapeCourse(textFileUrl)
+                if self.configJson["moduleType"] == "COURSE-PATH":
+                    self.scrapeCourseOrPath(textFileUrl)
+                if self.configJson["moduleType"] in ("CLOUDLAB", "PROJECT"):
+                    self.scrapeCloudLabOrProject(textFileUrl)
                 asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
             except Exception as e:
                 asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
@@ -85,7 +88,7 @@ class CourseTopicScraper:
         self.logger.info("CourseTopicScraper Manual completed.")
 
 
-    def scrapeCourse(self, textFileUrl):
+    def scrapeCourseOrPath(self, textFileUrl):
         try:
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
             courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
@@ -135,27 +138,79 @@ class CourseTopicScraper:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CourseTopicScraper:scrapeCourse: {lineNumber}: {e}")
+        
 
-    def scrapeTopicManual(self):
+    def scrapeCloudLabOrProject(self, textFileUrl):
         try:
-            sideBarTopicsSelector = self.selectors["sideBarTopics"][f'{self.selectors["courseType"]}']
+            self.browser.get(textFileUrl)
+            self.osUtils.sleep(5)
+            self.seleniumBasicUtils.browser = self.browser
+            self.seleniumBasicUtils.clickStartCloudlabsOrProject()
+            self.seleniumBasicUtils.clickEndLabForCloudlabs()
+            
+            sideBarTopicsSelector = self.selectors["sideBarTopics"][f'{self.configJson["moduleType"]}']
             sideBarTopicsJsScript = f"""return document.querySelectorAll("{sideBarTopicsSelector}");"""
             sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
 
-            highlightedTopicProp = self.selectors["highlightedTopic"][f'{self.selectors["courseType"]}']
+            highlightedTopicProp = self.selectors["highlightedTopic"][f'{self.configJson["moduleType"]}']
             for highlightedTopicIdx in range(len(sideBarTopics)):
                 sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
                 highlightedTopicJsScript = f"""return arguments[0].getAttribute("class").search("{highlightedTopicProp}") !== -1"""
                 highlightedTopic = self.browser.execute_script(highlightedTopicJsScript, sideBarTopics[highlightedTopicIdx])
 
                 if highlightedTopic:
-                    courseHeaderSelector = self.selectors["courseHeader"][f'{self.selectors["courseType"]}']
+                    courseHeaderSelector = self.selectors["courseHeader"][f'{self.configJson["moduleType"]}']
                     courseHeaderJsScript = f"""return document.querySelectorAll("{courseHeaderSelector}")[0].innerText;"""
                     courseName = self.browser.execute_script(courseHeaderJsScript)
                     folderNameSlugified = self.fileUtils.filenameSlugify(courseName)
                     currentPath = os.path.join(self.outputFolderPath, folderNameSlugified)
 
-                    topicHeaderSelector = self.selectors["topicHeader"][f'{self.selectors["courseType"]}']
+                    topicHeaderSelector = self.selectors["topicHeader"][f'{self.configJson["moduleType"]}']
+                    topicHeaderJsScript = f"""return document.querySelectorAll("{topicHeaderSelector}")[0].innerText;"""
+
+                    topicName = self.browser.execute_script(topicHeaderJsScript)
+                    filenameSlugified = self.fileUtils.filenameSlugify(topicName)
+                    topicName = f"{highlightedTopicIdx:03}-{filenameSlugified}"
+                    topicUrl = self.browser.current_url
+                    self.logger.info(f"""----------------------------------------------------------------------------------
+                                    Scraping Topic: {topicName}: {topicUrl}
+                                    """)
+                    extraArgs = {"removeVScodeProjectWindow" : True, "resizeHorizontalGlutter": True}
+                    self.scrapeTopic(currentPath, topicName, None, topicUrl, extraArgs)
+
+                    if highlightedTopicIdx + 1 < len(sideBarTopics):
+                        clickNextTopicJSScript = f"""arguments[0].click()"""
+                        sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
+                        self.browser.execute_script(clickNextTopicJSScript, sideBarTopics[highlightedTopicIdx + 1])
+                        self.osUtils.sleep(10)
+                    else:
+                        break
+            
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"CourseTopicScraper:scrapeCloudLabOrProject: {lineNumber}: {e}")
+
+
+    def scrapeTopicManual(self):
+        try:
+            sideBarTopicsSelector = self.selectors["sideBarTopics"][f'{self.configJson["moduleType"]}']
+            sideBarTopicsJsScript = f"""return document.querySelectorAll("{sideBarTopicsSelector}");"""
+            sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
+
+            highlightedTopicProp = self.selectors["highlightedTopic"][f'{self.configJson["moduleType"]}']
+            for highlightedTopicIdx in range(len(sideBarTopics)):
+                sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
+                highlightedTopicJsScript = f"""return arguments[0].getAttribute("class").search("{highlightedTopicProp}") !== -1"""
+                highlightedTopic = self.browser.execute_script(highlightedTopicJsScript, sideBarTopics[highlightedTopicIdx])
+
+                if highlightedTopic:
+                    courseHeaderSelector = self.selectors["courseHeader"][f'{self.configJson["moduleType"]}']
+                    courseHeaderJsScript = f"""return document.querySelectorAll("{courseHeaderSelector}")[0].innerText;"""
+                    courseName = self.browser.execute_script(courseHeaderJsScript)
+                    folderNameSlugified = self.fileUtils.filenameSlugify(courseName)
+                    currentPath = os.path.join(self.outputFolderPath, folderNameSlugified)
+
+                    topicHeaderSelector = self.selectors["topicHeader"][f'{self.configJson["moduleType"]}']
                     topicHeaderJsScript = f"""return document.querySelectorAll("{topicHeaderSelector}")[0].innerText;"""
 
                     topicName = self.browser.execute_script(topicHeaderJsScript)
@@ -179,6 +234,7 @@ class CourseTopicScraper:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CourseTopicScraper:scrapeTopicManual: {lineNumber}: {e}")
+        
 
     def scrapeTopic(self, coursePath, topicName, topicApiContentJson, topicUrl, extraArgs=dict()):
         try:

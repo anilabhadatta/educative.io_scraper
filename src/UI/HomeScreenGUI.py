@@ -51,6 +51,8 @@ class HomeScreen:
         self.proxyVar = tk.StringVar()
         self.loggingLevelVar = tk.StringVar()
         self.loggingLevels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "NOTSET"]
+        self.moduleTypeVar = tk.StringVar()
+        self.moduleTypes = ["COURSE-PATH", "CLOUDLAB", "PROJECT"]
         self.logLevelDesc = {
             "DEBUG": "Detailed info for debugging.",
             "INFO": "Confirmation of expected functionality.",
@@ -79,6 +81,10 @@ class HomeScreen:
 
 
     def onConfigChange(self, *args):
+        # if self.moduleTypeVar.get() != "COURSE-PATH":
+        #     # AUTO RESUME AND AUTO FIX CURRENTLY DISABLED FOR CLOUDLAB AND PROJECTS
+        #     self.autoFixTextFile.set(value=False)
+        #     self.autoResumeScraper.set(value=False)
         self.createConfigJson()
         self.updateTextFromLog = UpdateTxtFileFromLog(self.configJson)
         self.logger = Logger(self.configJson, "HomeScreen").logger
@@ -117,10 +123,13 @@ class HomeScreen:
     def createHomeScreen(self, version):
         self.logger = Logger(self.configJson, "HomeScreen").logger
         self.loggingLevelVar.trace("w", self.onConfigChange)
+        self.moduleTypeVar.trace("w", self.onConfigChange)
         self.saveDirectoryVar.trace("w", self.onConfigChange)
         self.logLevelDescVar.trace("w", self.onConfigChange)
         self.scrapingMethodVar.trace("w", self.updateComboboxStates)
         self.scraperTypeVar.trace("w", self.updateComboboxStates)
+        self.autoFixTextFile.trace("w", self.onConfigChange)
+        self.autoResumeScraper.trace("w", self.onConfigChange)
         self.logger.info("Creating Home Screen...")
 
         configFilePathFrame = tk.Frame(self.app)
@@ -156,6 +165,13 @@ class HomeScreen:
         loggingLevelCombobox.grid(row=3, column=1, sticky="w", padx=0, pady=5)
         self.logDescriptionLabel = tk.Label(scraperOptionFrame, text=self.logLevelDesc[self.logLevelDescVar.get()])
         self.logDescriptionLabel.grid(row=3, column=2, sticky="w", padx=2, pady=2)
+
+        moduleTypeLabel = tk.Label(scraperOptionFrame, text="Module Type:")
+        moduleTypeLabel.grid(row=4, column=0, sticky="w", padx=2, pady=0)
+        moduleTypeCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.moduleTypeVar,
+                                            values=self.moduleTypes, state="readonly", width=30)
+        moduleTypeCombobox.grid(row=4, column=1, sticky="w", padx=0, pady=5)
+
         ToolDescriptionLabel0 = tk.Label(scraperOptionFrame, text="About: Educative Scraper")
         ToolDescriptionLabel1 = tk.Label(scraperOptionFrame, text=version)
         ToolDescriptionLabel2 = tk.Label(scraperOptionFrame, text="Developed by Anilabha Datta")
@@ -235,9 +251,9 @@ class HomeScreen:
         #                                          command=self.startChromeDriver, width=19, state="disabled")
         self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Manual Scraper",
                                                  command=self.startManualScraper, width=19)
-        self.loginAccountButton = tk.Button(buttonScraperFrame, text="Login Account", command=self.loginAccount,
+        self.loginAccountButton = tk.Button(buttonScraperFrame, text="Login/Open Browser", command=self.loginAccount,
                                             width=20)
-        self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper,
+        self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Auto Scraper", command=self.startScraper,
                                             width=19)
         self.checkButtonStateVar.set(self.startScraperButton['state'])
         self.checkButtonStateVar.trace("w", lambda *args: self.autoStartScraperOnConditions())
@@ -329,6 +345,7 @@ class HomeScreen:
         self.courseUrlsFilePathVar.set(self.config['courseUrlsFilePath'])
         self.saveDirectoryVar.set(self.config['saveDirectory'])
         self.loggingLevelVar.set(self.config['logger'])
+        self.moduleTypeVar.set(self.config['moduleType'])
         self.isProxyVar.set(self.config['isProxy'])
         self.proxyVar.set(self.config['proxy'])
         self.fileTypeVar.set(self.config["fileType"])
@@ -347,6 +364,7 @@ class HomeScreen:
             'courseUrlsFilePath': self.courseUrlsFilePathVar.get(),
             'saveDirectory': self.saveDirectoryVar.get(),
             'logger': self.loggingLevelVar.get(),
+            'moduleType': self.moduleTypeVar.get(),
             'isProxy': self.isProxyVar.get(),
             'proxy': self.proxyVar.get(),
             'scraperType': self.scraperTypeVar.get(),

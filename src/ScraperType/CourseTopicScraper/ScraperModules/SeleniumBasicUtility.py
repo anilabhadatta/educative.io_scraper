@@ -18,6 +18,7 @@ class SeleniumBasicUtility:
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["SeleniumBasicUtility"]
         self.logger = Logger(configJson, "SeleniumBasicUtility").logger
+        self.configJson = configJson
 
 
     def expandAllSections(self):
@@ -113,3 +114,45 @@ class SeleniumBasicUtility:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             self.logger.error(f"SeleniumBasicUtility:resizeHorizontalGlutter: {lineNumber}: {e}")
+
+    
+    def clickEndLabForCloudlabs(self):
+        try:
+            if self.configJson["moduleType"] in ("CLOUDLAB"):
+                self.osUtils.sleep(2)
+                endLabButtonSelector = self.selectors["endLabButton"][f'{self.configJson["moduleType"]}']
+                endLabButtonJsScript = f"""
+                try {{
+                    var endLabButton = document.evaluate("{endLabButtonSelector}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                    if (endLabButton.snapshotLength > 0) {{
+                        endLabButton.snapshotItem(0).click();
+                    }}
+                }} catch (e) {{
+                    console.log(e);
+                }}
+                """
+                self.browser.execute_script(endLabButtonJsScript)
+            self.osUtils.sleep(10)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            self.logger.error(f"SeleniumBasicUtility:clickEndLabForCloudlabs: {lineNumber}: {e}")
+    
+
+    def clickStartCloudlabsOrProject(self):
+        try:
+            startButtonSelector = self.selectors["startButton"][f'{self.configJson["moduleType"]}']
+            startButtonJsScript = f"""
+            try {{
+                var startButton = document.evaluate("{startButtonSelector}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                if (startButton.snapshotLength > 0) {{
+                    startButton.snapshotItem(0).click();
+                }}
+            }} catch (e) {{
+                console.log(e);
+            }}
+            """
+            self.browser.execute_script(startButtonJsScript)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            self.logger.error(f"SeleniumBasicUtility:clickStartCloudlabsOrProject: {lineNumber}: {e}")
+
