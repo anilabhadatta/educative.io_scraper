@@ -19,8 +19,8 @@
   },
   "SeleniumBasicUtility": {
     "startButton" : {
-      "CLOUDLAB" : "//button[normalize-space(.)='Start Lab' or normalize-space(.)='Continue Lab']",
-      "PROJECT": "//button[normalize-space(.)='Start Project' or normalize-space(.)='Resume Project']"
+      "CLOUDLAB" : "//button[(normalize-space(.)='Start Lab' or normalize-space(.)='Continue Lab') and not(@disabled)]",
+      "PROJECT": "//button[(normalize-space(.)='Start Project' or normalize-space(.)='Resume Project') and not(@disabled)]"
     },
     "endLabButton" : {
       "CLOUDLAB" : "//button[normalize-space(.)='End Lab']"

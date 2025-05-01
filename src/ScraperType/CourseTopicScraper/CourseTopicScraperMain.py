@@ -148,10 +148,11 @@ class CourseTopicScraper:
             self.seleniumBasicUtils.clickStartCloudlabsOrProject()
             self.seleniumBasicUtils.clickEndLabForCloudlabs()
             
+            self.logger.info("Finding Sidebar topics")
             sideBarTopicsSelector = self.selectors["sideBarTopics"][f'{self.configJson["moduleType"]}']
             sideBarTopicsJsScript = f"""return document.querySelectorAll("{sideBarTopicsSelector}");"""
             sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
-
+            
             highlightedTopicProp = self.selectors["highlightedTopic"][f'{self.configJson["moduleType"]}']
             for highlightedTopicIdx in range(len(sideBarTopics)):
                 sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
@@ -167,10 +168,11 @@ class CourseTopicScraper:
 
                     topicHeaderSelector = self.selectors["topicHeader"][f'{self.configJson["moduleType"]}']
                     topicHeaderJsScript = f"""return document.querySelectorAll("{topicHeaderSelector}")[0].innerText;"""
-
                     topicName = self.browser.execute_script(topicHeaderJsScript)
                     filenameSlugified = self.fileUtils.filenameSlugify(topicName)
                     topicName = f"{highlightedTopicIdx:03}-{filenameSlugified}"
+                    self.logger.info(f"Scraping topic: {courseName}/{topicName}")
+
                     topicUrl = self.browser.current_url
                     self.logger.info(f"""----------------------------------------------------------------------------------
                                     Scraping Topic: {topicName}: {topicUrl}
@@ -185,7 +187,6 @@ class CourseTopicScraper:
                         self.osUtils.sleep(10)
                     else:
                         break
-            
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CourseTopicScraper:scrapeCloudLabOrProject: {lineNumber}: {e}")

@@ -119,6 +119,7 @@ class SeleniumBasicUtility:
     def clickEndLabForCloudlabs(self):
         try:
             if self.configJson["moduleType"] in ("CLOUDLAB"):
+                self.logger.info("Inside clickEndLabForCloudlabs")
                 self.osUtils.sleep(2)
                 endLabButtonSelector = self.selectors["endLabButton"][f'{self.configJson["moduleType"]}']
                 endLabButtonJsScript = f"""
@@ -140,6 +141,7 @@ class SeleniumBasicUtility:
 
     def clickStartCloudlabsOrProject(self):
         try:
+            self.logger.info("Inside clickStartCloudlabsOrProject")
             startButtonSelector = self.selectors["startButton"][f'{self.configJson["moduleType"]}']
             startButtonJsScript = f"""
             try {{
