@@ -82,10 +82,15 @@ class SingleFileUtility:
             window.define = undefined;
             window.require = undefined;
         
-            injectScriptToHTML(createScriptTagFromLocal(hookScript));
-            injectScriptToHTML(createScriptTagFromLocal(script));
+            injectScriptToHTML(createScriptTagFromLocal(arguments[0]));
+            injectScriptToHTML(createScriptTagFromLocal(arguments[1]));
             """
-            self.browser.execute_script(injectSingleFileJsScript)
+            singleFileJs = self.fileUtils.loadSingleFileFile(constants.singleFileBundlePath)
+            initSingleFilePath = self.fileUtils.loadSingleFileFile(constants.initSingleFilePath)
+            script = self.browser.execute_script(f"{singleFileJs} return script;")
+            hookScript = self.browser.execute_script(f"{singleFileJs} return hookScript;")
+            script += initSingleFilePath
+            self.browser.execute_script(injectSingleFileJsScript, hookScript, script)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SingleFileUtility:injectSingleFileScripts: {lineNumber}: {e}")
@@ -135,11 +140,11 @@ class SingleFileUtility:
         try:
             try:
                 self.logger.info("getSingleFileHtml: Getting SingleFile Html...")
-                htmlPageData = self.seleniumBasicUtils.sendCommand("Runtime.evaluate", param)["result"]["value"]["content"]
+                htmlPageData = self.browser.execute_cdp_cmd("Runtime.evaluate", param)["result"]["value"]["content"]
             except Exception as e1:
                 try:
                     self.logger.error(f"getSingleFileHtml: Failed to get SingleFile Html, retrying...")
-                    htmlPageData = self.seleniumBasicUtils.sendCommand("Runtime.evaluate", param)["result"]["value"]["content"]
+                    htmlPageData = self.browser.execute_cdp_cmd("Runtime.evaluate", param)["result"]["value"]["content"]
                     self.logger.info("getSingleFileHtml: Successfully Received Page using SingleFile...")
                 except Exception as e2:
                     self.logger.error(f"getSingleFileHtml: Failed to get SingleFile Html, Creating Full Page Screenshot HTML...")
@@ -173,12 +178,12 @@ class SingleFileUtility:
                 "source": singleFileJs,
                 "runImmediately": True
             }
-            self.seleniumBasicUtils.sendCommand('Page.enable', {})
-            self.seleniumBasicUtils.sendCommand("Page.setBypassCSP", params1)
-            self.seleniumBasicUtils.sendCommand("Security.setIgnoreCertificateErrors", params2)
-            self.seleniumBasicUtils.sendCommand("Page.addScriptToEvaluateOnNewDocument", params3)
-            self.seleniumBasicUtils.sendCommand("Page.addScriptToEvaluateOnNewDocument", params4)
-            self.seleniumBasicUtils.sendCommand("Page.addScriptToEvaluateOnNewDocument", params5)
+            self.browser.execute_cdp_cmd('Page.enable', {})
+            self.browser.execute_cdp_cmd("Page.setBypassCSP", params1)
+            self.browser.execute_cdp_cmd("Security.setIgnoreCertificateErrors", params2)
+            self.browser.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", params3)
+            self.browser.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", params4)
+            self.browser.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", params5)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"SingleFileUtility:injectSingleFileViaCDP: {lineNumber}: {e}")

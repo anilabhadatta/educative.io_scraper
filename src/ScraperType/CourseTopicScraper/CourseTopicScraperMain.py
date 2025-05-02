@@ -264,7 +264,7 @@ class CourseTopicScraper:
                     self.browser.close()
 
                     self.browser.switch_to.window(newWindow)
-                    self.singleFileUtils.injectSingleFileViaCDP()
+                    # self.singleFileUtils.injectSingleFileViaCDP()
                     self.browser.get(topicUrl)
                 except:
                     self.logger.info("Page Loading Issue, pressing ESC to stop page load")
