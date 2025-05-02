@@ -25,7 +25,7 @@
     "endLabButton" : {
       "CLOUDLAB" : "//button[normalize-space(.)='End Lab']"
     },
-    "cloudLabPage": "div[id*='viewer-component']",
+    "cloudLabPage": "//div[contains(@id, 'viewer-component')][.//text()[normalize-space()]]",
     "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
     "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]",
     "nextButton": "Next",
