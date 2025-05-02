@@ -29,7 +29,13 @@ class ApiUtility:
         self.logger.info(f"Executing JS to get JSON from URL")
         apiJsonScript = f"""
             return new Promise((resolve, reject) => {{
-                fetch("{url}")
+                fetch("{url}", {{
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {{
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+                    }}
+                }})
                     .then(response => response.json())
                     .then(data => {{
                         resolve(data);
@@ -101,7 +107,7 @@ class ApiUtility:
             courseTitle = jsonData["title"]
             topicApiUrlList = []
             topicNameList = []
-            baseApiUrl = f"https://educative.io/api/collection/{authorId}/{collectionId}/page/"
+            baseApiUrl = f"https://www.educative.io/api/collection/{authorId}/{collectionId}/page/"
             categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT", "CLOUD_LAB", "LINKED_MOCK_INTERVIEW"]
             topicIdx = 0
             toc = []
