@@ -1,0 +1,65 @@
+{
+	"name": "SingleFile-Mini",
+	"author": "Gildas Lormeau",
+	"homepage_url": "https://github.com/gildas-lormeau/SingleFile",
+	"version": "0.0.1",
+	"description": "SingleFile Mini",
+	"action": {
+		"default_popup": "popup.html"
+	},
+	"content_scripts": [
+		{
+			"matches": [
+				"<all_urls>"
+			],
+			"run_at": "document_start",
+			"js": [
+				"lib/chrome-browser-polyfill.js",
+				"lib/single-file-frames.js",
+				"lib/single-file-extension-frames.js",
+				"lib/single-file-hooks-frames.js"
+			],
+			"all_frames": true,
+			"match_about_blank": true
+		},
+		{
+			"matches": [
+				"<all_urls>"
+			],
+			"run_at": "document_start",
+			"js": [
+				
+				"lib/chrome-browser-polyfill.js",
+				"lib/single-file-bootstrap.js",
+				"lib/single-file-extension-core.js",
+				"lib/single-file.js",
+				"lib/single-file-z-worker.js",
+				"lib/single-file-zip.min.js",
+				"index.js"
+			],
+			"all_frames": false
+		}
+	],
+	"background": {
+		"service_worker": "lib/single-file-background.js"
+	},
+	"web_accessible_resources":  [
+		{
+			"matches": [
+				"<all_urls>"
+			],
+			"resources": [
+				"lib/**",
+				"injected.js"
+			]
+		}
+	],
+	"permissions": [
+		"activeTab",
+		"scripting"
+	],
+	"host_permissions": [
+		"<all_urls>"
+	],
+	"manifest_version": 3
+}

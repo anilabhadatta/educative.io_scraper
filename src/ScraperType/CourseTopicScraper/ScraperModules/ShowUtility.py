@@ -96,6 +96,32 @@ class ShowUtility:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ShowUtility:showHints: {lineNumber}: {e}")
+    
+
+    def showHintsV2(self):
+        try:
+            self.logger.info("Showing hintsV2")
+            showHintSelector = self.selectors["showHintsV2"]
+            showHintJsScript = f"""
+            var gs = document.querySelectorAll("{showHintSelector}");
+            var count = 0;
+            gs.forEach(g => {{
+                var button = g.closest('svg').parentNode;
+                if(button.disabled === false) {{
+                  button.click();
+                  button.disabled = true;
+                  count++;
+            }}}});
+            return count;
+            """
+            isPresent = self.browser.execute_script(showHintJsScript)
+            if isPresent <= 0:
+                self.logger.info("No hints found")
+            else:
+                self.osUtils.sleep(2)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ShowUtility:showHintsV2: {lineNumber}: {e}")
 
 
     def showSlides(self):

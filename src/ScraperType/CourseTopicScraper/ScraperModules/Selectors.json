@@ -52,6 +52,7 @@
     "showCodeSolution": "Show",
     "confirmShowSolution": "button[aria-label*='confirm']",
     "showHints": "g[id*='noun_lightbulb']",
+    "showHintsV2": "path[fill='#F3B03C']",
     "showSlides": "svg[aria-label*='view all slides']"
   },
   "SingleFileUtility": {

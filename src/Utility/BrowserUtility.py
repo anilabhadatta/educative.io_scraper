@@ -34,11 +34,14 @@ class BrowserUtility:
                 proxy = None
                 if self.configJson["isProxy"]:
                     proxy = self.configJson["proxy"]
+                chrome_args = " --allow-running-insecure-content, --ignore-certificate-errors-spki-list,--ignore-ssl-errors"
+                if not self.configJson["useExtension"]:
+                    chrome_args = "--disable-web-security, --disable-site-isolation-trials," + chrome_args
+                if self.configJson["useExtension"]:
+                    chrome_args +=  f", --load-extension={constants.extensionPath}"      
                 self.browser = Driver(undetectable=True, user_data_dir=self.userDataDir,
                                       binary_location=constants.chromeBinaryPath, headless2=self.configJson["headless"],
-                                      proxy=proxy, chromium_arg="--disable-web-security,--allow-running-insecure-content,"
-                                                                "--ignore-certificate-errors-spki-list,--ignore-ssl-errors,"
-                                                                "--disable-site-isolation-trials",
+                                      proxy=proxy, chromium_arg=chrome_args,
                                       headed=not self.configJson["headless"], driver_version=self.configJson['binaryversion'])
             else:
                 options.add_argument(f'user-data-dir={self.userDataDir}')
@@ -46,13 +49,6 @@ class BrowserUtility:
                     options.debugger_address = self.devToolUrl
                 chromeService = Service(executable_path=constants.chromeDriverPath)
                 self.browser = webdriver.Chrome(service=chromeService, options=options)
-                # self.browser.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-                #     "source": """
-                #         Object.defineProperty(navigator, 'webdriver', {
-                #           get: () => undefined
-                #         })
-                #       """
-                # })
             self.browser.set_window_size(1920, 1080)
             self.browser.set_script_timeout(60)
             self.browser.set_page_load_timeout(30)
@@ -73,14 +69,17 @@ class BrowserUtility:
             options.add_argument('--headless=new')
         if self.configJson["isProxy"]:
             options.add_argument("--proxy-server=http://" + f'{self.configJson["proxy"]}')
+        if not self.configJson["useExtension"]:
+            options.add_argument("--disable-web-security")
+            options.add_argument("--disable-site-isolation-trials")
+        if self.configJson["useExtension"]:
+            options.add_argument(f'--load-extension={constants.extensionPath}')
         options.add_argument("--start-maximized")
         options.add_argument('--disable-gpu')
         options.add_argument('--no-sandbox')
         options.add_argument('--ignore-certificate-errors-spki-list')
         options.add_argument('--ignore-ssl-errors')
-        options.add_argument("--disable-web-security")
         options.add_argument('--allow-running-insecure-content')
-        options.add_argument("--disable-site-isolation-trials")
         options.add_argument("--disable-features=IsolateOrigins,site-per-process")
         options.add_argument('--log-level=3')
         options.binary_location = constants.chromeBinaryPath

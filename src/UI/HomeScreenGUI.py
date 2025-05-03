@@ -375,7 +375,8 @@ class HomeScreen:
             'autoresume': self.autoResumeScraper.get(),
             'autofixtextfile': self.autoFixTextFile.get(),
             'blockscraper': self.config["blockscraper"],
-            'autonext': self.autoNextVar.get()
+            'autonext': self.autoNextVar.get(),
+            'useExtension': self.config["useExtension"]
         }
 
 
