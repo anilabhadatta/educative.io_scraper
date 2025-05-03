@@ -21,7 +21,7 @@ from src.Utility.FileUtility import FileUtility
 from src.Utility.OSUtility import OSUtility
 
 class CourseTopicScraper:
-    def __init__(self, configJson):
+    def __init__(self, configJson, progressQueue):
         self.browser = None
         self.configJson = configJson
         self.outputFolderPath = self.configJson["saveDirectory"]
@@ -43,13 +43,18 @@ class CourseTopicScraper:
         self.networkMonitor = NetworkMonitor(self.configJson)
         selectorPath = os.path.join(os.path.dirname(__file__), "ScraperModules", "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["CourseTopicScraper"]
+        self.progressQueue = progressQueue
 
 
     def start(self):
         self.logger.info("CourseTopicScraper initiated...")
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
-        for textFileUrl in urlsTextFile:
+        self.progressQueue.put(("progress-topic", 0))
+        self.progressQueue.put(("progress-course", 0))
+        self.progressQueue.put(("max-course", len(urlsTextFile)))
+        for textFileIdx, textFileUrl in enumerate(urlsTextFile):
             try:
+                self.progressQueue.put(("progress-course", textFileIdx+1))
                 if "?showContent=true" not in textFileUrl:
                     textFileUrl += "?showContent=true"
                 self.logger.info(f"Started Scraping from Text File URL: {textFileUrl}")
@@ -118,8 +123,10 @@ class CourseTopicScraper:
             self.fileUtils.createFolderIfNotExists(coursePath)
             TOCUtility.serializeTocAndStore(courseCollectionsJson["courseTitle"], courseUrl, coursePath,
                                             courseCollectionsJson["toc"], topicUrlsList)
+            self.progressQueue.put(("max-topic", topicUrlsListLen))
 
             for topicIndex in range(startIndex, topicUrlsListLen):
+                self.progressQueue.put(("progress-topic", topicIndex+1))
                 topicUrl = topicUrlsList[topicIndex]
                 topicApiUrl = topicApiUrlList[topicIndex]
                 filenameSlugified = self.fileUtils.filenameSlugify(topicApiNameList[topicIndex])
@@ -154,7 +161,9 @@ class CourseTopicScraper:
             sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
             
             highlightedTopicProp = self.selectors["highlightedTopic"][f'{self.configJson["moduleType"]}']
+            self.progressQueue.put(("max-topic", len(sideBarTopics)))
             for highlightedTopicIdx in range(len(sideBarTopics)):
+                self.progressQueue.put(("progress-topic", highlightedTopicIdx+1))
                 sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
                 highlightedTopicJsScript = f"""return arguments[0].getAttribute("class").search("{highlightedTopicProp}") !== -1"""
                 highlightedTopic = self.browser.execute_script(highlightedTopicJsScript, sideBarTopics[highlightedTopicIdx])
