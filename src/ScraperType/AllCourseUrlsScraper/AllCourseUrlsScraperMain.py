@@ -20,7 +20,7 @@ from src.Utility.OSUtility import OSUtility
 
 
 class AllCourseUrlsScraper:
-    def __init__(self, configJson):
+    def __init__(self, configJson, progressQueue):
         self.browser = None
         self.proxies = None
         self.cloudscraper = cloudscraper.create_scraper()

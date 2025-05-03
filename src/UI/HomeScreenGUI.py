@@ -6,7 +6,7 @@ import threading
 import tkinter as tk
 import tkinter.filedialog
 from tkinter import ttk
-
+import queue 
 import psutil
 from PIL import Image, ImageTk
 
@@ -32,6 +32,12 @@ class HomeScreen:
         self.checkboxes = []
 
         self.app = tk.Tk()
+        style = ttk.Style(self.app)
+        style.theme_use('clam')
+
+        # Define styles with different colors
+        style.configure("green.Horizontal.TProgressbar", troughcolor='white', background='#28a745')
+        style.configure("red.Horizontal.TProgressbar", troughcolor='white', background='#dc3545')
         imagePath = os.path.join(constants.commonFolderPath, "icon.gif")
         pilImage = Image.open(imagePath)
         self.app.iconphoto(True, ImageTk.PhotoImage(pilImage))
@@ -70,7 +76,8 @@ class HomeScreen:
 
         self.fileUtil = FileUtility()
         self.downloadUtil = DownloadUtility()
-        self.progressVar = tk.DoubleVar()
+        self.topicProgressVar = tk.DoubleVar()
+        self.courseProgressVar = tk.DoubleVar()
         self.configUtil = ConfigUtility()
         self.loadDefaultConfig()
         self.logLevelDescVar = tk.StringVar(value=self.configJson['logger'])
@@ -269,12 +276,22 @@ class HomeScreen:
         self.terminateProcessButton.grid(row=2, column=1, sticky="w", padx=2, pady=3)
         buttonScraperFrame.pack(pady=4, padx=100, anchor="center")
 
-        progressBarFrame = tk.Frame(self.app)
-        downloadProgressLabel = tk.Label(progressBarFrame, text="Download Progress:")
-        progressBar = ttk.Progressbar(progressBarFrame, length=380, mode="determinate", variable=self.progressVar)
+        topicProgressBarFrame = tk.Frame(self.app)
+        downloadProgressLabel = tk.Label(topicProgressBarFrame, text="Topic Progress:")
+        self.topicProgressBar = ttk.Progressbar(topicProgressBarFrame, length=380, mode="determinate", variable=self.topicProgressVar, style="green.Horizontal.TProgressbar")
         downloadProgressLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
-        progressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        progressBarFrame.pack(pady=3)
+        self.topicProgressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        topicProgressBarFrame.pack(pady=3)
+
+        courseProgressBarFrame = tk.Frame(self.app)
+        downloadProgressLabel = tk.Label(courseProgressBarFrame, text="Course Progress:")
+        self.courseProgressBar = ttk.Progressbar(courseProgressBarFrame, length=380, mode="determinate", variable=self.courseProgressVar, style="green.Horizontal.TProgressbar")
+        downloadProgressLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
+        self.courseProgressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        courseProgressBarFrame.pack(pady=3)
+
+        self.progressQueue = multiprocessing.Queue()
+        self.updateProgress()
 
         self.updateComboboxStates()
         self.fixGeometry()
@@ -282,6 +299,31 @@ class HomeScreen:
         self.logger.debug("createHomeScreen completed")
         self.app.protocol("WM_DELETE_WINDOW", self.onClosingWindow)
         self.app.mainloop()
+
+
+    def updateProgress(self):
+        try:
+            while True:
+                msgType, value = self.progressQueue.get_nowait()
+                print(msgType, value)
+                if msgType == "max-topic":
+                    self.topicProgressBar.config(maximum=value)
+                elif msgType == "progress-topic":
+                    self.topicProgressVar.set(value)
+                elif msgType == "max-course":
+                    self.courseProgressBar.config(maximum=value)
+                elif msgType == "progress-course":
+                    self.courseProgressVar.set(value)
+                elif msgType == "color" and value == "red":
+                    self.topicProgressBar.config(style="red.Horizontal.TProgressbar")
+                    self.courseProgressBar.config(style="red.Horizontal.TProgressbar")
+                elif msgType == "color" and value == "green":
+                    self.topicProgressBar.config(style="green.Horizontal.TProgressbar")
+                    self.courseProgressBar.config(style="green.Horizontal.TProgressbar")
+        except queue.Empty:
+            pass
+
+        self.app.after(100, self.updateProgress)
 
 
     def onClosingWindow(self):
@@ -390,7 +432,7 @@ class HomeScreen:
             if self.configJson['autofixtextfile'] and not self.updateTextFromLog.updateTextFileFromLogMain():
                 self.logger.info("No URL found in log file. Starting Scraper from first url...")
         startScraper = StartScraper()
-        self.process = multiprocessing.Process(name="Scraper", target=startScraper.start, args=(self.configJson, self.updateTextFromLog, ))
+        self.process = multiprocessing.Process(name="Scraper", target=startScraper.start, args=(self.configJson, self.updateTextFromLog, self.progressQueue, ))
         self.process.start()
         self.processes.append(self.process)
         self.updateButtonState()
@@ -518,7 +560,7 @@ class HomeScreen:
         self.updateTextFromLog.setBlockScraper(True)
         self.EnableDisableButtons("disabled")
         downloadThread = threading.Thread(target=lambda: self.downloadUtil.downloadChromeDriver(self.app,
-                                                                                                self.progressVar,
+                                                                                                self.topicProgressVar,
                                                                                                 self.configJson))
         downloadThread.start()
         self.app.after(100, self.checkDownloadThread, downloadThread)
@@ -529,7 +571,7 @@ class HomeScreen:
         self.updateTextFromLog.setBlockScraper(True)
         self.EnableDisableButtons("disabled")
         downloadThread = threading.Thread(target=lambda: self.downloadUtil.downloadChromeBinary(self.app,
-                                                                                                self.progressVar,
+                                                                                                self.topicProgressVar,
                                                                                                 self.configJson))
         downloadThread.start()
         self.app.after(100, self.checkDownloadThread, downloadThread)
