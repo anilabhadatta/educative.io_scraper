@@ -10,7 +10,7 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-# dist/
+dist/
 downloads/
 eggs/
 .eggs/
@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # custom
-# dist
+dist
 build
 .spec
 pyinstaller_command.txt
