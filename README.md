@@ -12,10 +12,11 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.9.0 (Recommended)
+Repository Version: v3.9.1 (Recommended)
 Master Branch: v3-master</code></pre>
 ```
 1. Updates Information
+-  Single file implementation changed - uses extension to get page data. (v3.9.1)
 -  Cloudlabs, Projects can now be scraped using Auto/Manual Scraper (v3.9.0) 
 -  SandPack code container support added
 -  SingleFile injection script now uses single-file-cli logic instead of custom (v3.7.4) 
