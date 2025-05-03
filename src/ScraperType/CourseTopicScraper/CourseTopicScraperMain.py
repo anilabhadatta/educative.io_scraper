@@ -288,6 +288,7 @@ class CourseTopicScraper:
             self.showUtils.showSingleMarkDownQuizSolution()
             self.showUtils.showCodeSolutions()
             self.showUtils.showHints()
+            self.showUtils.showHintsV2()
             self.showUtils.showSlides()
             self.browserUtils.setWindowSize()
             self.browserUtils.scrollPage()
@@ -295,9 +296,12 @@ class CourseTopicScraper:
             if self.configJson["scrapingMethod"] == "SingleFile-HTML":
                 if self.configJson["fileType"] == "html":
                     self.singleFileUtils.fixAllObjectTags()
-                    self.singleFileUtils.injectSingleFileScripts()
                     self.singleFileUtils.makeCodeSelectable()
-                    pageData = self.singleFileUtils.getSingleFileHtml()
+                    if not self.configJson["useExtension"]:
+                        self.singleFileUtils.injectSingleFileScriptsV1()
+                        pageData = self.singleFileUtils.getSingleFileHtmlV1()
+                    if self.configJson["useExtension"]:
+                        pageData = self.singleFileUtils.getSingleFileHtmlV2()
                 elif self.configJson["fileType"] == "html2pdf":
                     pageData = self.printFileUtils.printPdfAsCdp(topicName)
             if not pageData:

@@ -26,6 +26,7 @@ class Constants:
         self.ucDriverPath = os.path.join(self.chromeDriverFolderPath, self.ucDriverSubFolderPath)
         self.chromeBinaryPath = os.path.join(self.chromeBinaryFolderPath,
                                              config["ChromeBinaryPath"][self.chromebinaryConfigKey])
+        self.extensionPath = os.path.join(self.commonFolderPath, 'singlefile-extension')
         self.singleFileBundlePath = os.path.join(self.commonFolderPath, 'single-file-bundle.js')
         self.initSingleFilePath = os.path.join(self.commonFolderPath, 'init-single-file.js')
 

@@ -1,0 +1,55 @@
+{
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "run_at": "document_start",
+            "js": [
+                "dist/chrome-browser-polyfill.js",
+                "dist/single-file-frames.js",
+                "dist/extension-frames.js"
+            ],
+            "all_frames": true,
+            "match_about_blank": true
+        },
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "run_at": "document_start",
+            "js": [
+                "dist/chrome-browser-polyfill.js",
+                "dist/single-file-bootstrap.js",
+                "dist/extension-core.js",
+                "dist/single-file.js"
+            ],
+            "all_frames": false
+        },
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "run_at": "document_start",
+            "js": [
+                "index.js"
+            ],
+            "all_frames": false
+        }
+    ],
+    "background": {
+        "page": "background.html",
+        "persistent": false
+    },
+    "web_accessible_resources": [
+        "dist/web/hooks/hooks-web.js",
+        "dist/web/hooks/hooks-frames-web.js"
+    ],
+    "permissions": [
+        "activeTab",
+        "<all_urls>"
+    ],
+    "name": "SF-Mini",
+    "version": "0.0.1",
+    "manifest_version": 2
+}
