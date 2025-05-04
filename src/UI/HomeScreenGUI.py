@@ -305,7 +305,6 @@ class HomeScreen:
         try:
             while True:
                 msgType, value = self.progressQueue.get_nowait()
-                print(msgType, value)
                 if msgType == "max-topic":
                     self.topicProgressBar.config(maximum=value)
                 elif msgType == "progress-topic":
