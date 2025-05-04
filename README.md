@@ -80,9 +80,10 @@ cd educative.io_scraper
       python -m venv env <or> virtualenv env
       env\Scripts\activate
       pip install -r requirements.txt
-      python EducativeScraper.py
-
-      python EducativeScraper.py --help (Optional: for more information)
+      
+      python EducativeScraper.py                 (For UI)
+      python EducativeScraper.py --terminal      (For Terminal)
+      python EducativeScraper.py --help          (For Config and Help info)
       ```
     - #### MacOS/Linux:
       ```
@@ -90,10 +91,12 @@ cd educative.io_scraper
       python3 -m venv env <or> virtualenv env
       source env/bin/activate
       pip3 install -r requirements.txt
-      python3 EducativeScraper.py 
-
-      python3 EducativeScraper.py --help (Optional: for more information)
+      
+      python3 EducativeScraper.py                 (For UI)
+      python3 EducativeScraper.py --terminal      (For Terminal)
+      python3 EducativeScraper.py --help          (For Config and Help info)
       ```
+    - #### Run the help command to learn about config setup for terminal based scraping before starting the scraper
 
       <div align="center">
          <figure>
