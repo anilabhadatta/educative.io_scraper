@@ -33,12 +33,11 @@ class StartTerminalScraper:
             self.mailNotify.send_email("Scraping Complete")
         except KeyboardInterrupt:
             self.logger.error("Keyboard Interrupt")
-            asyncio.get_event_loop().run_until_complete(self.browserUtil.shutdownChromeViaWebsocket())
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             self.logger.error(f"start: {lineNumber}: {e}")
-            asyncio.get_event_loop().run_until_complete(self.browserUtil.shutdownChromeViaWebsocket())
             self.mailNotify.send_email(f"Exception occured in line number {lineNumber}, {e}")
         finally:
-            self.logger.debug("Exiting Scraper...")
+            asyncio.get_event_loop().run_until_complete(self.browserUtil.shutdownChromeViaWebsocket())
+            self.logger.info("Exiting Scraper...")
 
