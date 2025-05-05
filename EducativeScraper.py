@@ -31,6 +31,7 @@ class EducativeScraper:
 
     def createDefaultConfigIfNotExists(self):
         if not self.fileUtil.checkIfFileExists(constants.defaultConfigPath):
+            print(f"Creating default config file in {constants.defaultConfigPath}")
             shutil.copy(constants.commonConfigPath, constants.defaultConfigPath)
 
 
@@ -78,7 +79,7 @@ class EducativeScraper:
 
 
 if __name__ == '__main__':
-    version = "v3.9.5 Master Branch"
+    version = "v3.9.6 Master Branch"
     helpDescription = f"""
                         Educative Scraper ({version}), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper/
@@ -88,6 +89,9 @@ if __name__ == '__main__':
                         Usage:
                         - Run with UI (default): Just run the script without arguments
                             > python EducativeScraper.py
+                        
+                        - Generate Default Config: Use --gendefaultconfig
+                            > python EducativeScraper.py --gendefaultconfig
 
                         - Run Scraper in terminal mode: Use --terminal
                             > python EducativeScraper.py --terminal
@@ -107,8 +111,8 @@ if __name__ == '__main__':
                         [ScraperConfig]
                         - userdatadir         [IMP]: Directory for storing user profile data
                         - headless            [IMP]: Run browser in headless mode (True/False)
-                        - courseurlsfilepath  [IMP]: Path to text file containing course URLs
-                        - savedirectory       [IMP]: Folder to save scraped data
+                        - courseurlsfilepath  [IMP]: Path to text file containing course URLs eg: C:/Users/<Username>/Desktop/urls.txt
+                        - savedirectory       [IMP]: Folder to save scraped data eg: C:/Users/<Username>/Desktop
                         - scrapertype         [IMP]: Type of scraper to use
                                                      Options: Course-Topic-Scraper, All-Course-Urls-Text-File-Generator
                         - scrapingmethod      [IMP]: Method for scraping the course data
@@ -134,6 +138,7 @@ if __name__ == '__main__':
     parser.add_argument('--terminal', action='store_true', help='Run the scraper in terminal mode instead of UI.')
     parser.add_argument('--dwldchromedriver', action='store_true', help='Download chromedriver in terminal mode instead of UI.')
     parser.add_argument('--dwldchromebinary', action='store_true', help='Download chromebinary in terminal mode instead of UI.')
+    parser.add_argument('--gendefaultconfig', action='store_true', help='Generate default config in terminal mode instead of UI.')
     args = parser.parse_args()
     app = EducativeScraper(args)
     app.run()
