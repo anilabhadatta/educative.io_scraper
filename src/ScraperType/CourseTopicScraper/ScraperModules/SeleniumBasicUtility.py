@@ -51,7 +51,7 @@ class SeleniumBasicUtility:
             self.logger.info("Waiting for webdriver to load topic page")
             articlePageSelector = self.selectors["articlePage"]
             generalPageSelector = self.selectors["generalPage"]
-            cloudLabPageSelector = self.selectors["cloudLabPage"]
+            cloudLabOrProjectSelector = self.selectors[f'{self.configJson["moduleType"]}']
             try:
                 try:
                     try:
@@ -63,7 +63,7 @@ class SeleniumBasicUtility:
                             EC.visibility_of_element_located((By.XPATH, generalPageSelector)))
                 except Exception as e:
                     WebDriverWait(self.browser, self.timeout + 5).until(
-                        EC.visibility_of_element_located((By.XPATH, cloudLabPageSelector)))
+                        EC.visibility_of_element_located((By.XPATH, cloudLabOrProjectSelector)))
             except Exception as e:
                 lineNumber = e.__traceback__.tb_lineno
                 self.logger.error(f"SeleniumBasicUtility:waitWebdriverToLoadTopicPage: {lineNumber}: {e}")
