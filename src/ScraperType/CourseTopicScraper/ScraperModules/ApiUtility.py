@@ -243,8 +243,8 @@ class ApiUtility:
                                         const text = entry[1];
 
                                         // Regular expression to match the author_id and collection_id
-                                        const authorMatch = text.match(/"author_id"\s*:\s*(\d+)/);
-                                        const collectionMatch = text.match(/"collection_id"\s*:\s*(\d+)/);
+                                        const authorMatch = text.match(/["']?author[_I]d["']?:["']?(\d+)["']?/i);
+                                        const collectionMatch = text.match(/["']?collection[_I]d["']?:["']?(\d+)["']?/i);
 
                                         if (authorMatch && collectionMatch) {{
                                             const authorId = String(authorMatch[1]);
