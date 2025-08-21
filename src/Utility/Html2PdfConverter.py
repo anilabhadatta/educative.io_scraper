@@ -36,28 +36,43 @@ def printPdfAsCdp(file_path):
         # Wait for page to load completely
         time.sleep(3)
         
-        content_height = browser.execute_script("""
-            // Find the Next button
-            var nextButton = document.querySelector('button[name="next"]');
-            if (nextButton) {
-                var rect = nextButton.getBoundingClientRect();
-                var buttonY = rect.bottom + window.pageYOffset;
-                console.log('Next button found at Y:', buttonY);
-                return buttonY;
-            } else {
-                // Fallback to body height if no Next button found
-                console.log('Next button not found, using body height');
-                return document.body.scrollHeight;
-            }
+        # Get browser DPI and more accurate conversion
+        browser_info = browser.execute_script("""
+            return {
+                contentHeight: (function() {
+                    var nextButton = document.querySelector('button[name="next"]');
+                    if (nextButton) {
+                        var rect = nextButton.getBoundingClientRect();
+                        var buttonY = rect.bottom + window.pageYOffset;
+                        console.log('Next button found at Y:', buttonY);
+                        return buttonY + 10; // Small buffer
+                    } else {
+                        console.log('Next button not found, using body height');
+                        return document.body.scrollHeight;
+                    }
+                })(),
+                devicePixelRatio: window.devicePixelRatio,
+                screenDPI: window.screen.width / (window.screen.availWidth / 96)
+            };
         """)
         
-        # Convert pixels to inches (96 DPI)
-        paper_height_inches = max(content_height / 96, 8.5)  # Minimum standard page height
+        content_height = browser_info['contentHeight']
+        device_pixel_ratio = browser_info['devicePixelRatio']
+        
+        # More accurate conversion considering device pixel ratio
+        # PDF generation typically expects 72 DPI, but browser reports in 96 DPI
+        # Adjust for device pixel ratio to get actual physical pixels
+        actual_pixels = content_height / device_pixel_ratio
+        paper_height_inches = actual_pixels / 72  # PDF uses 72 DPI
+        
+        # Ensure reasonable minimum
+        paper_height_inches = max(paper_height_inches, 8.5)
         
         # Update params with calculated height
         params["paperHeight"] = paper_height_inches
         
-        print(f"Content height: {content_height}px, Paper height: {paper_height_inches:.2f} inches")
+        print(f"Content height: {content_height}px (device ratio: {device_pixel_ratio})")
+        print(f"Actual pixels: {actual_pixels:.0f}px, Paper height: {paper_height_inches:.2f} inches")
         
         pageData = browser.execute_cdp_cmd("Page.printToPDF", params)
         time.sleep(2)
@@ -188,8 +203,8 @@ def createSinglePagePdf(file_path, output_path, trim_whitespace=True):
 
 # Main execution code
 if __name__ == "__main__":
-    file_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\001-introduction to cloud computing\001-introduction to cloud computing.html"
-    output_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\001-introduction to cloud computing\001-introduction to cloud computing.pdf"
-    
+    file_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\002-setting up aws account\002-setting up aws account.html"
+    output_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\002-setting up aws account\002-setting up aws account.pdf"
+
     # Use the new single page creation function
     createSinglePagePdf(file_path, output_path)
