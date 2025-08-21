@@ -485,28 +485,54 @@ class Html2PdfConverter:
             print("❌ No courses found!")
             return
         
+        # Calculate total topics across all courses
+        total_topics = sum(len(course_info['topics']) for course_info in courses.values())
+        
         print(f"\n📚 Found {len(courses)} courses to process:")
         for course_name, course_info in courses.items():
             topic_count = len(course_info['topics'])
             print(f"   📖 {course_name}: {topic_count} topics")
         
-        # Process each course separately
-        for course_name, course_info in courses.items():
-            print(f"\n🔄 Processing course: {course_name}")
-            
-            course_output_path = os.path.join(course_info['path'], f"{course_name}.pdf")
-            
-            # Convert this course using existing logic
-            self._convert_single_course(
-                course_name=course_name,
-                html_files=course_info['topics'],
-                output_path=course_output_path,
-                max_threads=max_threads
-            )
+        # Calculate optimal browser count based on total topics across all courses
+        optimal_browsers = self.config.get_optimal_browser_count(total_topics)
+        if max_threads is None:
+            max_threads = optimal_browsers
+        else:
+            max_threads = min(max_threads, optimal_browsers, total_topics)
         
-        print(f"\n🎉 All courses processed successfully!")
+        print(f"\n🔧 Global Configuration:")
+        print(f"   📄 Total topics: {total_topics}")
+        print(f"   📱 Browsers: {optimal_browsers} (optimal for {total_topics} topics)")
+        print(f"   🧵 Max threads: {max_threads}")
+        print(f"🚀 Initializing shared browser pool...\n")
+        
+        # Create shared browser manager for all courses
+        browser_manager = BrowserSessionManager(self.config, optimal_browsers)
+        
+        try:
+            # Process each course using the shared browser pool
+            for course_name, course_info in courses.items():
+                print(f"\n🔄 Processing course: {course_name}")
+                
+                course_output_path = os.path.join(course_info['path'], f"{course_name}.pdf")
+                
+                # Convert this course using shared browser pool
+                self._convert_single_course(
+                    course_name=course_name,
+                    html_files=course_info['topics'],
+                    output_path=course_output_path,
+                    max_threads=max_threads,
+                    browser_manager=browser_manager
+                )
+            
+            print(f"\n🎉 All courses processed successfully!")
+            
+        finally:
+            print("\n🧹 Cleaning up shared browser pool...")
+            browser_manager.cleanup()
+            print("✅ Cleanup completed!")
     
-    def _convert_single_course(self, course_name, html_files, output_path, max_threads=None):
+    def _convert_single_course(self, course_name, html_files, output_path, max_threads=None, browser_manager=None):
         """Convert a single course's HTML files to PDF"""
         total_files = len(html_files)
         
@@ -514,20 +540,27 @@ class Html2PdfConverter:
             print(f"⚠️  No HTML files found for course: {course_name}")
             return
         
-        # Calculate optimal browser count and thread count
-        optimal_browsers = self.config.get_optimal_browser_count(total_files)
+        # Use provided browser_manager or create a new one (for backwards compatibility)
+        should_cleanup_browser_manager = browser_manager is None
+        if browser_manager is None:
+            # Calculate optimal browser count for this course only (fallback for single course usage)
+            optimal_browsers = self.config.get_optimal_browser_count(total_files)
+            browser_manager = BrowserSessionManager(self.config, optimal_browsers)
+        
         if max_threads is None:
-            max_threads = optimal_browsers
+            # Use the number of available browsers as max threads
+            available_browsers = browser_manager.browsers.qsize()
+            max_threads = min(available_browsers, total_files)
         else:
-            max_threads = min(max_threads, optimal_browsers, total_files)
+            available_browsers = browser_manager.browsers.qsize()
+            max_threads = min(max_threads, available_browsers, total_files)
         
         print(f"📊 Course: {course_name}")
         print(f"   📄 Files: {total_files}")
-        print(f"   📱 Browsers: {optimal_browsers}")
+        print(f"   📱 Available browsers: {browser_manager.browsers.qsize()}")
         print(f"   🧵 Threads: {max_threads}")
         
         temp_dir = tempfile.mkdtemp()
-        browser_manager = BrowserSessionManager(self.config, optimal_browsers)
         
         try:
             start_time = time.time()
@@ -570,7 +603,9 @@ class Html2PdfConverter:
                 print(f"      📊 Avg per file: {total_processing_time/success_count:.1f}s")
             
         finally:
-            browser_manager.cleanup()
+            # Only cleanup browser manager if we created it locally
+            if should_cleanup_browser_manager:
+                browser_manager.cleanup()
             shutil.rmtree(temp_dir, ignore_errors=True)
     
 
