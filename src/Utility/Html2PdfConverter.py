@@ -19,13 +19,11 @@ class PDFConverterConfig:
     def __init__(self, configJson):
         # Browser and Chrome paths
         self.configJson = configJson
-        self.user_data_dir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], f"ucDriver-{self.configJson['ucdriver']}")
-
-        self.chrome_binary_path = constants.chromeBinaryPath
         self.chrome_args = " --allow-running-insecure-content, --ignore-certificate-errors-spki-list,--ignore-ssl-errors"
+        
+        self.user_data_dir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], f"ucDriver-{self.configJson['ucdriver']}")
+        self.chrome_binary_path = constants.chromeBinaryPath
         self.chrome_driver_version = self.configJson['binaryversion']
-
-        # Project paths
         self.root_directory = self.configJson["saveDirectory"]
         self.output_path = os.path.join(self.root_directory, os.path.basename(self.root_directory)+".pdf")
 
@@ -522,42 +520,3 @@ class Html2PdfConverter:
         print(f"📄 Total pages: {page_number}")
         print(f"📚 Total topics: {success_count}")
         print(f"📁 File size: {os.path.getsize(output_path) / (1024*1024):.1f} MB")
-
-
-# Main execution code
-if __name__ == "__main__":
-    # Initialize configuration
-    config = PDFConverterConfig()
-
-    # Create converter instance
-    converter = Html2PdfConverter(config)
-    
-    print("🚀 Starting optimized PDF generation with OOP design...")
-    print("✨ Features:")
-    print("  ✓ Object-oriented design with clean separation of concerns")
-    print("  ✓ Dynamic browser session pool (1-10 browsers based on file count)")
-    print("  ✓ Intelligent thread allocation")
-    print("  ✓ Automatic topic number ordering")
-    print("  ✓ Clean bookmark names (no 'Chapter X')")
-    print("  ✓ Configurable settings and paths")
-    print("  ✓ Live browser page capture support")
-    print("  Folder to convert: ", config.root_directory)
-    print("  PDF File Name: ", config.output_path)
-
-    # Examples of usage:
-    
-    # 1. Convert multiple files using config paths
-    converter.convert_multiple_files()
-    
-    # 2. Convert single file
-    # converter.convert_single_file(
-    #     file_path=r"path\to\file.html",
-    #     output_path=r"path\to\file.pdf"
-    # )
-    
-    # 3. Convert from live browser (example usage)
-    # from seleniumbase import Driver
-    # browser = Driver(undetectable=True, user_data_dir=config.user_data_dir)
-    # browser.get("https://example.com")  # Navigate to any page
-    # converter.convert_browser_page_to_pdf(browser, r"D:\path\to\live_capture.pdf")
-    # browser.quit()
