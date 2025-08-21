@@ -3,6 +3,7 @@ import ctypes
 import platform
 import shutil
 
+from src.Utility.Html2PdfConverter import Html2PdfConverter, PDFConverterConfig
 from src.Utility.DownloadUtility import DownloadUtility
 from src.Main.StartTerminalScraper import StartTerminalScraper
 from src.Utility.ConfigUtility import ConfigUtility
@@ -47,6 +48,17 @@ class EducativeScraper:
             self.loadDefaultConfig()
             if self.cmdArgs.terminal:
                 StartTerminalScraper(self.configJson).startScraper()
+            elif self.cmdArgs.convertmultifiles:
+                config = PDFConverterConfig(self.configJson)
+                converter = Html2PdfConverter(config)
+                converter.convert_multiple_files()
+            elif self.cmdArgs.convertsinglefiles:
+                config = PDFConverterConfig(self.configJson)
+                converter = Html2PdfConverter(config)
+                converter.convert_single_file(
+                    file_path=r"path\to\file.html",
+                    output_path=r"path\to\file.pdf"
+                )
             elif self.cmdArgs.dwldchromedriver:
                 DownloadUtility().downloadChromeDriver(app=None, progressVar=None, configJson=self.configJson)
             elif self.cmdArgs.dwldchromebinary:
@@ -136,6 +148,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser(description=helpDescription, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--terminal', action='store_true', help='Run the scraper in terminal mode instead of UI.')
+    parser.add_argument('--convertmultifiles', action='store_true', help='Convert multiple HTML files to PDF in terminal mode.')
+    parser.add_argument('--convertsinglefiles', action='store_true', help='Convert a single HTML file to PDF in terminal mode.')
     parser.add_argument('--dwldchromedriver', action='store_true', help='Download chromedriver in terminal mode instead of UI.')
     parser.add_argument('--dwldchromebinary', action='store_true', help='Download chromebinary in terminal mode instead of UI.')
     parser.add_argument('--gendefaultconfig', action='store_true', help='Generate default config in terminal mode instead of UI.')

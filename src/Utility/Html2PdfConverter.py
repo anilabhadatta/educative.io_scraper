@@ -10,27 +10,30 @@ import threading
 import queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from seleniumbase import Driver
+from src.Common.Constants import constants
 
 
 class PDFConverterConfig:
     """Configuration class for PDF converter settings"""
     
-    def __init__(self):
+    def __init__(self, configJson):
         # Browser and Chrome paths
-        self.user_data_dir = r"C:\Users\Anilabha\EducativeScraper\UserData1\ucDriver-True"
-        self.chrome_binary_path = r"D:\Development\educative.io_scraper\src\ChromeBinary\win\chrome-win64\chrome.exe"
+        self.configJson = configJson
+        self.user_data_dir = os.path.join(constants.OS_ROOT, self.configJson["userDataDir"], f"ucDriver-{self.configJson['ucdriver']}")
+
+        self.chrome_binary_path = constants.chromeBinaryPath
         self.chrome_args = " --allow-running-insecure-content, --ignore-certificate-errors-spki-list,--ignore-ssl-errors"
-        self.chrome_driver_version = 116
-        
+        self.chrome_driver_version = self.configJson['binaryversion']
+
         # Project paths
-        self.root_directory = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete"
-        self.output_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\combined_course.pdf"
-        
+        self.root_directory = self.configJson["saveDirectory"]
+        self.output_path = os.path.join(self.root_directory, os.path.basename(self.root_directory)+".pdf")
+
         # Processing settings
-        self.max_browser_sessions = 30
+        self.max_browser_sessions = 10
         self.min_browser_sessions = 1
-        self.page_load_timeout = 2
-        self.pdf_generation_pause = 2
+        self.page_load_timeout = 1
+        self.pdf_generation_pause = 1
         
         # PDF settings
         self.pdf_scale = 0.8
@@ -45,17 +48,6 @@ class PDFConverterConfig:
         """Calculate optimal number of browsers based on file count"""
         optimal = min(file_count, self.max_browser_sessions)
         return max(optimal, self.min_browser_sessions)
-    
-    def update_paths(self, user_data_dir=None, chrome_binary_path=None, root_directory=None, output_path=None):
-        """Update configuration paths"""
-        if user_data_dir:
-            self.user_data_dir = user_data_dir
-        if chrome_binary_path:
-            self.chrome_binary_path = chrome_binary_path
-        if root_directory:
-            self.root_directory = root_directory
-        if output_path:
-            self.output_path = output_path
 
 
 class BrowserSessionManager:
@@ -142,26 +134,17 @@ class PDFGenerator:
                         var rect = nextButton.getBoundingClientRect();
                         var buttonY = rect.bottom + window.pageYOffset;
                         console.log('Next button found at Y:', buttonY);
-                        return buttonY + 10; // Small buffer
+                        return buttonY; // Small buffer
                     } else {
                         console.log('Next button not found, using body height');
                         return document.body.scrollHeight;
                     }
-                })(),
-                devicePixelRatio: window.devicePixelRatio,
-                screenDPI: window.screen.width / (window.screen.availWidth / 96)
+                })()
             };
         """)
         
         content_height = browser_info['contentHeight']
-        device_pixel_ratio = browser_info['devicePixelRatio']
-        
-        actual_pixels = content_height / device_pixel_ratio
-        paper_height_inches = actual_pixels / 72
-        paper_height_inches = max(paper_height_inches, self.config.min_paper_height)
-        
-        print(f"Content height: {content_height}px (device ratio: {device_pixel_ratio})")
-        print(f"Actual pixels: {actual_pixels:.0f}px, Paper height: {paper_height_inches:.2f} inches")
+        paper_height_inches = max(content_height / 96, self.config.min_paper_height)
         
         return paper_height_inches
 
@@ -545,14 +528,6 @@ class Html2PdfConverter:
 if __name__ == "__main__":
     # Initialize configuration
     config = PDFConverterConfig()
-    
-    # Update configuration paths if needed
-    config.update_paths(
-        user_data_dir=r"C:\Users\Anilabha\EducativeScraper\UserData1\ucDriver-True",
-        chrome_binary_path=r"D:\Development\educative.io_scraper\src\ChromeBinary\win\chrome-win64\chrome.exe",
-        root_directory=r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete",
-        output_path=r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\aws certified solutions architect associate saa c03 exam prep-incomplete.pdf"
-    )
 
     # Create converter instance
     converter = Html2PdfConverter(config)
@@ -566,8 +541,9 @@ if __name__ == "__main__":
     print("  ✓ Clean bookmark names (no 'Chapter X')")
     print("  ✓ Configurable settings and paths")
     print("  ✓ Live browser page capture support")
-    print()
-    
+    print("  Folder to convert: ", config.root_directory)
+    print("  PDF File Name: ", config.output_path)
+
     # Examples of usage:
     
     # 1. Convert multiple files using config paths
@@ -575,8 +551,8 @@ if __name__ == "__main__":
     
     # 2. Convert single file
     # converter.convert_single_file(
-    #     file_path=r"D:\path\to\file.html",
-    #     output_path=r"D:\path\to\output.pdf"
+    #     file_path=r"path\to\file.html",
+    #     output_path=r"path\to\file.pdf"
     # )
     
     # 3. Convert from live browser (example usage)
