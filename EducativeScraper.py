@@ -48,7 +48,7 @@ class EducativeScraper:
             self.loadDefaultConfig()
             if self.cmdArgs.terminal:
                 StartTerminalScraper(self.configJson).startScraper()
-            elif self.cmdArgs.convertmultifiles:
+            elif self.cmdArgs.convertmulticourses:
                 config = PDFConverterConfig(self.configJson)
                 converter = Html2PdfConverter(config)
                 converter.convert_multiple_courses()
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser(description=helpDescription, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--terminal', action='store_true', help='Run the scraper in terminal mode instead of UI.')
-    parser.add_argument('--convertmultifiles', action='store_true', help='Convert multiple HTML files to PDF in terminal mode.')
+    parser.add_argument('--convertmulticourses', action='store_true', help='Convert multiple HTML Courses to PDF in terminal mode.')
     parser.add_argument('--convertsinglefiles', action='store_true', help='Convert a single HTML file to PDF in terminal mode.')
     parser.add_argument('--dwldchromedriver', action='store_true', help='Download chromedriver in terminal mode instead of UI.')
     parser.add_argument('--dwldchromebinary', action='store_true', help='Download chromebinary in terminal mode instead of UI.')
