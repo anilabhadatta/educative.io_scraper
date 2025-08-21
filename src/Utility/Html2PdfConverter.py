@@ -11,285 +11,59 @@ import queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from seleniumbase import Driver
 
-# Configuration settings
-class Config:
-    # Browser and Chrome paths
-    USER_DATA_DIR = r"C:\Users\Anilabha\EducativeScraper\UserData1\ucDriver-True"
-    CHROME_BINARY_PATH = r"D:\Development\educative.io_scraper\src\ChromeBinary\win\chrome-win64\chrome.exe"
-    CHROME_ARGS = " --allow-running-insecure-content, --ignore-certificate-errors-spki-list,--ignore-ssl-errors"
-    CHROME_DRIVER_VERSION = 116
+
+class PDFConverterConfig:
+    """Configuration class for PDF converter settings"""
     
-    # Processing settings
-    MAX_BROWSER_SESSIONS = 10  # Maximum browser sessions to create
-    MIN_BROWSER_SESSIONS = 1   # Minimum browser sessions
-    PAGE_LOAD_TIMEOUT = 2      # Seconds to wait for page load
-    PDF_GENERATION_PAUSE = 0.5 # Pause after PDF generation
+    def __init__(self):
+        # Browser and Chrome paths
+        self.user_data_dir = r"C:\Users\Anilabha\EducativeScraper\UserData1\ucDriver-True"
+        self.chrome_binary_path = r"D:\Development\educative.io_scraper\src\ChromeBinary\win\chrome-win64\chrome.exe"
+        self.chrome_args = " --allow-running-insecure-content, --ignore-certificate-errors-spki-list,--ignore-ssl-errors"
+        self.chrome_driver_version = 116
+        
+        # Project paths
+        self.root_directory = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete"
+        self.output_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\combined_course.pdf"
+        
+        # Processing settings
+        self.max_browser_sessions = 30
+        self.min_browser_sessions = 1
+        self.page_load_timeout = 2
+        self.pdf_generation_pause = 2
+        
+        # PDF settings
+        self.pdf_scale = 0.8
+        self.pdf_paper_width = 8.27
+        self.min_paper_height = 8.5
+        self.trim_whitespace = True
+        
+        # Folder exclusions
+        self.excluded_folders = ['Codes_', 'Quiz', 'MarkDownQuiz']
     
-    # PDF settings
-    PDF_SCALE = 0.8
-    PDF_PAPER_WIDTH = 8.27
-    MIN_PAPER_HEIGHT = 8.5
-    
-    # Folder exclusions
-    EXCLUDED_FOLDERS = ['Codes_', 'Quiz', 'MarkDownQuiz']
-    
-    @classmethod
-    def get_optimal_browser_count(cls, file_count):
+    def get_optimal_browser_count(self, file_count):
         """Calculate optimal number of browsers based on file count"""
-        optimal = min(file_count, cls.MAX_BROWSER_SESSIONS)
-        return max(optimal, cls.MIN_BROWSER_SESSIONS)
-
-
-def printPdfAsCdp(file_path):
-    print(f"printPdfAsCdp: Getting Full page PDF data without page breaks")
+        optimal = min(file_count, self.max_browser_sessions)
+        return max(optimal, self.min_browser_sessions)
     
-    params = {
-        "landscape": False,
-        "displayHeaderFooter": False,  # Disable header/footer for continuous page
-        "printBackground": True,
-        "marginsType": 0,  # No margins for continuous content
-        "paperWidth": Config.PDF_PAPER_WIDTH,
-        "paperHeight": 5,  # Very large height to accommodate all content
-        "marginTop": 0,
-        "marginBottom": 0,
-        "marginLeft": 0,
-        "marginRight": 0,
-        "preferCSSPageSize": False,  # Don't respect CSS @page rules to override page breaks
-        "scale": Config.PDF_SCALE  # Scale content to fit
-    }
-    
-    browser = Driver(undetectable=True, user_data_dir=Config.USER_DATA_DIR,
-                                      binary_location=Config.CHROME_BINARY_PATH, headless2=True,
-                                      proxy=None, chromium_arg=Config.CHROME_ARGS,
-                                      headed=False, driver_version=Config.CHROME_DRIVER_VERSION)
-    try:
-        browser.get(f"file:///{file_path}")
-        
-        # Wait for page to load completely
-        time.sleep(Config.PAGE_LOAD_TIMEOUT)
-        
-        # Get browser DPI and more accurate conversion
-        browser_info = browser.execute_script("""
-            return {
-                contentHeight: (function() {
-                    var nextButton = document.querySelector('button[name="next"]');
-                    if (nextButton) {
-                        var rect = nextButton.getBoundingClientRect();
-                        var buttonY = rect.bottom + window.pageYOffset;
-                        console.log('Next button found at Y:', buttonY);
-                        return buttonY + 10; // Small buffer
-                    } else {
-                        console.log('Next button not found, using body height');
-                        return document.body.scrollHeight;
-                    }
-                })(),
-                devicePixelRatio: window.devicePixelRatio,
-                screenDPI: window.screen.width / (window.screen.availWidth / 96)
-            };
-        """)
-        
-        content_height = browser_info['contentHeight']
-        device_pixel_ratio = browser_info['devicePixelRatio']
-        
-        # More accurate conversion considering device pixel ratio
-        # PDF generation typically expects 72 DPI, but browser reports in 96 DPI
-        # Adjust for device pixel ratio to get actual physical pixels
-        actual_pixels = content_height / device_pixel_ratio
-        paper_height_inches = actual_pixels / 72  # PDF uses 72 DPI
-        
-        # Ensure reasonable minimum
-        paper_height_inches = max(paper_height_inches, Config.MIN_PAPER_HEIGHT)
-        
-        # Update params with calculated height
-        params["paperHeight"] = paper_height_inches
-        
-        print(f"Content height: {content_height}px (device ratio: {device_pixel_ratio})")
-        print(f"Actual pixels: {actual_pixels:.0f}px, Paper height: {paper_height_inches:.2f} inches")
-        
-        pageData = browser.execute_cdp_cmd("Page.printToPDF", params)
-        time.sleep(2)
-        pageData = base64.b64decode(pageData['data'])
-        pdfBinaryData = io.BytesIO(pageData)
-        return mergePdfPages(pdfBinaryData)
-    except Exception as e:
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"PrintFileUtility:printPdfAsCdp: {lineNumber}: {e}")
-    finally:
-        if browser:
-            browser.quit()
+    def update_paths(self, user_data_dir=None, chrome_binary_path=None, root_directory=None, output_path=None):
+        """Update configuration paths"""
+        if user_data_dir:
+            self.user_data_dir = user_data_dir
+        if chrome_binary_path:
+            self.chrome_binary_path = chrome_binary_path
+        if root_directory:
+            self.root_directory = root_directory
+        if output_path:
+            self.output_path = output_path
 
-def mergePdfPages(pdfBinaryData):
-    """
-    Merge all PDF pages into a single continuous page without page breaks
-    """
-    try:
-        reader = PdfReader(pdfBinaryData)
-        outputPdf = PdfWriter()
-        
-        if len(reader.pages) == 0:
-            raise Exception("No pages found in PDF")
-        
-        # If there's only one page, just add it
-        if len(reader.pages) == 1:
-            outputPdf.add_page(reader.pages[0])
-            return outputPdf
-        
-        # Calculate total height needed for all pages
-        total_height = 0
-        max_width = 0
-        
-        for page in reader.pages:
-            page_box = page.mediabox
-            total_height += float(page_box.height)
-            max_width = max(max_width, float(page_box.width))
-        
-        # Create a new page with the combined dimensions
-        combined_page = PageObject.create_blank_page(width=max_width, height=total_height)
-        
-        # Merge all pages into the single page
-        current_y = total_height
-        for page in reader.pages:
-            page_height = float(page.mediabox.height)
-            current_y -= page_height
-            
-            # Transform to position the page at the correct location
-            transformation = Transformation().translate(0, current_y)
-            page.add_transformation(transformation)
-            
-            # Merge this page onto the combined page
-            combined_page.merge_page(page)
-        
-        outputPdf.add_page(combined_page)
-        
-        print(f"Merged {len(reader.pages)} pages into single continuous page")
-        return outputPdf
-        
-    except Exception as e:
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"Html2PdfConverter:mergePdfPages: {lineNumber}: {e}")
 
-def trimPdfWhiteSpace(pdfBinaryData):
-    """
-    Trim excessive white space from the bottom of PDF pages
-    """
-    try:
-        reader = PdfReader(pdfBinaryData)
-        outputPdf = PdfWriter()
-        
-        for page in reader.pages:
-            # Get the media box (page dimensions)
-            media_box = page.mediabox
-            page_width = float(media_box.width)
-            page_height = float(media_box.height)
-            
-            # For single page continuous PDFs, we want to trim bottom whitespace
-            # This is a simple approach - you might need to adjust based on your content
-            
-            # Reduce height by 10% to remove bottom white space (adjust as needed)
-            # You can make this more sophisticated by analyzing content
-            trimmed_height = page_height * 0.9  # Remove 10% from bottom
-            
-            # Create new media box with trimmed height
-            page.mediabox.lower_left = (0, page_height - trimmed_height)
-            page.mediabox.upper_right = (page_width, page_height)
-            
-            outputPdf.add_page(page)
-        
-        print(f"Trimmed white space from PDF")
-        return outputPdf
-        
-    except Exception as e:
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"Html2PdfConverter:trimPdfWhiteSpace: {lineNumber}: {e}")
-
-def createSinglePagePdf(file_path, output_path, trim_whitespace=True):
-    """
-    Alternative approach: Create a single continuous PDF without page breaks
-    """
-    try:
-        print("Creating single page PDF without page breaks and excessive white space...")
-        
-        # Generate the PDF
-        pdf_writer = printPdfAsCdp(file_path)
-        
-        # Optionally trim white space
-        if trim_whitespace:
-            # Convert to binary data for trimming
-            temp_output = io.BytesIO()
-            pdf_writer.write(temp_output)
-            temp_output.seek(0)
-            
-            # Trim white space
-            pdf_writer = trimPdfWhiteSpace(temp_output)
-        
-        # Write to output file
-        with open(output_path, "wb") as f:
-            pdf_writer.write(f)
-            
-        print(f"Single page PDF created successfully: {output_path}")
-        return output_path
-        
-    except Exception as e:
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"Html2PdfConverter:createSinglePagePdf: {lineNumber}: {e}")
-
-def scan_html_files(root_directory):
-    """
-    Scan all HTML files in folder tree, excluding specific folders
-    """
-    try:
-        html_files = []
-        
-        for root, dirs, files in os.walk(root_directory):
-            # Remove excluded directories from dirs list to skip them
-            dirs[:] = [d for d in dirs if not any(excluded in d for excluded in Config.EXCLUDED_FOLDERS)]
-            
-            for file in files:
-                if file.endswith('.html'):
-                    full_path = os.path.join(root, file)
-                    html_files.append(full_path)
-        
-        # Sort files for consistent order
-        html_files.sort()
-        print(f"Found {len(html_files)} HTML files")
-        return html_files
-        
-    except Exception as e:
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"Html2PdfConverter:scan_html_files: {lineNumber}: {e}")
-
-def extract_topic_name_and_number(html_file_path):
-    """
-    Extract topic name and number from HTML file path or filename
-    """
-    try:
-        # Get filename without extension
-        filename = os.path.splitext(os.path.basename(html_file_path))[0]
-        
-        # Extract number from beginning of filename
-        number_match = re.match(r'^(\d+)', filename)
-        topic_number = int(number_match.group(1)) if number_match else 999999  # Default high number for items without numbers
-        
-        # Remove numbers and dashes from beginning if present
-        topic_name = re.sub(r'^[\d\-\s]+', '', filename)
-        
-        # Clean up the name
-        topic_name = topic_name.replace('-', ' ').replace('_', ' ')
-        topic_name = ' '.join(topic_name.split())  # Remove extra spaces
-        
-        if not topic_name:
-            topic_name = filename
-            
-        return topic_number, topic_name
-        
-    except Exception as e:
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"Html2PdfConverter:extract_topic_name_and_number: {lineNumber}: {e}")
-
-# Thread-safe browser session manager
 class BrowserSessionManager:
-    def __init__(self, browser_count=None):
-        self.browser_count = browser_count or Config.MAX_BROWSER_SESSIONS
+    """Thread-safe browser session manager"""
+    
+    def __init__(self, config, browser_count=None):
+        self.config = config
+        self.browser_count = browser_count or config.max_browser_sessions
         self.browsers = queue.Queue(maxsize=self.browser_count)
         self.lock = threading.Lock()
         self._initialize_browsers()
@@ -297,13 +71,18 @@ class BrowserSessionManager:
     def _initialize_browsers(self):
         """Initialize browser sessions"""
         print(f"Initializing browser session pool ({self.browser_count} browsers)...")
-        # Create browser sessions
         for i in range(self.browser_count):
             try:
-                browser = Driver(undetectable=True, user_data_dir=f"{Config.USER_DATA_DIR}_{i}",
-                               binary_location=Config.CHROME_BINARY_PATH, headless2=True,
-                               proxy=None, chromium_arg=Config.CHROME_ARGS,
-                               headed=False, driver_version=Config.CHROME_DRIVER_VERSION)
+                browser = Driver(
+                    undetectable=True, 
+                    user_data_dir=f"{self.config.user_data_dir}_{i}",
+                    binary_location=self.config.chrome_binary_path, 
+                    headless2=True,
+                    proxy=None, 
+                    chromium_arg=self.config.chrome_args,
+                    headed=False, 
+                    driver_version=self.config.chrome_driver_version
+                )
                 self.browsers.put(browser)
                 print(f"  ✓ Browser session {i+1}/{self.browser_count} initialized")
             except Exception as e:
@@ -327,192 +106,325 @@ class BrowserSessionManager:
             except:
                 pass
 
-def convert_html_to_pdf_threaded(html_file, temp_dir, browser_manager, trim_whitespace=True):
-    """
-    Thread-safe function to convert HTML to PDF using shared browser sessions
-    """
-    thread_name = threading.current_thread().name
-    start_time = time.time()
+
+class PDFGenerator:
+    """PDF generation utility class"""
     
-    try:
-        base_name = os.path.splitext(os.path.basename(html_file))[0]
-        temp_pdf_path = os.path.join(temp_dir, f"{base_name}.pdf")
-        
-        # Get browser from pool
-        browser = browser_manager.get_browser()
-        params = {
+    def __init__(self, config):
+        self.config = config
+    
+    def _get_pdf_params(self, paper_height=5):
+        """Get standard PDF generation parameters"""
+        return {
             "landscape": False,
-            "displayHeaderFooter": False,  # Disable header/footer for continuous page
+            "displayHeaderFooter": False,
             "printBackground": True,
-            "marginsType": 0,  # No margins for continuous content
-            "paperWidth": Config.PDF_PAPER_WIDTH,
-            "paperHeight": 5,  # Very large height to accommodate all content
+            "marginsType": 0,
+            "paperWidth": self.config.pdf_paper_width,
+            "paperHeight": paper_height,
             "marginTop": 0,
             "marginBottom": 0,
             "marginLeft": 0,
             "marginRight": 0,
-            "preferCSSPageSize": False,  # Don't respect CSS @page rules to override page breaks
-            "scale": Config.PDF_SCALE  # Scale content to fit
+            "preferCSSPageSize": False,
+            "scale": self.config.pdf_scale
         }
+    
+    def _calculate_paper_height_from_browser(self, browser):
+        """Calculate optimal paper height from currently loaded browser page"""
+        time.sleep(self.config.page_load_timeout)
+        
+        browser_info = browser.execute_script("""
+            return {
+                contentHeight: (function() {
+                    var nextButton = document.querySelector('button[name="next"]');
+                    if (nextButton) {
+                        var rect = nextButton.getBoundingClientRect();
+                        var buttonY = rect.bottom + window.pageYOffset;
+                        console.log('Next button found at Y:', buttonY);
+                        return buttonY + 10; // Small buffer
+                    } else {
+                        console.log('Next button not found, using body height');
+                        return document.body.scrollHeight;
+                    }
+                })(),
+                devicePixelRatio: window.devicePixelRatio,
+                screenDPI: window.screen.width / (window.screen.availWidth / 96)
+            };
+        """)
+        
+        content_height = browser_info['contentHeight']
+        device_pixel_ratio = browser_info['devicePixelRatio']
+        
+        actual_pixels = content_height / device_pixel_ratio
+        paper_height_inches = actual_pixels / 72
+        paper_height_inches = max(paper_height_inches, self.config.min_paper_height)
+        
+        print(f"Content height: {content_height}px (device ratio: {device_pixel_ratio})")
+        print(f"Actual pixels: {actual_pixels:.0f}px, Paper height: {paper_height_inches:.2f} inches")
+        
+        return paper_height_inches
+
+    def _calculate_paper_height(self, browser, html_file):
+        """Calculate optimal paper height based on content"""
+        browser.get(f"file:///{html_file}")
+        return self._calculate_paper_height_from_browser(browser)
+    
+    def generate_pdf_from_browser(self, browser):
+        """Generate PDF from currently loaded browser page without changing URL"""
+        paper_height = self._calculate_paper_height_from_browser(browser)
+        params = self._get_pdf_params(paper_height)
+        
+        pageData = browser.execute_cdp_cmd("Page.printToPDF", params)
+        time.sleep(self.config.pdf_generation_pause)
+        
+        pdf_binary = base64.b64decode(pageData['data'])
+        pdfBinaryData = io.BytesIO(pdf_binary)
+        
+        return self._merge_pdf_pages(pdfBinaryData)
+    
+    def generate_single_pdf(self, html_file, browser=None):
+        """Generate PDF from single HTML file"""
+        should_quit_browser = browser is None
+        
+        if browser is None:
+            browser = Driver(
+                undetectable=True, 
+                user_data_dir=self.config.user_data_dir,
+                binary_location=self.config.chrome_binary_path, 
+                headless2=True,
+                proxy=None, 
+                chromium_arg=self.config.chrome_args,
+                headed=False, 
+                driver_version=self.config.chrome_driver_version
+            )
         
         try:
-            print(f"[{thread_name}] 🔄 Starting: {base_name}")
+            paper_height = self._calculate_paper_height(browser, html_file)
+            params = self._get_pdf_params(paper_height)
             
-            # Load the HTML file
-            browser.get(f"file:///{html_file}")
-            
-            # Wait for page to load completely
-            time.sleep(Config.PAGE_LOAD_TIMEOUT)  # Configurable timeout
-            
-            # Get browser DPI and more accurate conversion
-            browser_info = browser.execute_script("""
-                return {
-                    contentHeight: (function() {
-                        var nextButton = document.querySelector('button[name="next"]');
-                        if (nextButton) {
-                            var rect = nextButton.getBoundingClientRect();
-                            var buttonY = rect.bottom + window.pageYOffset;
-                            console.log('Next button found at Y:', buttonY);
-                            return buttonY + 10; // Small buffer
-                        } else {
-                            console.log('Next button not found, using body height');
-                            return document.body.scrollHeight;
-                        }
-                    })(),
-                    devicePixelRatio: window.devicePixelRatio,
-                    screenDPI: window.screen.width / (window.screen.availWidth / 96)
-                };
-            """)
-            
-            content_height = browser_info['contentHeight']
-            device_pixel_ratio = browser_info['devicePixelRatio']
-            
-            # More accurate conversion considering device pixel ratio
-            # PDF generation typically expects 72 DPI, but browser reports in 96 DPI
-            # Adjust for device pixel ratio to get actual physical pixels
-            actual_pixels = content_height / device_pixel_ratio
-            paper_height_inches = actual_pixels / 72  # PDF uses 72 DPI
-            
-            # Ensure reasonable minimum
-            paper_height_inches = max(paper_height_inches, Config.MIN_PAPER_HEIGHT)
-            
-            # Update params with calculated height
-            params["paperHeight"] = paper_height_inches
-            
-            print(f"Content height: {content_height}px (device ratio: {device_pixel_ratio})")
-            print(f"Actual pixels: {actual_pixels:.0f}px, Paper height: {paper_height_inches:.2f} inches")
-            
-            
-            
-            # Generate PDF
             pageData = browser.execute_cdp_cmd("Page.printToPDF", params)
-            time.sleep(Config.PDF_GENERATION_PAUSE)  # Configurable pause
+            time.sleep(self.config.pdf_generation_pause)
             
-            # Decode and save PDF
             pdf_binary = base64.b64decode(pageData['data'])
             pdfBinaryData = io.BytesIO(pdf_binary)
-            
-            # Merge pages if needed
-            pdf_writer = mergePdfPages(pdfBinaryData)
-            if trim_whitespace:
-                # Convert to binary data for trimming
+                
+            pdf_output = self._merge_pdf_pages(pdfBinaryData)
+            if self.config.trim_whitespace:
                 temp_output = io.BytesIO()
-                pdf_writer.write(temp_output)
+                pdf_output.write(temp_output)
                 temp_output.seek(0)
                 
                 # Trim white space
-                pdf_writer = trimPdfWhiteSpace(temp_output)
-            
-            # Write to temporary file
-            with open(temp_pdf_path, "wb") as f:
-                pdf_writer.write(f)
-            
-            # Extract topic info
-            topic_number, topic_name = extract_topic_name_and_number(html_file)
-            
-            elapsed_time = time.time() - start_time
-            print(f"[{thread_name}] ✅ Completed: {topic_number}. {topic_name} ({elapsed_time:.1f}s)")
-            
-            return {
-                'topic_number': topic_number,
-                'topic_name': topic_name,
-                'pdf_path': temp_pdf_path,
-                'html_file': html_file,
-                'processing_time': elapsed_time
-            }
+                pdf_output = self.trimPdfWhiteSpace(temp_output)
+            return pdf_output
             
         finally:
-            # Return browser to pool
-            browser_manager.return_browser(browser)
+            if should_quit_browser and browser:
+                browser.quit()
+    
+    def trimPdfWhiteSpace(self, pdfBinaryData):
+        """
+        Trim excessive white space from the bottom of PDF pages
+        """
+        try:
+            reader = PdfReader(pdfBinaryData)
+            outputPdf = PdfWriter()
+            
+            for page in reader.pages:
+                # Get the media box (page dimensions)
+                media_box = page.mediabox
+                page_width = float(media_box.width)
+                page_height = float(media_box.height)
+                
+                # For single page continuous PDFs, we want to trim bottom whitespace
+                # This is a simple approach - you might need to adjust based on your content
+                
+                # Reduce height by 10% to remove bottom white space (adjust as needed)
+                # You can make this more sophisticated by analyzing content
+                trimmed_height = page_height * 0.9  # Remove 10% from bottom
+                
+                # Create new media box with trimmed height
+                page.mediabox.lower_left = (0, page_height - trimmed_height)
+                page.mediabox.upper_right = (page_width, page_height)
+                
+                outputPdf.add_page(page)
+            
+            print(f"Trimmed white space from PDF")
+            return outputPdf
+            
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"Html2PdfConverter:trimPdfWhiteSpace: {lineNumber}: {e}")
+    
+    def _merge_pdf_pages(self, pdf_binary_data):
+        """Merge all PDF pages into a single continuous page"""
+        reader = PdfReader(pdf_binary_data)
+        output_pdf = PdfWriter()
         
-    except Exception as e:
-        elapsed_time = time.time() - start_time
-        print(f"[{thread_name}] ❌ Failed: {base_name} ({elapsed_time:.1f}s) - {str(e)[:100]}")
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"Html2PdfConverter:convert_html_to_pdf_threaded: {lineNumber}: {e}")
+        if len(reader.pages) == 0:
+            raise Exception("No pages found in PDF")
+        
+        if len(reader.pages) == 1:
+            output_pdf.add_page(reader.pages[0])
+            return output_pdf
+        
+        # Calculate total height needed for all pages
+        total_height = 0
+        max_width = 0
+        
+        for page in reader.pages:
+            page_box = page.mediabox
+            total_height += float(page_box.height)
+            max_width = max(max_width, float(page_box.width))
+        
+        # Create a new page with the combined dimensions
+        combined_page = PageObject.create_blank_page(width=max_width, height=total_height)
+        
+        # Merge all pages into the single page
+        current_y = total_height
+        for page in reader.pages:
+            page_height = float(page.mediabox.height)
+            current_y -= page_height
+            
+            transformation = Transformation().translate(0, current_y)
+            page.add_transformation(transformation)
+            combined_page.merge_page(page)
+        
+        output_pdf.add_page(combined_page)
+        print(f"Merged {len(reader.pages)} pages into single continuous page")
+        return output_pdf
 
-def extract_topic_name(html_file_path):
-    """
-    Extract topic name from HTML file path or filename
-    """
-    try:
-        # Get filename without extension
+
+class TopicExtractor:
+    """Extract topic information from HTML files"""
+    
+    @staticmethod
+    def extract_topic_name_and_number(html_file_path):
+        """Extract topic name and number from HTML file path"""
         filename = os.path.splitext(os.path.basename(html_file_path))[0]
         
-        # Remove numbers and dashes from beginning if present
-        import re
+        # Extract number from beginning of filename
+        number_match = re.match(r'^(\d+)', filename)
+        topic_number = int(number_match.group(1)) if number_match else 999999
+        
+        # Remove numbers and dashes from beginning
         topic_name = re.sub(r'^[\d\-\s]+', '', filename)
-        
-        # Clean up the name
         topic_name = topic_name.replace('-', ' ').replace('_', ' ')
-        topic_name = ' '.join(topic_name.split())  # Remove extra spaces
+        topic_name = ' '.join(topic_name.split())
         
-        return topic_name if topic_name else filename
-        
-    except Exception as e:
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"Html2PdfConverter:extract_topic_name: {lineNumber}: {e}")
-
-def convert_html_to_pdf_page(html_file, temp_dir, trim_whitespace=True):
-    """
-    Convert single HTML file to PDF and return the PDF path
-    """
-    try:
-        base_name = os.path.splitext(os.path.basename(html_file))[0]
-        temp_pdf_path = os.path.join(temp_dir, f"{base_name}.pdf")
-        
-        print(f"Converting: {html_file}")
-        
-        # Use the working PDF generation function
-        pdf_writer = printPdfAsCdp(html_file)
-
-        # Optionally trim white space
-        if trim_whitespace:
-            # Convert to binary data for trimming
-            temp_output = io.BytesIO()
-            pdf_writer.write(temp_output)
-            temp_output.seek(0)
+        if not topic_name:
+            topic_name = filename
             
-            # Trim white space
-            pdf_writer = trimPdfWhiteSpace(temp_output)
-        
-        # Write to temporary file
-        with open(temp_pdf_path, "wb") as f:
-            pdf_writer.write(f)
-        
-        return temp_pdf_path
-        
-    except Exception as e:
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"Html2PdfConverter:convert_html_to_pdf_page: {lineNumber}: {e}")
+        return topic_number, topic_name
 
-def create_combined_pdf_optimized(root_directory, output_path, max_threads=None):
-    """
-    Optimized version: Scan HTML files and create a single PDF with bookmarks using parallel processing
-    """
-    try:
+
+class FileScanner:
+    """Scan and filter HTML files"""
+    
+    def __init__(self, config):
+        self.config = config
+    
+    def scan_html_files(self, root_directory):
+        """Scan all HTML files in folder tree, excluding specific folders"""
+        html_files = []
+        
+        for root, dirs, files in os.walk(root_directory):
+            # Remove excluded directories
+            dirs[:] = [d for d in dirs if not any(excluded in d for excluded in self.config.excluded_folders)]
+            
+            for file in files:
+                if file.endswith('.html'):
+                    full_path = os.path.join(root, file)
+                    html_files.append(full_path)
+        
+        html_files.sort()
+        print(f"Found {len(html_files)} HTML files")
+        return html_files
+
+
+class Html2PdfConverter:
+    """Main HTML to PDF converter class with parallel processing"""
+    
+    def __init__(self, config=None):
+        self.config = config or PDFConverterConfig()
+        self.pdf_generator = PDFGenerator(self.config)
+        self.file_scanner = FileScanner(self.config)
+        self.topic_extractor = TopicExtractor()
+    
+    def convert_single_file(self, file_path, output_path):
+        """Convert single HTML file to PDF"""
+        print("Creating single page PDF without page breaks...")
+        
+        pdf_writer = self.pdf_generator.generate_single_pdf(file_path)
+        
+        with open(output_path, "wb") as f:
+            pdf_writer.write(f)
+            
+        print(f"Single page PDF created successfully: {output_path}")
+        return output_path
+    
+    def convert_browser_page_to_pdf(self, browser, output_path):
+        """Convert currently loaded browser page to PDF without navigating"""
+        print("Creating PDF from currently loaded browser page...")
+        
+        pdf_writer = self.pdf_generator.generate_pdf_from_browser(browser)
+        
+        with open(output_path, "wb") as f:
+            pdf_writer.write(f)
+            
+        print(f"Browser page PDF created successfully: {output_path}")
+        return output_path
+    
+    def _convert_html_threaded(self, html_file, temp_dir, browser_manager):
+        """Thread-safe function to convert HTML to PDF"""
+        thread_name = threading.current_thread().name
+        start_time = time.time()
+        
+        try:
+            base_name = os.path.splitext(os.path.basename(html_file))[0]
+            temp_pdf_path = os.path.join(temp_dir, f"{base_name}.pdf")
+            
+            browser = browser_manager.get_browser()
+            
+            try:
+                print(f"[{thread_name}] 🔄 Starting: {base_name}")
+                
+                # Generate PDF using shared browser
+                pdf_writer = self.pdf_generator.generate_single_pdf(html_file, browser)
+                
+                with open(temp_pdf_path, "wb") as f:
+                    pdf_writer.write(f)
+                
+                topic_number, topic_name = self.topic_extractor.extract_topic_name_and_number(html_file)
+                
+                elapsed_time = time.time() - start_time
+                print(f"[{thread_name}] ✅ Completed: {topic_number}. {topic_name} ({elapsed_time:.1f}s)")
+                
+                return {
+                    'topic_number': topic_number,
+                    'topic_name': topic_name,
+                    'pdf_path': temp_pdf_path,
+                    'html_file': html_file,
+                    'processing_time': elapsed_time
+                }
+                
+            finally:
+                browser_manager.return_browser(browser)
+            
+        except Exception as e:
+            elapsed_time = time.time() - start_time
+            print(f"[{thread_name}] ❌ Failed: {base_name} ({elapsed_time:.1f}s) - {str(e)[:100]}")
+            raise Exception(f"Html2PdfConverter:_convert_html_threaded: {e}")
+    
+    def convert_multiple_files(self, root_directory=None, output_path=None, max_threads=None):
+        """Convert multiple HTML files to single PDF with parallel processing"""
+        # Use config paths if not provided
+        root_directory = root_directory or self.config.root_directory
+        output_path = output_path or self.config.output_path
+        
         print(f"📁 Scanning HTML files in: {root_directory}")
-        html_files = scan_html_files(root_directory)
+        html_files = self.file_scanner.scan_html_files(root_directory)
         
         if not html_files:
             print("❌ No HTML files found!")
@@ -521,40 +433,34 @@ def create_combined_pdf_optimized(root_directory, output_path, max_threads=None)
         total_files = len(html_files)
         
         # Calculate optimal browser count and thread count
-        optimal_browsers = Config.get_optimal_browser_count(total_files)
+        optimal_browsers = self.config.get_optimal_browser_count(total_files)
         if max_threads is None:
             max_threads = optimal_browsers
         else:
             max_threads = min(max_threads, optimal_browsers, total_files)
         
         print(f"📊 Found {total_files} HTML files")
-        print(f"� Configuration:")
+        print(f"🔧 Configuration:")
         print(f"   📱 Browsers: {optimal_browsers} (optimal for {total_files} files)")
         print(f"   🧵 Threads: {max_threads}")
-        print(f"   ⏱️  Page load timeout: {Config.PAGE_LOAD_TIMEOUT}s")
-        print(f"   📄 PDF scale: {Config.PDF_SCALE}")
+        print(f"   ⏱️  Page load timeout: {self.config.page_load_timeout}s")
+        print(f"   📄 PDF scale: {self.config.pdf_scale}")
         print(f"🚀 Starting parallel processing...\n")
         
-        # Create temporary directory for individual PDFs
         temp_dir = tempfile.mkdtemp()
-        
-        # Initialize browser session manager with optimal count
-        browser_manager = BrowserSessionManager(optimal_browsers)
+        browser_manager = BrowserSessionManager(self.config, optimal_browsers)
         
         try:
-            # Track overall progress
             start_time = time.time()
             pdf_results = []
             failed_files = []
             
             with ThreadPoolExecutor(max_workers=max_threads) as executor:
-                # Submit all tasks
                 future_to_file = {
-                    executor.submit(convert_html_to_pdf_threaded, html_file, temp_dir, browser_manager): html_file 
+                    executor.submit(self._convert_html_threaded, html_file, temp_dir, browser_manager): html_file 
                     for html_file in html_files
                 }
                 
-                # Collect results as they complete
                 for future in as_completed(future_to_file):
                     html_file = future_to_file[future]
                     try:
@@ -571,6 +477,8 @@ def create_combined_pdf_optimized(root_directory, output_path, max_threads=None)
             # Sort results by topic number
             pdf_results.sort(key=lambda x: x['topic_number'])
             
+            self._create_combined_pdf(pdf_results, output_path)
+            
             total_processing_time = time.time() - start_time
             success_count = len(pdf_results)
             fail_count = len(failed_files)
@@ -579,155 +487,101 @@ def create_combined_pdf_optimized(root_directory, output_path, max_threads=None)
             print(f"   ✅ Successful: {success_count}/{total_files}")
             print(f"   ❌ Failed: {fail_count}/{total_files}")
             print(f"   ⏱️  Total time: {total_processing_time:.1f}s")
-            print(f"   📊 Avg per file: {total_processing_time/success_count:.1f}s")
-            
-            if success_count == 0:
-                print("❌ No files were successfully processed!")
-                return
-            
-            print(f"\n📖 Creating combined PDF with {success_count} topics...")
-            print("📑 Topic ordering:")
-            for i, result in enumerate(pdf_results[:10], 1):  # Show first 10
-                print(f"   {result['topic_number']}. {result['topic_name']}")
-            if len(pdf_results) > 10:
-                print(f"   ... and {len(pdf_results) - 10} more topics")
-            
-            # Create PDF writer for combined PDF
-            combined_pdf = PdfWriter()
-            page_number = 0
-            
-            # Add PDFs in the correct order
-            for result in pdf_results:
-                try:
-                    # Read the generated PDF
-                    with open(result['pdf_path'], 'rb') as pdf_file:
-                        pdf_reader = PdfReader(pdf_file)
-                        
-                        # Add bookmark for this topic (just topic name with number)
-                        bookmark_title = f"{result['topic_number']}. {result['topic_name']}"
-                        combined_pdf.add_outline_item(bookmark_title, page_number)
-                        
-                        # Add all pages from this PDF
-                        for page in pdf_reader.pages:
-                            combined_pdf.add_page(page)
-                            page_number += 1
-                    
-                    # Clean up temporary file
-                    os.remove(result['pdf_path'])
-                    
-                except Exception as e:
-                    print(f"⚠️  Error adding {result['topic_name']} to combined PDF: {e}")
-                    continue
-            
-            # Write combined PDF
-            with open(output_path, 'wb') as output_file:
-                combined_pdf.write(output_file)
-            
-            print(f"\n🎉 SUCCESS! Combined PDF created: {output_path}")
-            print(f"📄 Total pages: {page_number}")
-            print(f"📚 Total topics: {success_count}")
-            print(f"📁 File size: {os.path.getsize(output_path) / (1024*1024):.1f} MB")
+            if success_count > 0:
+                print(f"   📊 Avg per file: {total_processing_time/success_count:.1f}s")
             
         finally:
-            # Clean up browser sessions and temporary directory
             print("\n🧹 Cleaning up resources...")
             browser_manager.cleanup()
             shutil.rmtree(temp_dir, ignore_errors=True)
             print("✅ Cleanup completed!")
-        
-    except Exception as e:
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"Html2PdfConverter:create_combined_pdf_optimized: {lineNumber}: {e}")
-
-def create_combined_pdf(root_directory, output_path):
-    """
-    Scan HTML files and create a single PDF with bookmarks
-    """
-    try:
-        print(f"Scanning HTML files in: {root_directory}")
-        html_files = scan_html_files(root_directory)
-        
-        if not html_files:
-            print("No HTML files found!")
+    
+    def _create_combined_pdf(self, pdf_results, output_path):
+        """Create combined PDF with bookmarks from results"""
+        if not pdf_results:
+            print("❌ No files were successfully processed!")
             return
         
-        # Create temporary directory for individual PDFs
-        import tempfile
-        temp_dir = tempfile.mkdtemp()
+        success_count = len(pdf_results)
+        print(f"\n📖 Creating combined PDF with {success_count} topics...")
+        print("📑 Topic ordering:")
         
-        try:
-            # Create PDF writer for combined PDF
-            combined_pdf = PdfWriter()
-            
-            page_number = 0
-            
-            for i, html_file in enumerate(html_files, 1):
-                try:
-                    # Convert HTML to PDF
-                    temp_pdf_path = convert_html_to_pdf_page(html_file, temp_dir)
-                    
-                    # Read the generated PDF
-                    with open(temp_pdf_path, 'rb') as pdf_file:
-                        pdf_reader = PdfReader(pdf_file)
-                        
-                        # Extract topic name for bookmark
-                        topic_name = extract_topic_name(html_file)
-                        
-                        # Add bookmark for this topic
-                        if topic_name:
-                            combined_pdf.add_outline_item(f"{i}. {topic_name}", page_number)
-                        
-                        # Add all pages from this PDF
-                        for page in pdf_reader.pages:
-                            combined_pdf.add_page(page)
-                            page_number += 1
-                    
-                    # Clean up temporary file
-                    os.remove(temp_pdf_path)
-                    
-                except Exception as e:
-                    print(f"Error processing {html_file}: {e}")
-                    continue
-            
-            # Write combined PDF
-            with open(output_path, 'wb') as output_file:
-                combined_pdf.write(output_file)
-            
-            print(f"Combined PDF created successfully: {output_path}")
-            print(f"Total pages: {page_number}")
-            
-        finally:
-            # Clean up temporary directory
-            import shutil
-            shutil.rmtree(temp_dir, ignore_errors=True)
+        for i, result in enumerate(pdf_results[:10], 1):
+            print(f"   {result['topic_number']}. {result['topic_name']}")
+        if len(pdf_results) > 10:
+            print(f"   ... and {len(pdf_results) - 10} more topics")
         
-    except Exception as e:
-        lineNumber = e.__traceback__.tb_lineno
-        raise Exception(f"Html2PdfConverter:create_combined_pdf: {lineNumber}: {e}")
+        combined_pdf = PdfWriter()
+        page_number = 0
+        
+        for result in pdf_results:
+            try:
+                with open(result['pdf_path'], 'rb') as pdf_file:
+                    pdf_reader = PdfReader(pdf_file)
+                    
+                    bookmark_title = f"{result['topic_number']}. {result['topic_name']}"
+                    combined_pdf.add_outline_item(bookmark_title, page_number)
+                    
+                    for page in pdf_reader.pages:
+                        combined_pdf.add_page(page)
+                        page_number += 1
+                
+                os.remove(result['pdf_path'])
+                
+            except Exception as e:
+                print(f"⚠️  Error adding {result['topic_name']} to combined PDF: {e}")
+                continue
+        
+        with open(output_path, 'wb') as output_file:
+            combined_pdf.write(output_file)
+        
+        print(f"\n🎉 SUCCESS! Combined PDF created: {output_path}")
+        print(f"📄 Total pages: {page_number}")
+        print(f"📚 Total topics: {success_count}")
+        print(f"📁 File size: {os.path.getsize(output_path) / (1024*1024):.1f} MB")
+
 
 # Main execution code
 if __name__ == "__main__":
-    # Configuration - Update these paths for your environment
-    Config.USER_DATA_DIR = r"C:\Users\Anilabha\EducativeScraper\UserData1\ucDriver-True"
-    Config.CHROME_BINARY_PATH = r"D:\Development\educative.io_scraper\src\ChromeBinary\win\chrome-win64\chrome.exe"
+    # Initialize configuration
+    config = PDFConverterConfig()
     
-    # Example for single file
-    # file_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\002-setting up aws account\002-setting up aws account.html"
-    # output_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\002-setting up aws account\002-setting up aws account.pdf"
-    # createSinglePagePdf(file_path, output_path)
+    # Update configuration paths if needed
+    config.update_paths(
+        user_data_dir=r"C:\Users\Anilabha\EducativeScraper\UserData1\ucDriver-True",
+        chrome_binary_path=r"D:\Development\educative.io_scraper\src\ChromeBinary\win\chrome-win64\chrome.exe",
+        root_directory=r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete",
+        output_path=r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\aws certified solutions architect associate saa c03 exam prep-incomplete.pdf"
+    )
+
+    # Create converter instance
+    converter = Html2PdfConverter(config)
     
-    # Optimized scanning and combining all HTML files with parallel processing
-    root_directory = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete"
-    output_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\combined_course.pdf"
-    
-    print("🚀 Starting optimized PDF generation with intelligent resource allocation...")
+    print("🚀 Starting optimized PDF generation with OOP design...")
     print("✨ Features:")
+    print("  ✓ Object-oriented design with clean separation of concerns")
     print("  ✓ Dynamic browser session pool (1-10 browsers based on file count)")
     print("  ✓ Intelligent thread allocation")
     print("  ✓ Automatic topic number ordering")
     print("  ✓ Clean bookmark names (no 'Chapter X')")
-    print("  ✓ Configurable timeouts and settings")
+    print("  ✓ Configurable settings and paths")
+    print("  ✓ Live browser page capture support")
     print()
     
-    # Use intelligent threading - will automatically adjust based on file count
-    create_combined_pdf_optimized(root_directory, output_path)
+    # Examples of usage:
+    
+    # 1. Convert multiple files using config paths
+    converter.convert_multiple_files()
+    
+    # 2. Convert single file
+    # converter.convert_single_file(
+    #     file_path=r"D:\path\to\file.html",
+    #     output_path=r"D:\path\to\output.pdf"
+    # )
+    
+    # 3. Convert from live browser (example usage)
+    # from seleniumbase import Driver
+    # browser = Driver(undetectable=True, user_data_dir=config.user_data_dir)
+    # browser.get("https://example.com")  # Navigate to any page
+    # converter.convert_browser_page_to_pdf(browser, r"D:\path\to\live_capture.pdf")
+    # browser.quit()
