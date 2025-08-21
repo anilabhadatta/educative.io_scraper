@@ -3,6 +3,9 @@ import io
 import os
 import base64
 import time
+import tempfile
+import shutil
+import re
 from seleniumbase import Driver
 
 
@@ -201,10 +204,161 @@ def createSinglePagePdf(file_path, output_path, trim_whitespace=True):
         lineNumber = e.__traceback__.tb_lineno
         raise Exception(f"Html2PdfConverter:createSinglePagePdf: {lineNumber}: {e}")
 
+def scan_html_files(root_directory):
+    """
+    Scan all HTML files in folder tree, excluding specific folders
+    """
+    try:
+        html_files = []
+        excluded_folders = ['Codes_', 'Quiz', 'MarkDownQuiz']
+        
+        for root, dirs, files in os.walk(root_directory):
+            # Remove excluded directories from dirs list to skip them
+            dirs[:] = [d for d in dirs if not any(excluded in d for excluded in excluded_folders)]
+            
+            for file in files:
+                if file.endswith('.html'):
+                    full_path = os.path.join(root, file)
+                    html_files.append(full_path)
+        
+        # Sort files for consistent order
+        html_files.sort()
+        print(f"Found {len(html_files)} HTML files")
+        return html_files
+        
+    except Exception as e:
+        lineNumber = e.__traceback__.tb_lineno
+        raise Exception(f"Html2PdfConverter:scan_html_files: {lineNumber}: {e}")
+
+def extract_topic_name(html_file_path):
+    """
+    Extract topic name from HTML file path or filename
+    """
+    try:
+        # Get filename without extension
+        filename = os.path.splitext(os.path.basename(html_file_path))[0]
+        
+        # Remove numbers and dashes from beginning if present
+        import re
+        topic_name = re.sub(r'^[\d\-\s]+', '', filename)
+        
+        # Clean up the name
+        topic_name = topic_name.replace('-', ' ').replace('_', ' ')
+        topic_name = ' '.join(topic_name.split())  # Remove extra spaces
+        
+        return topic_name if topic_name else filename
+        
+    except Exception as e:
+        lineNumber = e.__traceback__.tb_lineno
+        raise Exception(f"Html2PdfConverter:extract_topic_name: {lineNumber}: {e}")
+
+def convert_html_to_pdf_page(html_file, temp_dir, trim_whitespace=True):
+    """
+    Convert single HTML file to PDF and return the PDF path
+    """
+    try:
+        base_name = os.path.splitext(os.path.basename(html_file))[0]
+        temp_pdf_path = os.path.join(temp_dir, f"{base_name}.pdf")
+        
+        print(f"Converting: {html_file}")
+        
+        # Use the working PDF generation function
+        pdf_writer = printPdfAsCdp(html_file)
+
+        # Optionally trim white space
+        if trim_whitespace:
+            # Convert to binary data for trimming
+            temp_output = io.BytesIO()
+            pdf_writer.write(temp_output)
+            temp_output.seek(0)
+            
+            # Trim white space
+            pdf_writer = trimPdfWhiteSpace(temp_output)
+        
+        # Write to temporary file
+        with open(temp_pdf_path, "wb") as f:
+            pdf_writer.write(f)
+        
+        return temp_pdf_path
+        
+    except Exception as e:
+        lineNumber = e.__traceback__.tb_lineno
+        raise Exception(f"Html2PdfConverter:convert_html_to_pdf_page: {lineNumber}: {e}")
+
+def create_combined_pdf(root_directory, output_path):
+    """
+    Scan HTML files and create a single PDF with bookmarks
+    """
+    try:
+        print(f"Scanning HTML files in: {root_directory}")
+        html_files = scan_html_files(root_directory)
+        
+        if not html_files:
+            print("No HTML files found!")
+            return
+        
+        # Create temporary directory for individual PDFs
+        import tempfile
+        temp_dir = tempfile.mkdtemp()
+        
+        try:
+            # Create PDF writer for combined PDF
+            combined_pdf = PdfWriter()
+            
+            page_number = 0
+            
+            for i, html_file in enumerate(html_files, 1):
+                try:
+                    # Convert HTML to PDF
+                    temp_pdf_path = convert_html_to_pdf_page(html_file, temp_dir)
+                    
+                    # Read the generated PDF
+                    with open(temp_pdf_path, 'rb') as pdf_file:
+                        pdf_reader = PdfReader(pdf_file)
+                        
+                        # Extract topic name for bookmark
+                        topic_name = extract_topic_name(html_file)
+                        
+                        # Add bookmark for this topic
+                        if topic_name:
+                            combined_pdf.add_outline_item(f"{i}. {topic_name}", page_number)
+                        
+                        # Add all pages from this PDF
+                        for page in pdf_reader.pages:
+                            combined_pdf.add_page(page)
+                            page_number += 1
+                    
+                    # Clean up temporary file
+                    os.remove(temp_pdf_path)
+                    
+                except Exception as e:
+                    print(f"Error processing {html_file}: {e}")
+                    continue
+            
+            # Write combined PDF
+            with open(output_path, 'wb') as output_file:
+                combined_pdf.write(output_file)
+            
+            print(f"Combined PDF created successfully: {output_path}")
+            print(f"Total pages: {page_number}")
+            
+        finally:
+            # Clean up temporary directory
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        
+    except Exception as e:
+        lineNumber = e.__traceback__.tb_lineno
+        raise Exception(f"Html2PdfConverter:create_combined_pdf: {lineNumber}: {e}")
+
 # Main execution code
 if __name__ == "__main__":
-    file_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\002-setting up aws account\002-setting up aws account.html"
-    output_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\002-setting up aws account\002-setting up aws account.pdf"
-
-    # Use the new single page creation function
-    createSinglePagePdf(file_path, output_path)
+    # Example for single file
+    # file_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\002-setting up aws account\002-setting up aws account.html"
+    # output_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\002-setting up aws account\002-setting up aws account.pdf"
+    # createSinglePagePdf(file_path, output_path)
+    
+    # Example for scanning and combining all HTML files
+    root_directory = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete"
+    output_path = r"D:\Development\Courses_main\aws certified solutions architect associate saa c03 exam prep-incomplete\combined_course.pdf"
+    create_combined_pdf(root_directory, output_path)
