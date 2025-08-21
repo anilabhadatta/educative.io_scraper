@@ -51,7 +51,7 @@ class EducativeScraper:
             elif self.cmdArgs.convertmultifiles:
                 config = PDFConverterConfig(self.configJson)
                 converter = Html2PdfConverter(config)
-                converter.convert_multiple_files()
+                converter.convert_multiple_courses()
             elif self.cmdArgs.convertsinglefiles:
                 config = PDFConverterConfig(self.configJson)
                 converter = Html2PdfConverter(config)

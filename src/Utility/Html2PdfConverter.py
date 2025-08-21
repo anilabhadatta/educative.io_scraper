@@ -25,7 +25,8 @@ class PDFConverterConfig:
         self.chrome_binary_path = constants.chromeBinaryPath
         self.chrome_driver_version = self.configJson['binaryversion']
         self.root_directory = self.configJson["saveDirectory"]
-        self.output_path = os.path.join(self.root_directory, os.path.basename(self.root_directory)+".pdf")
+        # Don't set a fixed output_path - it will be determined per course
+        self.output_path = None  # Will be set dynamically for each course
 
         # Processing settings
         self.max_browser_sessions = 10
@@ -300,28 +301,101 @@ class TopicExtractor:
         return topic_number, topic_name
 
 
-class FileScanner:
-    """Scan and filter HTML files"""
+class CourseScanner:
+    """Scan and organize courses and topics from folder structure"""
     
     def __init__(self, config):
         self.config = config
     
-    def scan_html_files(self, root_directory):
-        """Scan all HTML files in folder tree, excluding specific folders"""
-        html_files = []
+    def scan_courses_and_topics(self, root_directory):
+        """
+        Scan for courses and their topics
+        Returns: dict with course_name -> {'path': course_path, 'topics': [topic_paths]}
+        """
+        courses = {}
         
-        for root, dirs, files in os.walk(root_directory):
-            # Remove excluded directories
-            dirs[:] = [d for d in dirs if not any(excluded in d for excluded in self.config.excluded_folders)]
+        print(f"🔍 Scanning for courses in: {root_directory}")
+        
+        for item in os.listdir(root_directory):
+            item_path = os.path.join(root_directory, item)
             
-            for file in files:
-                if file.endswith('.html'):
-                    full_path = os.path.join(root, file)
-                    html_files.append(full_path)
+            if not os.path.isdir(item_path):
+                continue
+            
+            # Skip excluded folders
+            if any(excluded in item for excluded in self.config.excluded_folders):
+                print(f"⏭️  Skipping excluded folder: {item}")
+                continue
+            
+            if self._is_course_folder(item_path, item):
+                course_topics = self._scan_course_topics(item_path)
+                if course_topics:
+                    courses[item] = {
+                        'path': item_path,
+                        'topics': course_topics
+                    }
+                    print(f"📚 Found course: {item} ({len(course_topics)} topics)")
+                else:
+                    print(f"⚠️  Course folder found but no topics: {item}")
         
-        html_files.sort()
-        print(f"Found {len(html_files)} HTML files")
+        print(f"📊 Total courses found: {len(courses)}")
+        return courses
+    
+    def _is_course_folder(self, folder_path, folder_name):
+        """
+        Determine if a folder is a course folder
+        Course folder: NO dash in folder name
+        """
+        # Course folders do NOT contain dashes
+        return '-' not in folder_name
+    
+    def _is_topic_folder(self, folder_name):
+        """
+        Determine if a folder is a topic folder  
+        Topic folder: contains dash in folder name
+        """
+        # Topic folders contain dashes
+        return '-' in folder_name
+    
+    def _scan_course_topics(self, course_path):
+        """Scan for topic folders within a course and return HTML files"""
+        topic_html_files = []
+        
+        for item in os.listdir(course_path):
+            item_path = os.path.join(course_path, item)
+            
+            if not os.path.isdir(item_path):
+                continue
+            
+            # Skip excluded folders
+            if any(excluded in item for excluded in self.config.excluded_folders):
+                continue
+            
+            if self._is_topic_folder(item):
+                # Find HTML files in this topic folder
+                html_files = self._find_html_files_in_folder(item_path)
+                topic_html_files.extend(html_files)
+        
+        # Sort by topic number (extracted from folder name)
+        topic_html_files.sort(key=self._extract_topic_number_from_path)
+        return topic_html_files
+    
+    def _find_html_files_in_folder(self, folder_path):
+        """Find all HTML files in a specific folder"""
+        html_files = []
+        for file in os.listdir(folder_path):
+            if file.endswith('.html'):
+                full_path = os.path.join(folder_path, file)
+                html_files.append(full_path)
         return html_files
+    
+    def _extract_topic_number_from_path(self, file_path):
+        """Extract topic number from file path for sorting"""
+        import re
+        folder_name = os.path.basename(os.path.dirname(file_path))
+        # Extract number from beginning of folder name (works for "001-topic" format)
+        match = re.match(r'^(\d+)', folder_name)
+        return int(match.group(1)) if match else 999999
 
 
 class Html2PdfConverter:
@@ -330,7 +404,7 @@ class Html2PdfConverter:
     def __init__(self, config=None):
         self.config = config or PDFConverterConfig()
         self.pdf_generator = PDFGenerator(self.config)
-        self.file_scanner = FileScanner(self.config)
+        self.course_scanner = CourseScanner(self.config)
         self.topic_extractor = TopicExtractor()
     
     def convert_single_file(self, file_path, output_path):
@@ -398,14 +472,132 @@ class Html2PdfConverter:
             print(f"[{thread_name}] ❌ Failed: {base_name} ({elapsed_time:.1f}s) - {str(e)[:100]}")
             raise Exception(f"Html2PdfConverter:_convert_html_threaded: {e}")
     
+    def convert_multiple_courses(self, root_directory=None, max_threads=None):
+        """Convert multiple courses to separate PDFs"""
+        root_directory = root_directory or self.config.root_directory
+        
+        print(f"🎓 Starting multi-course PDF generation...")
+        
+        # Scan for courses and topics
+        courses = self.course_scanner.scan_courses_and_topics(root_directory)
+        
+        if not courses:
+            print("❌ No courses found!")
+            return
+        
+        print(f"\n📚 Found {len(courses)} courses to process:")
+        for course_name, course_info in courses.items():
+            topic_count = len(course_info['topics'])
+            print(f"   📖 {course_name}: {topic_count} topics")
+        
+        # Process each course separately
+        for course_name, course_info in courses.items():
+            print(f"\n🔄 Processing course: {course_name}")
+            
+            course_output_path = os.path.join(course_info['path'], f"{course_name}.pdf")
+            
+            # Convert this course using existing logic
+            self._convert_single_course(
+                course_name=course_name,
+                html_files=course_info['topics'],
+                output_path=course_output_path,
+                max_threads=max_threads
+            )
+        
+        print(f"\n🎉 All courses processed successfully!")
+    
+    def _convert_single_course(self, course_name, html_files, output_path, max_threads=None):
+        """Convert a single course's HTML files to PDF"""
+        total_files = len(html_files)
+        
+        if total_files == 0:
+            print(f"⚠️  No HTML files found for course: {course_name}")
+            return
+        
+        # Calculate optimal browser count and thread count
+        optimal_browsers = self.config.get_optimal_browser_count(total_files)
+        if max_threads is None:
+            max_threads = optimal_browsers
+        else:
+            max_threads = min(max_threads, optimal_browsers, total_files)
+        
+        print(f"📊 Course: {course_name}")
+        print(f"   📄 Files: {total_files}")
+        print(f"   📱 Browsers: {optimal_browsers}")
+        print(f"   🧵 Threads: {max_threads}")
+        
+        temp_dir = tempfile.mkdtemp()
+        browser_manager = BrowserSessionManager(self.config, optimal_browsers)
+        
+        try:
+            start_time = time.time()
+            pdf_results = []
+            failed_files = []
+            
+            with ThreadPoolExecutor(max_workers=max_threads) as executor:
+                future_to_file = {
+                    executor.submit(self._convert_html_threaded, html_file, temp_dir, browser_manager): html_file 
+                    for html_file in html_files
+                }
+                
+                for future in as_completed(future_to_file):
+                    html_file = future_to_file[future]
+                    try:
+                        result = future.result()
+                        pdf_results.append(result)
+                        completed = len(pdf_results) + len(failed_files)
+                        progress = (completed / total_files) * 100
+                        avg_time = sum(r['processing_time'] for r in pdf_results) / len(pdf_results)
+                        print(f"   📈 Progress: {completed}/{total_files} ({progress:.1f}%) | Avg: {avg_time:.1f}s/file")
+                    except Exception as e:
+                        failed_files.append(html_file)
+                        print(f"   ❌ Failed: {os.path.basename(html_file)} - {str(e)[:80]}...")
+            
+            # Sort results by topic number
+            pdf_results.sort(key=lambda x: x['topic_number'])
+            
+            self._create_combined_pdf(pdf_results, output_path)
+            
+            total_processing_time = time.time() - start_time
+            success_count = len(pdf_results)
+            fail_count = len(failed_files)
+            
+            print(f"   📋 Course Summary - {course_name}:")
+            print(f"      ✅ Successful: {success_count}/{total_files}")
+            print(f"      ❌ Failed: {fail_count}/{total_files}")
+            print(f"      ⏱️  Total time: {total_processing_time:.1f}s")
+            if success_count > 0:
+                print(f"      📊 Avg per file: {total_processing_time/success_count:.1f}s")
+            
+        finally:
+            browser_manager.cleanup()
+            shutil.rmtree(temp_dir, ignore_errors=True)
+    
     def convert_multiple_files(self, root_directory=None, output_path=None, max_threads=None):
-        """Convert multiple HTML files to single PDF with parallel processing"""
+        """Convert multiple HTML files to single PDF with parallel processing (Legacy method for single course)"""
         # Use config paths if not provided
         root_directory = root_directory or self.config.root_directory
-        output_path = output_path or self.config.output_path
+        
+        if not output_path:
+            # Generate output path based on directory name
+            dir_name = os.path.basename(root_directory.rstrip(os.sep))
+            output_path = os.path.join(root_directory, f"{dir_name}.pdf")
         
         print(f"📁 Scanning HTML files in: {root_directory}")
-        html_files = self.file_scanner.scan_html_files(root_directory)
+        
+        # Scan for HTML files using basic file walk
+        html_files = []
+        for root, dirs, files in os.walk(root_directory):
+            # Remove excluded directories
+            dirs[:] = [d for d in dirs if not any(excluded in d for excluded in self.config.excluded_folders)]
+            
+            for file in files:
+                if file.endswith('.html'):
+                    full_path = os.path.join(root, file)
+                    html_files.append(full_path)
+        
+        html_files.sort()
+        print(f"Found {len(html_files)} HTML files")
         
         if not html_files:
             print("❌ No HTML files found!")
@@ -520,3 +712,45 @@ class Html2PdfConverter:
         print(f"📄 Total pages: {page_number}")
         print(f"📚 Total topics: {success_count}")
         print(f"📁 File size: {os.path.getsize(output_path) / (1024*1024):.1f} MB")
+
+
+# Example usage
+if __name__ == "__main__":
+    # Example configuration for testing
+    config_json = {
+        "userDataDir": "Users\\Anilabha\\EducativeScraper\\UserData1",
+        "ucdriver": "True",
+        "chromeArgs": " --allow-running-insecure-content, --ignore-certificate-errors-spki-list,--ignore-ssl-errors",
+        "binaryversion": 116,
+        "saveDirectory": "D:\\Development\\Courses_main"  # Root directory containing multiple courses
+    }
+    
+    # Initialize configuration and converter
+    config = PDFConverterConfig(config_json)
+    converter = Html2PdfConverter(config)
+    
+    print("🚀 Multi-Course PDF Generator")
+    print("✨ Features:")
+    print("  ✓ Auto-detect courses (folders with no dash)")
+    print("  ✓ Auto-detect topics (folders with dash)")
+    print("  ✓ Generate separate PDF for each course")
+    print("  ✓ Parallel processing with intelligent browser allocation")
+    print("  ✓ Proper topic ordering and bookmarks")
+    print()
+    
+    # Example usage scenarios:
+    
+    # 1. Convert all courses in root directory (generates separate PDFs for each course)
+    converter.convert_multiple_courses()
+    
+    # 2. Convert single file
+    # converter.convert_single_file(
+    #     file_path=r"D:\path\to\topic.html",
+    #     output_path=r"D:\path\to\output.pdf"
+    # )
+    
+    # 3. Convert single course to one PDF (legacy method)
+    # converter.convert_multiple_files(
+    #     root_directory=r"D:\path\to\single\course",
+    #     output_path=r"D:\path\to\course.pdf"
+    # )
