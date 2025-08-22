@@ -265,7 +265,7 @@ class PDFGenerator:
         # Inject smart markers and get position data
         marker_result = browser.execute_script("""
             // Find the Next button
-            var nextButton = document.querySelector('button[name="next"]');
+            var nextButton = document.querySelector('button[name="next"]') || document.querySelector('button[aria-label="Next button"]');
             if (nextButton) {
                 // Create a visible but very small marker for PDF detection
                 var markerDiv = document.createElement('div');
@@ -473,6 +473,10 @@ class PDFGenerator:
         try:
             if not self.config.smart_trimming:
                 print(f"🔄 Smart trimming disabled, using fallback trim ({self.config.fallback_trim_percentage*100}%)")
+                # Mark as fallback usage
+                if not hasattr(self, 'fallback_files'):
+                    self.fallback_files = []
+                self.fallback_files.append("Smart trimming disabled")
                 return SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
             
             print(f"🎯 Applying smart trimming...")
@@ -485,11 +489,19 @@ class PDFGenerator:
                             
             # Method 2: Fallback to percentage-based trimming
             print(f"🔄 Using fallback trimming ({self.config.fallback_trim_percentage*100}% from bottom)")
+            # Mark as fallback usage
+            if not hasattr(self, 'fallback_files'):
+                self.fallback_files = []
+            self.fallback_files.append("Marker not found")
             return SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
             
         except Exception as e:
             print(f"⚠️ Error in smart trimming: {e}")
             print(f"🔄 Falling back to original PDF")
+            # Mark as fallback usage
+            if not hasattr(self, 'fallback_files'):
+                self.fallback_files = []
+            self.fallback_files.append(f"Error: {str(e)[:50]}")
             return pdf_bytes
 
 
@@ -660,6 +672,9 @@ class Html2PdfConverter:
             try:
                 print(f"[{thread_name}] 🔄 Starting: {base_name}")
                 
+                # Reset fallback tracking for this file
+                self.pdf_generator.fallback_files = []
+                
                 # Generate PDF using shared browser
                 pdf_writer = self.pdf_generator.generate_single_pdf(html_file, browser)
                 
@@ -668,15 +683,24 @@ class Html2PdfConverter:
                 
                 topic_number, topic_name = self.topic_extractor.extract_topic_name_and_number(html_file)
                 
+                # Check if fallback was used
+                used_fallback = len(getattr(self.pdf_generator, 'fallback_files', [])) > 0
+                fallback_reason = getattr(self.pdf_generator, 'fallback_files', [None])[0] if used_fallback else None
+                
                 elapsed_time = time.time() - start_time
-                print(f"[{thread_name}] ✅ Completed: {topic_number}. {topic_name} ({elapsed_time:.1f}s)")
+                status_icon = "🔄" if used_fallback else "✅"
+                print(f"[{thread_name}] {status_icon} Completed: {topic_number}. {topic_name} ({elapsed_time:.1f}s)")
+                if used_fallback:
+                    print(f"[{thread_name}] 📝 Fallback used: {fallback_reason}")
                 
                 return {
                     'topic_number': topic_number,
                     'topic_name': topic_name,
                     'pdf_path': temp_pdf_path,
                     'html_file': html_file,
-                    'processing_time': elapsed_time
+                    'processing_time': elapsed_time,
+                    'used_fallback': used_fallback,
+                    'fallback_reason': fallback_reason
                 }
                 
             finally:
@@ -726,21 +750,49 @@ class Html2PdfConverter:
         
         try:
             # Process each course using the shared browser pool
+            total_fallback_files = 0
+            total_successful_files = 0
+            all_fallback_files = []
+            
             for course_name, course_info in courses.items():
                 print(f"\n🔄 Processing course: {course_name}")
                 
                 course_output_path = os.path.join(course_info['path'], f"{course_name}.pdf")
                 
                 # Convert this course using shared browser pool
-                self._convert_single_course(
+                course_results = self._convert_single_course(
                     course_name=course_name,
                     html_files=course_info['topics'],
                     output_path=course_output_path,
                     max_threads=max_threads,
                     browser_manager=browser_manager
                 )
+                
+                # Track fallback usage globally
+                if course_results:
+                    course_fallback_count = sum(1 for result in course_results if result.get('used_fallback', False))
+                    total_fallback_files += course_fallback_count
+                    total_successful_files += len(course_results)
+                    
+                    # Collect fallback files for global summary
+                    for result in course_results:
+                        if result.get('used_fallback', False):
+                            all_fallback_files.append({
+                                'course': course_name,
+                                'topic': f"{result['topic_number']}. {result['topic_name']}",
+                                'reason': result.get('fallback_reason', 'Unknown')
+                            })
             
             print(f"\n🎉 All courses processed successfully!")
+            print(f"📊 Global Statistics:")
+            print(f"   ✅ Total successful files: {total_successful_files}")
+            print(f"   🎯 Smart trimming used: {total_successful_files - total_fallback_files}")
+            print(f"   🔄 Fallback strategy used: {total_fallback_files}")
+            
+            if total_fallback_files > 0:
+                print(f"\n📝 All files that used fallback strategy:")
+                for fb_file in all_fallback_files:
+                    print(f"   🔄 [{fb_file['course']}] {fb_file['topic']} - {fb_file['reason']}")
             
         finally:
             print("\n🧹 Cleaning up shared browser pool...")
@@ -810,12 +862,29 @@ class Html2PdfConverter:
             success_count = len(pdf_results)
             fail_count = len(failed_files)
             
+            # Count fallback usage
+            fallback_count = sum(1 for result in pdf_results if result.get('used_fallback', False))
+            smart_trimming_count = success_count - fallback_count
+            
             print(f"   📋 Course Summary - {course_name}:")
             print(f"      ✅ Successful: {success_count}/{total_files}")
             print(f"      ❌ Failed: {fail_count}/{total_files}")
+            print(f"      🎯 Smart trimming: {smart_trimming_count}/{success_count}")
+            print(f"      🔄 Fallback used: {fallback_count}/{success_count}")
             print(f"      ⏱️  Total time: {total_processing_time:.1f}s")
             if success_count > 0:
                 print(f"      📊 Avg per file: {total_processing_time/success_count:.1f}s")
+            
+            # List files that used fallback
+            if fallback_count > 0:
+                print(f"\n   📝 Files using fallback strategy:")
+                for result in pdf_results:
+                    if result.get('used_fallback', False):
+                        reason = result.get('fallback_reason', 'Unknown')
+                        print(f"      🔄 {result['topic_number']}. {result['topic_name']} - {reason}")
+                print()  # Extra line for spacing
+            
+            return pdf_results  # Return results for global tracking
             
         finally:
             # Only cleanup browser manager if we created it locally
