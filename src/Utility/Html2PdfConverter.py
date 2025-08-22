@@ -11,7 +11,7 @@ import queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from seleniumbase import Driver
 from src.Common.Constants import constants
-
+import fitz
 
 class PDFConverterConfig:
     """Configuration class for PDF converter settings"""
@@ -39,6 +39,8 @@ class PDFConverterConfig:
         self.pdf_paper_width = 8.27
         self.min_paper_height = 8.5
         self.trim_whitespace = True
+        self.smart_trimming = True  # Enable smart marker-based trimming
+        self.fallback_trim_percentage = 0.15  # Fallback trim percentage
         
         # Folder exclusions
         self.excluded_folders = ['Codes_', 'Quiz', 'MarkDownQuiz']
@@ -47,6 +49,141 @@ class PDFConverterConfig:
         """Calculate optimal number of browsers based on file count"""
         optimal = min(file_count, self.max_browser_sessions)
         return max(optimal, self.min_browser_sessions)
+
+
+class SmartTrimmingUtility:
+    """Advanced PDF trimming utility with marker detection"""
+    
+
+    @staticmethod
+    def extract_text_with_positions(pdf_bytes):
+        """Extract text with positions from PDF to find trim marker"""
+
+        try:
+            pdf_document = fitz.open("pdf", pdf_bytes)
+            page = pdf_document[0]  # First page
+            
+            # Search patterns in order of preference
+            search_patterns = [
+                "EDUCATIVE_TRIM_POINT_MARKER_HERE",
+                "••TRIM••POINT••HERE••"
+            ]
+            
+            for pattern in search_patterns:
+                print(f"Searching for pattern: '{pattern}'")
+                text_instances = page.search_for(pattern)
+                
+                if text_instances:
+                    # Get the position of the marker
+                    marker_rect = text_instances[0]
+                    marker_y = marker_rect.y0  # Top of the marker
+                    print(f"✅ Found trim marker '{pattern}' at Y position: {marker_y}")
+                    return marker_y
+            
+            # If no specific markers found, try to find "Next" button text
+            print("No trim markers found, searching for 'Next' button...")
+            next_instances = page.search_for("Next")
+            if next_instances:
+                for rect in next_instances:
+                    # Look for Next that might be a button (reasonable size)
+                    if rect.width > 20 and rect.height > 10:  # Button-like dimensions
+                        marker_y = rect.y0
+                        print(f"🔍 Found 'Next' button text at Y position: {marker_y}")
+                        return marker_y
+            
+            print("❌ No trim markers or Next button found in PDF")
+            return None
+                
+        except Exception as e:
+            print(f"Error extracting text positions: {e}")
+            return None
+        finally:
+            if 'pdf_document' in locals():
+                pdf_document.close()
+
+    @staticmethod
+    def trim_pdf_at_marker(pdf_bytes, marker_y_position=None):
+        """Trim PDF content below the marker position"""
+        if not marker_y_position:
+            return pdf_bytes
+            
+        try:
+            pdf_document = fitz.open("pdf", pdf_bytes)
+            page = pdf_document[0]
+            
+            # Get current page dimensions
+            page_rect = page.rect
+            original_height = page_rect.height
+            
+            print(f"Original page height: {original_height}, Trim at: {marker_y_position}")
+            
+            # Create new rectangle that ends at marker position (with some padding)
+            trim_padding = 20  # 20 points padding below marker
+            new_height = marker_y_position + trim_padding
+            
+            if new_height < original_height:
+                # Create new page with trimmed content
+                new_rect = fitz.Rect(0, 0, page_rect.width, new_height)
+                
+                # Create new PDF with trimmed page
+                new_pdf = fitz.open()
+                new_page = new_pdf.new_page(width=page_rect.width, height=new_height)
+                
+                # Copy content from original page to new page within the crop area
+                new_page.show_pdf_page(new_rect, pdf_document, 0, clip=new_rect)
+                
+                # Save trimmed PDF to bytes
+                trimmed_bytes = new_pdf.tobytes()
+                new_pdf.close()
+                
+                print(f"✂️ PDF trimmed from {original_height:.1f} to {new_height:.1f} points")
+                return trimmed_bytes
+            else:
+                print("Marker position is beyond page height, no trimming needed")
+                return pdf_bytes
+                
+        except Exception as e:
+            print(f"Error trimming PDF: {e}")
+            return pdf_bytes
+        finally:
+            if 'pdf_document' in locals():
+                pdf_document.close()
+
+    @staticmethod
+    def fallback_trim_pdf(pdf_bytes, trim_percentage=0.15):
+        """Fallback trimming method using pypdf when PyMuPDF is not available"""
+        try:
+            print(f"🔄 Applying fallback trim ({trim_percentage*100}% from bottom)")
+            
+            pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+            outputPdf = PdfWriter()
+
+            for page in pdf_reader.pages:
+                # Get page dimensions
+                media_box = page.mediabox
+                page_width = float(media_box.width)
+                page_height = float(media_box.height)
+                
+                 # Calculate how much to trim from bottom
+                trim_amount = page_height * trim_percentage
+                new_bottom = trim_amount  # Move bottom edge up by trim_amount
+                
+                # Update mediabox to remove bottom content
+                # PDF coordinates: (0,0) is bottom-left, so we raise the bottom edge
+                page.mediabox.lower_left = (0, new_bottom)
+                page.mediabox.upper_right = (page_width, page_height)
+                
+                outputPdf.add_page(page)
+
+            print(f"✂️ Trimmed {trim_percentage*100}% from bottom of PDF")
+
+            output = io.BytesIO()
+            outputPdf.write(output)
+            return output.getvalue()
+                
+        except Exception as e:
+            print(f"❌ Error in fallback trim: {e}")
+            return pdf_bytes
 
 
 class BrowserSessionManager:
@@ -122,27 +259,83 @@ class PDFGenerator:
         }
     
     def _calculate_paper_height_from_browser(self, browser):
-        """Calculate optimal paper height from currently loaded browser page"""
+        """Calculate optimal paper height from currently loaded browser page with smart markers"""
         time.sleep(self.config.page_load_timeout)
         
-        browser_info = browser.execute_script("""
-            return {
-                contentHeight: (function() {
-                    var nextButton = document.querySelector('button[name="next"]');
-                    if (nextButton) {
-                        var rect = nextButton.getBoundingClientRect();
-                        var buttonY = rect.bottom + window.pageYOffset;
-                        console.log('Next button found at Y:', buttonY);
-                        return buttonY; // Small buffer
-                    } else {
-                        console.log('Next button not found, using body height');
-                        return document.body.scrollHeight;
+        # Inject smart markers and get position data
+        marker_result = browser.execute_script("""
+            // Find the Next button
+            var nextButton = document.querySelector('button[name="next"]');
+            if (nextButton) {
+                // Create a visible but very small marker for PDF detection
+                var markerDiv = document.createElement('div');
+                markerDiv.id = 'EDUCATIVE_PDF_TRIM_MARKER';
+                markerDiv.style.cssText = `
+                    position: relative;
+                    width: 100%;
+                    height: 1px;
+                    background: transparent;
+                    font-size: 1px;
+                    line-height: 1px;
+                    color: black;
+                    opacity: 0.01;
+                    overflow: visible;
+                    z-index: 1000;
+                    margin: 0;
+                    padding: 0;
+                `;
+                
+                // Add text content that will be rendered in PDF
+                markerDiv.innerHTML = 'EDUCATIVE_TRIM_POINT_MARKER_HERE';
+                
+                // Create a more visible backup marker
+                var backupMarker = document.createElement('div');
+                backupMarker.style.cssText = `
+                    font-size: 0.5px;
+                    color: rgba(0,0,0,0.01);
+                    height: 0.5px;
+                    overflow: visible;
+                    white-space: nowrap;
+                `;
+                backupMarker.textContent = '••TRIM••POINT••HERE••';
+                
+                // Insert both markers right before the Next button
+                nextButton.parentNode.insertBefore(markerDiv, nextButton);
+                nextButton.parentNode.insertBefore(backupMarker, nextButton);
+                
+                // Get precise measurements
+                var rect = nextButton.getBoundingClientRect();
+                var buttonY = rect.top + window.pageYOffset;
+                var windowHeight = window.innerHeight;
+                var documentHeight = document.body.scrollHeight;
+                
+                console.log('Next button found at Y:', buttonY, 'Enhanced markers injected');
+                
+                return {
+                    buttonY: buttonY,
+                    windowHeight: windowHeight,
+                    documentHeight: documentHeight,
+                    buttonRect: {
+                        top: rect.top,
+                        bottom: rect.bottom,
+                        left: rect.left,
+                        right: rect.right,
+                        width: rect.width,
+                        height: rect.height
                     }
-                })()
-            };
+                };
+            } else {
+                console.log('Next button not found, using body height');
+                return {
+                    buttonY: document.body.scrollHeight,
+                    windowHeight: window.innerHeight,
+                    documentHeight: document.body.scrollHeight,
+                    buttonRect: null
+                };
+            }
         """)
         
-        content_height = browser_info['contentHeight']
+        content_height = marker_result['buttonY'] if marker_result else browser.execute_script("return document.body.scrollHeight")
         paper_height_inches = max(content_height / 96, self.config.min_paper_height)
         
         return paper_height_inches
@@ -163,7 +356,7 @@ class PDFGenerator:
         pdf_binary = base64.b64decode(pageData['data'])
         pdfBinaryData = io.BytesIO(pdf_binary)
         
-        return self._merge_pdf_pages(pdfBinaryData)
+        return self._merge_pdf_pages(pdfBinaryData, browser)
     
     def generate_single_pdf(self, html_file, browser=None):
         """Generate PDF from single HTML file"""
@@ -191,91 +384,113 @@ class PDFGenerator:
             pdf_binary = base64.b64decode(pageData['data'])
             pdfBinaryData = io.BytesIO(pdf_binary)
                 
-            pdf_output = self._merge_pdf_pages(pdfBinaryData)
-            if self.config.trim_whitespace:
-                temp_output = io.BytesIO()
-                pdf_output.write(temp_output)
-                temp_output.seek(0)
-                
-                # Trim white space
-                pdf_output = self.trimPdfWhiteSpace(temp_output)
+            pdf_output = self._merge_pdf_pages(pdfBinaryData, browser)
             return pdf_output
             
         finally:
             if should_quit_browser and browser:
                 browser.quit()
-    
-    def trimPdfWhiteSpace(self, pdfBinaryData):
-        """
-        Trim excessive white space from the bottom of PDF pages
-        """
-        try:
-            reader = PdfReader(pdfBinaryData)
-            outputPdf = PdfWriter()
-            
-            for page in reader.pages:
-                # Get the media box (page dimensions)
-                media_box = page.mediabox
-                page_width = float(media_box.width)
-                page_height = float(media_box.height)
-                
-                # For single page continuous PDFs, we want to trim bottom whitespace
-                # This is a simple approach - you might need to adjust based on your content
-                
-                # Reduce height by 10% to remove bottom white space (adjust as needed)
-                # You can make this more sophisticated by analyzing content
-                trimmed_height = page_height * 0.9  # Remove 10% from bottom
-                
-                # Create new media box with trimmed height
-                page.mediabox.lower_left = (0, page_height - trimmed_height)
-                page.mediabox.upper_right = (page_width, page_height)
-                
-                outputPdf.add_page(page)
-            
-            print(f"Trimmed white space from PDF")
-            return outputPdf
-            
-        except Exception as e:
-            lineNumber = e.__traceback__.tb_lineno
-            raise Exception(f"Html2PdfConverter:trimPdfWhiteSpace: {lineNumber}: {e}")
-    
-    def _merge_pdf_pages(self, pdf_binary_data):
-        """Merge all PDF pages into a single continuous page"""
+        
+    def _merge_pdf_pages(self, pdf_binary_data, browser=None):
+        """Merge all PDF pages into a single continuous page with smart trimming"""
         reader = PdfReader(pdf_binary_data)
         output_pdf = PdfWriter()
         
         if len(reader.pages) == 0:
             raise Exception("No pages found in PDF")
         
+        # If single page, apply smart trimming if enabled
         if len(reader.pages) == 1:
-            output_pdf.add_page(reader.pages[0])
-            return output_pdf
-        
-        # Calculate total height needed for all pages
-        total_height = 0
-        max_width = 0
-        
-        for page in reader.pages:
-            page_box = page.mediabox
-            total_height += float(page_box.height)
-            max_width = max(max_width, float(page_box.width))
-        
-        # Create a new page with the combined dimensions
-        combined_page = PageObject.create_blank_page(width=max_width, height=total_height)
-        
-        # Merge all pages into the single page
-        current_y = total_height
-        for page in reader.pages:
-            page_height = float(page.mediabox.height)
-            current_y -= page_height
+            page = reader.pages[0]
             
-            transformation = Transformation().translate(0, current_y)
-            page.add_transformation(transformation)
-            combined_page.merge_page(page)
+            if self.config.trim_whitespace:
+                # Get PDF bytes for trimming
+                temp_output = io.BytesIO()
+                temp_writer = PdfWriter()
+                temp_writer.add_page(page)
+                temp_writer.write(temp_output)
+                pdf_bytes = temp_output.getvalue()
+                
+                # Apply smart trimming
+                trimmed_pdf_bytes = self._apply_smart_trimming(pdf_bytes, browser)
+                
+                # Create a PdfWriter from trimmed bytes and return it
+                trimmed_reader = PdfReader(io.BytesIO(trimmed_pdf_bytes))
+                final_output = PdfWriter()
+                final_output.add_page(trimmed_reader.pages[0])
+                return final_output
+            else:
+                # No trimming, just add the page
+                output_pdf.add_page(page)
+                return output_pdf
         
-        output_pdf.add_page(combined_page)
-        print(f"Merged {len(reader.pages)} pages into single continuous page")
+        # For multiple pages, merge first then trim
+        if len(reader.pages) > 1:
+            # Calculate total height needed for all pages
+            total_height = 0
+            max_width = 0
+            
+            for page in reader.pages:
+                page_box = page.mediabox
+                total_height += float(page_box.height)
+                max_width = max(max_width, float(page_box.width))
+            
+            # Create a new page with the combined dimensions
+            combined_page = PageObject.create_blank_page(width=max_width, height=total_height)
+            
+            # Merge all pages into the single page
+            current_y = total_height
+            for page in reader.pages:
+                page_height = float(page.mediabox.height)
+                current_y -= page_height
+                
+                transformation = Transformation().translate(0, current_y)
+                page.add_transformation(transformation)
+                combined_page.merge_page(page)
+            
+            output_pdf.add_page(combined_page)
+            print(f"Merged {len(reader.pages)} pages into single continuous page")
+            
+            # Apply smart trimming to merged page if enabled
+            if self.config.trim_whitespace:
+                temp_output = io.BytesIO()
+                output_pdf.write(temp_output)
+                pdf_bytes = temp_output.getvalue()
+                
+                # Apply smart trimming
+                trimmed_pdf_bytes = self._apply_smart_trimming(pdf_bytes, browser)
+                
+                # Read the trimmed PDF and return
+                trimmed_reader = PdfReader(io.BytesIO(trimmed_pdf_bytes))
+                final_output = PdfWriter()
+                final_output.add_page(trimmed_reader.pages[0])
+                return final_output
+        
         return output_pdf
+    
+    def _apply_smart_trimming(self, pdf_bytes, browser=None):
+        """Apply smart trimming with fallback methods"""
+        try:
+            if not self.config.smart_trimming:
+                print(f"🔄 Smart trimming disabled, using fallback trim ({self.config.fallback_trim_percentage*100}%)")
+                return SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
+            
+            print(f"🎯 Applying smart trimming...")
+            
+            marker_y_position = SmartTrimmingUtility.extract_text_with_positions(pdf_bytes)
+            if marker_y_position:
+                print(f"📍 Using text marker position: {marker_y_position}")
+                return SmartTrimmingUtility.trim_pdf_at_marker(pdf_bytes, marker_y_position)
+
+                            
+            # Method 2: Fallback to percentage-based trimming
+            print(f"🔄 Using fallback trimming ({self.config.fallback_trim_percentage*100}% from bottom)")
+            return SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
+            
+        except Exception as e:
+            print(f"⚠️ Error in smart trimming: {e}")
+            print(f"🔄 Falling back to original PDF")
+            return pdf_bytes
 
 
 class TopicExtractor:

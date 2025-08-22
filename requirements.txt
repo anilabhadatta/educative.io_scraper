@@ -13,3 +13,4 @@ beautifulsoup4==4.12.3
 psutil==5.9.5
 selenium==4.18.1
 cloudscraper==1.2.71
+PyMuPDF==1.23.0
