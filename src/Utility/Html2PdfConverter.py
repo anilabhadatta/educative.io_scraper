@@ -264,9 +264,15 @@ class PDFGenerator:
             headerElements.forEach(function(header) {
                 header.remove();
             });
+                                               
+            var footerElements = document.querySelectorAll('div[class*="PALBanner_container"]');
+            footerElements.forEach(function(footer) {
+                footer.remove();
+            });
             
             console.log('Removed', navElements.length, 'nav elements and', headerElements.length, 'header elements');
-            
+            console.log('Removed', footerElements.length, 'footer elements');
+
             // Find the Next button
             var nextButton = document.querySelector('button[name="next"]') || document.querySelector('button[aria-label="Next button"]')  || document.querySelector('button[aria-label="Previous button"]') || document.querySelector('button[aria-label="Skip for now button"]');
             if (!nextButton) {
