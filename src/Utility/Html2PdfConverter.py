@@ -301,22 +301,23 @@ class PDFGenerator:
                 }
             }
             if (nextButton) {
-                // Create a visible but very small marker for PDF detection
+                // Create a highly visible marker for PDF detection
                 var markerDiv = document.createElement('div');
                 markerDiv.id = 'EDUCATIVE_PDF_TRIM_MARKER';
                 markerDiv.style.cssText = `
                     position: relative;
                     width: 100%;
-                    height: 1px;
-                    background: transparent;
-                    font-size: 1px;
-                    line-height: 1px;
+                    height: 15px;
+                    background: white;
+                    font-size: 14px;
+                    line-height: 15px;
                     color: black;
-                    opacity: 0.01;
-                    overflow: visible;
-                    z-index: 1000;
-                    margin: 0;
-                    padding: 0;
+                    opacity: 1;
+                    z-index: 9999;
+                    margin: 5px 0;
+                    padding: 2px;
+                    border: 2px solid black;
+                    display: block;
                 `;
                 
                 // Add text content that will be rendered in PDF
@@ -325,11 +326,18 @@ class PDFGenerator:
                 // Create a more visible backup marker
                 var backupMarker = document.createElement('div');
                 backupMarker.style.cssText = `
-                    font-size: 0.5px;
-                    color: rgba(0,0,0,0.01);
-                    height: 0.5px;
-                    overflow: visible;
-                    white-space: nowrap;
+                    position: relative;
+                    width: 100%;
+                    height: 12px;
+                    background: white;
+                    font-size: 12px;
+                    line-height: 12px;
+                    color: black;
+                    opacity: 1;
+                    z-index: 9998;
+                    margin: 3px 0;
+                    padding: 2px;
+                    display: block;
                 `;
                 backupMarker.textContent = '••TRIM••POINT••HERE••';
                 
@@ -383,31 +391,37 @@ class PDFGenerator:
                             markerDiv.style.cssText = `
                                 position: relative;
                                 width: 100%;
-                                height: 1px;
-                                background: transparent;
-                                font-size: 1px;
-                                line-height: 1px;
+                                height: 15px;
+                                background: white;
+                                font-size: 14px;
+                                line-height: 15px;
                                 color: black;
-                                opacity: 0.01;
-                                overflow: visible;
-                                z-index: 1000;
-                                margin: 0;
-                                padding: 0;
+                                opacity: 1;
+                                z-index: 9999;
+                                margin: 5px 0;
+                                padding: 2px;
+                                border: 2px solid black;
+                                display: block;
                             `;
                             markerDiv.innerHTML = 'EDUCATIVE_TRIM_POINT_MARKER_HERE';
                             
                             // Create backup marker
                             var backupMarker = document.createElement('div');
                             backupMarker.style.cssText = `
-                                font-size: 0.5px;
-                                color: rgba(0,0,0,0.01);
-                                height: 0.5px;
-                                overflow: visible;
-                                white-space: nowrap;
+                                position: relative;
+                                width: 100%;
+                                height: 12px;
+                                background: white;
+                                font-size: 12px;
+                                line-height: 12px;
+                                color: black;
+                                opacity: 1;
+                                z-index: 9998;
+                                margin: 3px 0;
+                                padding: 2px;
+                                display: block;
                             `;
-                            backupMarker.textContent = '••TRIM••POINT••HERE••';
-                            
-                            // Insert markers after the last image
+                            backupMarker.textContent = '••TRIM••POINT••HERE••';                            // Insert markers after the last image
                             lastImage.parentNode.insertBefore(markerDiv, lastImage.nextSibling);
                             lastImage.parentNode.insertBefore(backupMarker, lastImage.nextSibling);
                             
@@ -449,6 +463,58 @@ class PDFGenerator:
     def _calculate_paper_height(self, browser, html_file):
         """Calculate optimal paper height based on content"""
         browser.get(f"file:///{html_file}")
+        
+        # Pre-inject highly visible markers before calculating height
+        browser.execute_script("""
+            // Make markers more visible for PDF rendering
+            var existingMarkers = document.querySelectorAll('#EDUCATIVE_PDF_TRIM_MARKER');
+            existingMarkers.forEach(function(marker) {
+                marker.style.cssText = `
+                    position: relative;
+                    width: 100%;
+                    height: 15px;
+                    background: white;
+                    font-size: 14px;
+                    line-height: 15px;
+                    color: black;
+                    opacity: 1;
+                    z-index: 9999;
+                    margin: 5px 0;
+                    padding: 2px;
+                    border: 2px solid black;
+                    display: block;
+                `;
+            });
+            
+            var existingBackups = document.evaluate(
+                "//div[contains(text(), '••TRIM••POINT••HERE••')]",
+                document,
+                null,
+                XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                null
+            );
+            
+            for (var i = 0; i < existingBackups.snapshotLength; i++) {
+                var backup = existingBackups.snapshotItem(i);
+                backup.style.cssText = `
+                    position: relative;
+                    width: 100%;
+                    height: 12px;
+                    background: white;
+                    font-size: 12px;
+                    line-height: 12px;
+                    color: black;
+                    opacity: 1;
+                    z-index: 9998;
+                    margin: 3px 0;
+                    padding: 2px;
+                    display: block;
+                `;
+            }
+            
+            console.log('Enhanced marker visibility for PDF rendering');
+        """)
+        
         return self._calculate_paper_height_from_browser(browser)
     
     def generate_pdf_from_browser(self, browser):
