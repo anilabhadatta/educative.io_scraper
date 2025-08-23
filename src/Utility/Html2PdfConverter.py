@@ -273,8 +273,8 @@ class PDFGenerator:
             console.log('Removed', navElements.length, 'nav elements and', headerElements.length, 'header elements');
             console.log('Removed', footerElements.length, 'footer elements');
 
-            // Find the Next button
-            var nextButton = document.querySelector('button[name="next"]') || document.querySelector('button[aria-label="Next button"]')  || document.querySelector('button[aria-label="Previous button"]') || document.querySelector('button[aria-label="Skip for now button"]');
+            // Find the Next button using simplified selector
+            var nextButton = document.querySelector('button[name="next"], button[aria-label="Next button"], button[aria-label="Previous button"], button[aria-label="Skip for now button"]');
             if (!nextButton) {
                 var xpathQueries = [
                     "//button/span[contains(text(), 'Mark As Completed')]",
@@ -359,6 +359,78 @@ class PDFGenerator:
                     }
                 };
             } else {
+                // Check if this is simple HTML using XPath
+                try {
+                    var simpleHtmlResult = document.evaluate(
+                        "//body[count(div)=1 and .//img]",
+                        document,
+                        null,
+                        XPathResult.FIRST_ORDERED_NODE_TYPE,
+                        null
+                    );
+                    
+                    if (simpleHtmlResult.singleNodeValue) {
+                        console.log('Simple HTML detected, adding marker after image');
+                        
+                        // Find the image tag and add markers after it
+                        var allImages = document.querySelectorAll('img');
+                        if (allImages.length > 0) {
+                            var lastImage = allImages[allImages.length - 1];
+                
+                            // Create main marker
+                            var markerDiv = document.createElement('div');
+                            markerDiv.id = 'EDUCATIVE_PDF_TRIM_MARKER';
+                            markerDiv.style.cssText = `
+                                position: relative;
+                                width: 100%;
+                                height: 1px;
+                                background: transparent;
+                                font-size: 1px;
+                                line-height: 1px;
+                                color: black;
+                                opacity: 0.01;
+                                overflow: visible;
+                                z-index: 1000;
+                                margin: 0;
+                                padding: 0;
+                            `;
+                            markerDiv.innerHTML = 'EDUCATIVE_TRIM_POINT_MARKER_HERE';
+                            
+                            // Create backup marker
+                            var backupMarker = document.createElement('div');
+                            backupMarker.style.cssText = `
+                                font-size: 0.5px;
+                                color: rgba(0,0,0,0.01);
+                                height: 0.5px;
+                                overflow: visible;
+                                white-space: nowrap;
+                            `;
+                            backupMarker.textContent = '••TRIM••POINT••HERE••';
+                            
+                            // Insert markers after the last image
+                            lastImage.parentNode.insertBefore(markerDiv, lastImage.nextSibling);
+                            lastImage.parentNode.insertBefore(backupMarker, lastImage.nextSibling);
+                            
+                            console.log('Added markers after last image (image', allImages.length, 'of', allImages.length, ')');
+                            
+                            // Get last image position for button Y
+                            var lastImageRect = lastImage.getBoundingClientRect();
+                            var lastImageBottom = lastImageRect.bottom + window.pageYOffset;
+                            
+                            return {
+                                buttonY: lastImageBottom,
+                                windowHeight: window.innerHeight,
+                                documentHeight: document.body.scrollHeight,
+                                buttonRect: null
+                            };
+                        } else {
+                            console.log('No image found in simple HTML');
+                        }
+                    }
+                } catch (e) {
+                    console.log('Simple HTML XPath check failed:', e);
+                }
+                
                 console.log('Next button not found, using body height');
                 return {
                     buttonY: document.body.scrollHeight,
@@ -399,7 +471,7 @@ class PDFGenerator:
         if browser is None:
             browser = Driver(
                 undetectable=True, 
-                user_data_dir=self.config.user_data_dir,
+                user_data_dir=f"{self.config.user_data_dir}_DEFAULT",
                 binary_location=self.config.chrome_binary_path, 
                 headless2=True,
                 proxy=None, 
