@@ -29,7 +29,7 @@ class PDFConverterConfig:
         self.output_path = None  # Will be set dynamically for each course
 
         # Processing settings
-        self.max_browser_sessions = 30
+        self.max_browser_sessions = 10
         self.min_browser_sessions = 1
         self.page_load_timeout = 1
         self.pdf_generation_pause = 1
@@ -1088,15 +1088,29 @@ class Html2PdfConverter:
             print(f"   ... and {len(pdf_results) - 10} more topics")
         
         combined_pdf = PdfWriter()
-        page_number = 0
         
+        # For multi-course scenarios, check for TOC JSON file to create categorized bookmarks
+        # For single file conversion, we skip TOC processing
+        course_dir = os.path.dirname(output_path)
+        toc_json_path = os.path.join(course_dir, "__toc__.json")
+        
+        # Only use TOC if we have multiple files AND TOC exists
+        if len(pdf_results) > 1 and os.path.exists(toc_json_path):
+            print("📚 Found TOC file - creating categorized bookmarks...")
+            self._create_bookmarks_from_toc(combined_pdf, pdf_results, toc_json_path)
+        else:
+            if len(pdf_results) == 1:
+                print("  Single file conversion - using simple bookmarks...")
+            else:
+                print(" 📖 No TOC file found - creating simple bookmarks...")
+            self._create_simple_bookmarks(combined_pdf, pdf_results)
+        
+        # Add all pages to the combined PDF
+        page_number = 0
         for result in pdf_results:
             try:
                 with open(result['pdf_path'], 'rb') as pdf_file:
                     pdf_reader = PdfReader(pdf_file)
-                    
-                    bookmark_title = f"{result['topic_number']}. {result['topic_name']}"
-                    combined_pdf.add_outline_item(bookmark_title, page_number)
                     
                     for page in pdf_reader.pages:
                         combined_pdf.add_page(page)
@@ -1115,3 +1129,132 @@ class Html2PdfConverter:
         print(f"📄 Total pages: {page_number}")
         print(f"📚 Total topics: {success_count}")
         print(f"📁 File size: {os.path.getsize(output_path) / (1024*1024):.1f} MB")
+
+    def _create_bookmarks_from_toc(self, combined_pdf, pdf_results, toc_json_path):
+        """Create hierarchical bookmarks using TOC JSON structure"""
+        try:
+            import json
+            
+            with open(toc_json_path, 'r', encoding='utf-8') as f:
+                toc_data = json.load(f)
+            
+            print(f"📋 Course: {toc_data.get('course', 'Unknown Course')}")
+            
+            # Create a mapping from topic numbers to page numbers and results
+            topic_to_page = {}
+            topic_to_result = {}
+            current_page = 0
+            
+            # Build mapping only for files that were actually processed successfully
+            for result in pdf_results:
+                topic_to_page[result['topic_number']] = current_page
+                topic_to_result[result['topic_number']] = result
+                
+                # Count pages in this PDF
+                try:
+                    with open(result['pdf_path'], 'rb') as pdf_file:
+                        pdf_reader = PdfReader(pdf_file)
+                        current_page += len(pdf_reader.pages)
+                except:
+                    current_page += 1  # Fallback to 1 page if we can't read
+            
+            print(f"📊 Successfully processed topics: {list(topic_to_page.keys())}")
+            
+            # Create bookmarks based on TOC structure, but only for existing files
+            toc_list = toc_data.get('toc', [])
+            categories_created = 0
+            topics_added = 0
+            topics_skipped = 0
+            
+            for toc_item in toc_list:
+                if isinstance(toc_item, dict) and 'category' in toc_item:
+                    # This is a category with topics
+                    category_name = toc_item['category']
+                    topics = toc_item.get('topics', [])
+                    
+                    # Find topics in this category that actually exist
+                    existing_topics = []
+                    category_first_page = None
+                    
+                    for topic in topics:
+                        if len(topic) >= 2:
+                            try:
+                                formatted_name = topic[1]
+                                topic_number = int(formatted_name.split('-')[0])
+                                
+                                if topic_number in topic_to_page:
+                                    existing_topics.append((topic, topic_number))
+                                    if category_first_page is None:
+                                        category_first_page = topic_to_page[topic_number]
+                                else:
+                                    topics_skipped += 1
+                                    print(f"   ⚠️ Skipping missing topic: {topic_number:03d}. {topic[0]}")
+                            except (ValueError, IndexError) as e:
+                                print(f"   ⚠️ Error parsing topic: {topic} - {e}")
+                                continue
+                    
+                    # Only create category if it has existing topics
+                    if existing_topics:
+                        # Calculate topic number range for category name
+                        topic_numbers = [topic_num for _, topic_num in existing_topics]
+                        min_topic = min(topic_numbers)
+                        max_topic = max(topic_numbers)
+                        
+                        # Format category name with topic range
+                        if min_topic == max_topic:
+                            category_display_name = f"[{min_topic:03d}] {category_name}"
+                        else:
+                            category_display_name = f"[{min_topic:03d}-{max_topic:03d}] {category_name}"
+                        
+                        category_bookmark = combined_pdf.add_outline_item(category_display_name, category_first_page)
+                        categories_created += 1
+                        
+                        # Add topic bookmarks under the category
+                        for topic, topic_number in existing_topics:
+                            topic_name = topic[0]
+                            bookmark_title = f"{topic_number:03d}. {topic_name}"
+                            combined_pdf.add_outline_item(bookmark_title, topic_to_page[topic_number], parent=category_bookmark)
+                            topics_added += 1
+                    else:
+                        print(f"   ⚠️ Skipping empty category: {category_name}")
+                
+                elif isinstance(toc_item, list) and len(toc_item) >= 2:
+                    # This is a direct topic (not under a category)
+                    try:
+                        topic_name = toc_item[0]
+                        formatted_name = toc_item[1]
+                        topic_number = int(formatted_name.split('-')[0])
+                        
+                        if topic_number in topic_to_page:
+                            bookmark_title = f"{topic_number:03d}. {topic_name}"
+                            combined_pdf.add_outline_item(bookmark_title, topic_to_page[topic_number])
+                            topics_added += 1
+                        else:
+                            topics_skipped += 1
+                            print(f"   ⚠️ Skipping missing topic: {topic_number:03d}. {topic_name}")
+                    except (ValueError, IndexError) as e:
+                        print(f"   ⚠️ Error parsing direct topic: {toc_item} - {e}")
+                        continue
+            
+            print(f"✅ Created categorized bookmarks: {categories_created} categories, {topics_added} topics, {topics_skipped} skipped")
+            
+        except Exception as e:
+            print(f"⚠️ Error creating bookmarks from TOC: {e}")
+            print("🔄 Falling back to simple bookmarks...")
+            self._create_simple_bookmarks(combined_pdf, pdf_results)
+
+    def _create_simple_bookmarks(self, combined_pdf, pdf_results):
+        """Create simple flat bookmarks without categories"""
+        page_number = 0
+        
+        for result in pdf_results:
+            bookmark_title = f"{result['topic_number']}. {result['topic_name']}"
+            combined_pdf.add_outline_item(bookmark_title, page_number)
+            
+            # Count pages for next bookmark
+            try:
+                with open(result['pdf_path'], 'rb') as pdf_file:
+                    pdf_reader = PdfReader(pdf_file)
+                    page_number += len(pdf_reader.pages)
+            except:
+                page_number += 1  # Fallback to 1 page if we can't read
