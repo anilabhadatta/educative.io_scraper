@@ -79,19 +79,8 @@ class SmartTrimmingUtility:
                     marker_y = marker_rect.y0  # Top of the marker
                     print(f"✅ Found trim marker '{pattern}' at Y position: {marker_y}")
                     return marker_y
-            
-            # If no specific markers found, try to find "Next" button text
-            print("No trim markers found, searching for 'Next' button...")
-            next_instances = page.search_for("Next")
-            if next_instances:
-                for rect in next_instances:
-                    # Look for Next that might be a button (reasonable size)
-                    if rect.width > 20 and rect.height > 10:  # Button-like dimensions
-                        marker_y = rect.y0
-                        print(f"🔍 Found 'Next' button text at Y position: {marker_y}")
-                        return marker_y
-            
-            print("❌ No trim markers or Next button found in PDF")
+
+            print("❌ No trim markers found in PDF")
             return None
                 
         except Exception as e:
@@ -264,8 +253,47 @@ class PDFGenerator:
         
         # Inject smart markers and get position data
         marker_result = browser.execute_script("""
+            
+            // Remove nav and header elements first
+            var navElements = document.querySelectorAll('nav');
+            navElements.forEach(function(nav) {
+                nav.remove();
+            });
+            
+            var headerElements = document.querySelectorAll('header');
+            headerElements.forEach(function(header) {
+                header.remove();
+            });
+            
+            console.log('Removed', navElements.length, 'nav elements and', headerElements.length, 'header elements');
+            
             // Find the Next button
-            var nextButton = document.querySelector('button[name="next"]') || document.querySelector('button[aria-label="Next button"]');
+            var nextButton = document.querySelector('button[name="next"]') || document.querySelector('button[aria-label="Next button"]')  || document.querySelector('button[aria-label="Previous button"]') || document.querySelector('button[aria-label="Skip for now button"]');
+            if (!nextButton) {
+                var xpathQueries = [
+                    "//button/span[contains(text(), 'Mark As Completed')]",
+                    "//button/span[contains(text(), 'Complete')]"
+                ];
+                
+                for (var q = 0; q < xpathQueries.length; q++) {
+                    try {
+                        var xpathResult = document.evaluate(
+                            xpathQueries[q],
+                            document,
+                            null,
+                            XPathResult.FIRST_ORDERED_NODE_TYPE,
+                            null
+                        );
+                        if (xpathResult.singleNodeValue) {
+                            nextButton = xpathResult.singleNodeValue;
+                            console.log('Found button using XPath:', xpathQueries[q]);
+                            break;
+                        }
+                    } catch (e) {
+                        console.log('XPath search failed for:', xpathQueries[q], e);
+                    }
+                }
+            }
             if (nextButton) {
                 // Create a visible but very small marker for PDF detection
                 var markerDiv = document.createElement('div');
