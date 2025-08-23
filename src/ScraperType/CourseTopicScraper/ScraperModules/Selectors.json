@@ -32,7 +32,7 @@
     "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]",
     "nextButton": "Next",
     "backButton": "Back",
-    "expandAllButton": "//button[contains(., 'Expand All Sections')]",
+    "expandAllButton": "//button[contains(., 'Expand All')]",
     "resizeHorizontalGlutter": "div[style*='30%'][style*='calc']"
   },
   "RemoveUtility": {
