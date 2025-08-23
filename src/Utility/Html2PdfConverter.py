@@ -29,7 +29,7 @@ class PDFConverterConfig:
         self.output_path = None  # Will be set dynamically for each course
 
         # Processing settings
-        self.max_browser_sessions = 10
+        self.max_browser_sessions = 30
         self.min_browser_sessions = 1
         self.page_load_timeout = 1
         self.pdf_generation_pause = 1
@@ -273,8 +273,8 @@ class PDFGenerator:
             console.log('Removed', navElements.length, 'nav elements and', headerElements.length, 'header elements');
             console.log('Removed', footerElements.length, 'footer elements');
 
-            // Find the Next button
-            var nextButton = document.querySelector('button[name="next"]') || document.querySelector('button[aria-label="Next button"]')  || document.querySelector('button[aria-label="Previous button"]') || document.querySelector('button[aria-label="Skip for now button"]');
+            // Find the Next button using simplified selector
+            var nextButton = document.querySelector('button[name="next"], button[aria-label="Next button"], button[aria-label="Previous button"], button[aria-label="Skip for now button"]');
             if (!nextButton) {
                 var xpathQueries = [
                     "//button/span[contains(text(), 'Mark As Completed')]",
@@ -301,22 +301,23 @@ class PDFGenerator:
                 }
             }
             if (nextButton) {
-                // Create a visible but very small marker for PDF detection
+                // Create a highly visible marker for PDF detection
                 var markerDiv = document.createElement('div');
                 markerDiv.id = 'EDUCATIVE_PDF_TRIM_MARKER';
                 markerDiv.style.cssText = `
                     position: relative;
                     width: 100%;
-                    height: 1px;
-                    background: transparent;
-                    font-size: 1px;
-                    line-height: 1px;
+                    height: 15px;
+                    background: white;
+                    font-size: 14px;
+                    line-height: 15px;
                     color: black;
-                    opacity: 0.01;
-                    overflow: visible;
-                    z-index: 1000;
-                    margin: 0;
-                    padding: 0;
+                    opacity: 1;
+                    z-index: 9999;
+                    margin: 5px 0;
+                    padding: 2px;
+                    border: 2px solid black;
+                    display: block;
                 `;
                 
                 // Add text content that will be rendered in PDF
@@ -325,11 +326,18 @@ class PDFGenerator:
                 // Create a more visible backup marker
                 var backupMarker = document.createElement('div');
                 backupMarker.style.cssText = `
-                    font-size: 0.5px;
-                    color: rgba(0,0,0,0.01);
-                    height: 0.5px;
-                    overflow: visible;
-                    white-space: nowrap;
+                    position: relative;
+                    width: 100%;
+                    height: 12px;
+                    background: white;
+                    font-size: 12px;
+                    line-height: 12px;
+                    color: black;
+                    opacity: 1;
+                    z-index: 9998;
+                    margin: 3px 0;
+                    padding: 2px;
+                    display: block;
                 `;
                 backupMarker.textContent = '••TRIM••POINT••HERE••';
                 
@@ -359,6 +367,84 @@ class PDFGenerator:
                     }
                 };
             } else {
+                // Check if this is simple HTML using XPath
+                try {
+                    var simpleHtmlResult = document.evaluate(
+                        "//body[count(div)=1 and .//img]",
+                        document,
+                        null,
+                        XPathResult.FIRST_ORDERED_NODE_TYPE,
+                        null
+                    );
+                    
+                    if (simpleHtmlResult.singleNodeValue) {
+                        console.log('Simple HTML detected, adding marker after image');
+                        
+                        // Find the image tag and add markers after it
+                        var allImages = document.querySelectorAll('img');
+                        if (allImages.length > 0) {
+                            var lastImage = allImages[allImages.length - 1];
+                
+                            // Create main marker
+                            var markerDiv = document.createElement('div');
+                            markerDiv.id = 'EDUCATIVE_PDF_TRIM_MARKER';
+                            markerDiv.style.cssText = `
+                                position: relative;
+                                width: 100%;
+                                height: 15px;
+                                background: white;
+                                font-size: 14px;
+                                line-height: 15px;
+                                color: black;
+                                opacity: 1;
+                                z-index: 9999;
+                                margin: 5px 0;
+                                padding: 2px;
+                                border: 2px solid black;
+                                display: block;
+                            `;
+                            markerDiv.innerHTML = 'EDUCATIVE_TRIM_POINT_MARKER_HERE';
+                            
+                            // Create backup marker
+                            var backupMarker = document.createElement('div');
+                            backupMarker.style.cssText = `
+                                position: relative;
+                                width: 100%;
+                                height: 12px;
+                                background: white;
+                                font-size: 12px;
+                                line-height: 12px;
+                                color: black;
+                                opacity: 1;
+                                z-index: 9998;
+                                margin: 3px 0;
+                                padding: 2px;
+                                display: block;
+                            `;
+                            backupMarker.textContent = '••TRIM••POINT••HERE••';                            // Insert markers after the last image
+                            lastImage.parentNode.insertBefore(markerDiv, lastImage.nextSibling);
+                            lastImage.parentNode.insertBefore(backupMarker, lastImage.nextSibling);
+                            
+                            console.log('Added markers after last image (image', allImages.length, 'of', allImages.length, ')');
+                            
+                            // Get last image position for button Y
+                            var lastImageRect = lastImage.getBoundingClientRect();
+                            var lastImageBottom = lastImageRect.bottom + window.pageYOffset;
+                            
+                            return {
+                                buttonY: lastImageBottom,
+                                windowHeight: window.innerHeight,
+                                documentHeight: document.body.scrollHeight,
+                                buttonRect: null
+                            };
+                        } else {
+                            console.log('No image found in simple HTML');
+                        }
+                    }
+                } catch (e) {
+                    console.log('Simple HTML XPath check failed:', e);
+                }
+                
                 console.log('Next button not found, using body height');
                 return {
                     buttonY: document.body.scrollHeight,
@@ -377,6 +463,58 @@ class PDFGenerator:
     def _calculate_paper_height(self, browser, html_file):
         """Calculate optimal paper height based on content"""
         browser.get(f"file:///{html_file}")
+        
+        # Pre-inject highly visible markers before calculating height
+        browser.execute_script("""
+            // Make markers more visible for PDF rendering
+            var existingMarkers = document.querySelectorAll('#EDUCATIVE_PDF_TRIM_MARKER');
+            existingMarkers.forEach(function(marker) {
+                marker.style.cssText = `
+                    position: relative;
+                    width: 100%;
+                    height: 15px;
+                    background: white;
+                    font-size: 14px;
+                    line-height: 15px;
+                    color: black;
+                    opacity: 1;
+                    z-index: 9999;
+                    margin: 5px 0;
+                    padding: 2px;
+                    border: 2px solid black;
+                    display: block;
+                `;
+            });
+            
+            var existingBackups = document.evaluate(
+                "//div[contains(text(), '••TRIM••POINT••HERE••')]",
+                document,
+                null,
+                XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+                null
+            );
+            
+            for (var i = 0; i < existingBackups.snapshotLength; i++) {
+                var backup = existingBackups.snapshotItem(i);
+                backup.style.cssText = `
+                    position: relative;
+                    width: 100%;
+                    height: 12px;
+                    background: white;
+                    font-size: 12px;
+                    line-height: 12px;
+                    color: black;
+                    opacity: 1;
+                    z-index: 9998;
+                    margin: 3px 0;
+                    padding: 2px;
+                    display: block;
+                `;
+            }
+            
+            console.log('Enhanced marker visibility for PDF rendering');
+        """)
+        
         return self._calculate_paper_height_from_browser(browser)
     
     def generate_pdf_from_browser(self, browser):
@@ -399,7 +537,7 @@ class PDFGenerator:
         if browser is None:
             browser = Driver(
                 undetectable=True, 
-                user_data_dir=self.config.user_data_dir,
+                user_data_dir=f"{self.config.user_data_dir}_DEFAULT",
                 binary_location=self.config.chrome_binary_path, 
                 headless2=True,
                 proxy=None, 
@@ -446,16 +584,24 @@ class PDFGenerator:
                 pdf_bytes = temp_output.getvalue()
                 
                 # Apply smart trimming
-                trimmed_pdf_bytes = self._apply_smart_trimming(pdf_bytes, browser)
+                trimmed_pdf_bytes, used_fallback, fallback_reason = self._apply_smart_trimming(pdf_bytes, browser)
                 
                 # Create a PdfWriter from trimmed bytes and return it
                 trimmed_reader = PdfReader(io.BytesIO(trimmed_pdf_bytes))
                 final_output = PdfWriter()
                 final_output.add_page(trimmed_reader.pages[0])
+                
+                # Store fallback info on the writer for later retrieval
+                final_output._fallback_used = used_fallback
+                final_output._fallback_reason = fallback_reason
+                
                 return final_output
             else:
                 # No trimming, just add the page
                 output_pdf.add_page(page)
+                # No fallback since no trimming was done
+                output_pdf._fallback_used = False
+                output_pdf._fallback_reason = None
                 return output_pdf
         
         # For multiple pages, merge first then trim
@@ -492,51 +638,52 @@ class PDFGenerator:
                 pdf_bytes = temp_output.getvalue()
                 
                 # Apply smart trimming
-                trimmed_pdf_bytes = self._apply_smart_trimming(pdf_bytes, browser)
+                trimmed_pdf_bytes, used_fallback, fallback_reason = self._apply_smart_trimming(pdf_bytes, browser)
                 
                 # Read the trimmed PDF and return
                 trimmed_reader = PdfReader(io.BytesIO(trimmed_pdf_bytes))
                 final_output = PdfWriter()
                 final_output.add_page(trimmed_reader.pages[0])
+                
+                # Store fallback info on the writer for later retrieval
+                final_output._fallback_used = used_fallback
+                final_output._fallback_reason = fallback_reason
+                
                 return final_output
         
+        # Add fallback info to output_pdf for cases with no trimming
+        if not hasattr(output_pdf, '_fallback_used'):
+            output_pdf._fallback_used = False
+            output_pdf._fallback_reason = None
+            
         return output_pdf
     
     def _apply_smart_trimming(self, pdf_bytes, browser=None):
         """Apply smart trimming with fallback methods"""
+        # Return tuple: (trimmed_pdf_bytes, used_fallback, fallback_reason)
         try:
             if not self.config.smart_trimming:
                 print(f"🔄 Smart trimming disabled, using fallback trim ({self.config.fallback_trim_percentage*100}%)")
-                # Mark as fallback usage
-                if not hasattr(self, 'fallback_files'):
-                    self.fallback_files = []
-                self.fallback_files.append("Smart trimming disabled")
-                return SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
+                trimmed_bytes = SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
+                return trimmed_bytes, True, "Smart trimming disabled"
             
             print(f"🎯 Applying smart trimming...")
             
             marker_y_position = SmartTrimmingUtility.extract_text_with_positions(pdf_bytes)
             if marker_y_position:
                 print(f"📍 Using text marker position: {marker_y_position}")
-                return SmartTrimmingUtility.trim_pdf_at_marker(pdf_bytes, marker_y_position)
-
-                            
-            # Method 2: Fallback to percentage-based trimming
+                trimmed_bytes = SmartTrimmingUtility.trim_pdf_at_marker(pdf_bytes, marker_y_position)
+                return trimmed_bytes, False, None  # Success - no fallback
+            
+            # Only reach here if no marker was found - this is actual fallback
             print(f"🔄 Using fallback trimming ({self.config.fallback_trim_percentage*100}% from bottom)")
-            # Mark as fallback usage
-            if not hasattr(self, 'fallback_files'):
-                self.fallback_files = []
-            self.fallback_files.append("Marker not found")
-            return SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
+            trimmed_bytes = SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
+            return trimmed_bytes, True, "Marker not found"
             
         except Exception as e:
             print(f"⚠️ Error in smart trimming: {e}")
             print(f"🔄 Falling back to original PDF")
-            # Mark as fallback usage
-            if not hasattr(self, 'fallback_files'):
-                self.fallback_files = []
-            self.fallback_files.append(f"Error: {str(e)[:50]}")
-            return pdf_bytes
+            return pdf_bytes, True, f"Error: {str(e)[:50]}"
 
 
 class TopicExtractor:
@@ -706,9 +853,6 @@ class Html2PdfConverter:
             try:
                 print(f"[{thread_name}] 🔄 Starting: {base_name}")
                 
-                # Reset fallback tracking for this file
-                self.pdf_generator.fallback_files = []
-                
                 # Generate PDF using shared browser
                 pdf_writer = self.pdf_generator.generate_single_pdf(html_file, browser)
                 
@@ -717,9 +861,10 @@ class Html2PdfConverter:
                 
                 topic_number, topic_name = self.topic_extractor.extract_topic_name_and_number(html_file)
                 
-                # Check if fallback was used
-                used_fallback = len(getattr(self.pdf_generator, 'fallback_files', [])) > 0
-                fallback_reason = getattr(self.pdf_generator, 'fallback_files', [None])[0] if used_fallback else None
+                # The PDF generation process returns fallback info directly
+                # Check if fallback was used by examining the PDF generation process
+                used_fallback = getattr(pdf_writer, '_fallback_used', False)
+                fallback_reason = getattr(pdf_writer, '_fallback_reason', None)
                 
                 elapsed_time = time.time() - start_time
                 status_icon = "🔄" if used_fallback else "✅"
