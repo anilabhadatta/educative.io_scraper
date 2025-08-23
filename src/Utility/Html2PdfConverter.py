@@ -29,7 +29,7 @@ class PDFConverterConfig:
         self.output_path = None  # Will be set dynamically for each course
 
         # Processing settings
-        self.max_browser_sessions = 10
+        self.max_browser_sessions = 30
         self.min_browser_sessions = 1
         self.page_load_timeout = 1
         self.pdf_generation_pause = 1
@@ -584,16 +584,24 @@ class PDFGenerator:
                 pdf_bytes = temp_output.getvalue()
                 
                 # Apply smart trimming
-                trimmed_pdf_bytes = self._apply_smart_trimming(pdf_bytes, browser)
+                trimmed_pdf_bytes, used_fallback, fallback_reason = self._apply_smart_trimming(pdf_bytes, browser)
                 
                 # Create a PdfWriter from trimmed bytes and return it
                 trimmed_reader = PdfReader(io.BytesIO(trimmed_pdf_bytes))
                 final_output = PdfWriter()
                 final_output.add_page(trimmed_reader.pages[0])
+                
+                # Store fallback info on the writer for later retrieval
+                final_output._fallback_used = used_fallback
+                final_output._fallback_reason = fallback_reason
+                
                 return final_output
             else:
                 # No trimming, just add the page
                 output_pdf.add_page(page)
+                # No fallback since no trimming was done
+                output_pdf._fallback_used = False
+                output_pdf._fallback_reason = None
                 return output_pdf
         
         # For multiple pages, merge first then trim
@@ -630,51 +638,52 @@ class PDFGenerator:
                 pdf_bytes = temp_output.getvalue()
                 
                 # Apply smart trimming
-                trimmed_pdf_bytes = self._apply_smart_trimming(pdf_bytes, browser)
+                trimmed_pdf_bytes, used_fallback, fallback_reason = self._apply_smart_trimming(pdf_bytes, browser)
                 
                 # Read the trimmed PDF and return
                 trimmed_reader = PdfReader(io.BytesIO(trimmed_pdf_bytes))
                 final_output = PdfWriter()
                 final_output.add_page(trimmed_reader.pages[0])
+                
+                # Store fallback info on the writer for later retrieval
+                final_output._fallback_used = used_fallback
+                final_output._fallback_reason = fallback_reason
+                
                 return final_output
         
+        # Add fallback info to output_pdf for cases with no trimming
+        if not hasattr(output_pdf, '_fallback_used'):
+            output_pdf._fallback_used = False
+            output_pdf._fallback_reason = None
+            
         return output_pdf
     
     def _apply_smart_trimming(self, pdf_bytes, browser=None):
         """Apply smart trimming with fallback methods"""
+        # Return tuple: (trimmed_pdf_bytes, used_fallback, fallback_reason)
         try:
             if not self.config.smart_trimming:
                 print(f"🔄 Smart trimming disabled, using fallback trim ({self.config.fallback_trim_percentage*100}%)")
-                # Mark as fallback usage
-                if not hasattr(self, 'fallback_files'):
-                    self.fallback_files = []
-                self.fallback_files.append("Smart trimming disabled")
-                return SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
+                trimmed_bytes = SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
+                return trimmed_bytes, True, "Smart trimming disabled"
             
             print(f"🎯 Applying smart trimming...")
             
             marker_y_position = SmartTrimmingUtility.extract_text_with_positions(pdf_bytes)
             if marker_y_position:
                 print(f"📍 Using text marker position: {marker_y_position}")
-                return SmartTrimmingUtility.trim_pdf_at_marker(pdf_bytes, marker_y_position)
-
-                            
-            # Method 2: Fallback to percentage-based trimming
+                trimmed_bytes = SmartTrimmingUtility.trim_pdf_at_marker(pdf_bytes, marker_y_position)
+                return trimmed_bytes, False, None  # Success - no fallback
+            
+            # Only reach here if no marker was found - this is actual fallback
             print(f"🔄 Using fallback trimming ({self.config.fallback_trim_percentage*100}% from bottom)")
-            # Mark as fallback usage
-            if not hasattr(self, 'fallback_files'):
-                self.fallback_files = []
-            self.fallback_files.append("Marker not found")
-            return SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
+            trimmed_bytes = SmartTrimmingUtility.fallback_trim_pdf(pdf_bytes, self.config.fallback_trim_percentage)
+            return trimmed_bytes, True, "Marker not found"
             
         except Exception as e:
             print(f"⚠️ Error in smart trimming: {e}")
             print(f"🔄 Falling back to original PDF")
-            # Mark as fallback usage
-            if not hasattr(self, 'fallback_files'):
-                self.fallback_files = []
-            self.fallback_files.append(f"Error: {str(e)[:50]}")
-            return pdf_bytes
+            return pdf_bytes, True, f"Error: {str(e)[:50]}"
 
 
 class TopicExtractor:
@@ -844,9 +853,6 @@ class Html2PdfConverter:
             try:
                 print(f"[{thread_name}] 🔄 Starting: {base_name}")
                 
-                # Reset fallback tracking for this file
-                self.pdf_generator.fallback_files = []
-                
                 # Generate PDF using shared browser
                 pdf_writer = self.pdf_generator.generate_single_pdf(html_file, browser)
                 
@@ -855,9 +861,10 @@ class Html2PdfConverter:
                 
                 topic_number, topic_name = self.topic_extractor.extract_topic_name_and_number(html_file)
                 
-                # Check if fallback was used
-                used_fallback = len(getattr(self.pdf_generator, 'fallback_files', [])) > 0
-                fallback_reason = getattr(self.pdf_generator, 'fallback_files', [None])[0] if used_fallback else None
+                # The PDF generation process returns fallback info directly
+                # Check if fallback was used by examining the PDF generation process
+                used_fallback = getattr(pdf_writer, '_fallback_used', False)
+                fallback_reason = getattr(pdf_writer, '_fallback_reason', None)
                 
                 elapsed_time = time.time() - start_time
                 status_icon = "🔄" if used_fallback else "✅"
