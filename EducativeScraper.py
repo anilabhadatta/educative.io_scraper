@@ -10,6 +10,7 @@ from src.Utility.ConfigUtility import ConfigUtility
 from src.Common.Constants import constants
 from src.UI.HomeScreenGUI import HomeScreen
 from src.Utility.FileUtility import FileUtility
+from src.Main.LoginAccount import LoginAccount
 
 
 class EducativeScraper:
@@ -63,7 +64,9 @@ class EducativeScraper:
                 DownloadUtility().downloadChromeDriver(app=None, progressVar=None, configJson=self.configJson)
             elif self.cmdArgs.dwldchromebinary:
                 DownloadUtility().downloadChromeBinary(app=None, progressVar=None, configJson=self.configJson)
-
+            elif self.cmdArgs.loginbrowser:
+                LoginAccount().start(self.configJson)
+                
 
     def loadDefaultConfig(self):
         self.config = self.configUtil.loadConfig()['ScraperConfig']
@@ -153,6 +156,7 @@ if __name__ == '__main__':
     parser.add_argument('--dwldchromedriver', action='store_true', help='Download chromedriver in terminal mode instead of UI.')
     parser.add_argument('--dwldchromebinary', action='store_true', help='Download chromebinary in terminal mode instead of UI.')
     parser.add_argument('--gendefaultconfig', action='store_true', help='Generate default config in terminal mode instead of UI.')
+    parser.add_argument('--loginbrowser', action='store_true', help='Login to browser in terminal mode instead of UI. Ctrl+C to exit.')
     args = parser.parse_args()
     app = EducativeScraper(args)
     app.run()
