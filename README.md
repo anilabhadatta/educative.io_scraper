@@ -82,6 +82,7 @@ cd educative.io_scraper
       pip install -r requirements.txt
       
       python EducativeScraper.py                 (For UI)
+      python EducativeScraper.py --loginbrowser  (Open browser for login to account)
       python EducativeScraper.py --terminal      (For Terminal)
       python EducativeScraper.py --help          (For Config and Help info)
       ```
@@ -93,6 +94,7 @@ cd educative.io_scraper
       pip3 install -r requirements.txt
       
       python3 EducativeScraper.py                 (For UI)
+      python3 EducativeScraper.py --loginbrowser  (Open browser for login to account)
       python3 EducativeScraper.py --terminal      (For Terminal)
       python3 EducativeScraper.py --help          (For Config and Help info)
       ```
