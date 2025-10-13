@@ -12,10 +12,11 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.9.6 (Recommended)
+Repository Version: v4.0.1 (Recommended)
 Master Branch: v3-master</code></pre>
 ```
 1. Updates Information
+-  Added Html2PdfConverter (v4.0.0+)
 -  Add terminal mode feature - Run `python EducativeScraper.py --help` for details (v3.9.5)
 -  Single file implementation changed - uses extension to get page data. (v3.9.1)
 -  Cloudlabs, Projects can now be scraped using Auto/Manual Scraper (v3.9.0) 
