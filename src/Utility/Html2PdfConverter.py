@@ -848,47 +848,185 @@ class Html2PdfConverter:
             base_name = os.path.splitext(os.path.basename(html_file))[0]
             temp_pdf_path = os.path.join(temp_dir, f"{base_name}.pdf")
             
-            browser = browser_manager.get_browser()
-            
-            try:
-                print(f"[{thread_name}] 🔄 Starting: {base_name}")
-                
-                # Generate PDF using shared browser
-                pdf_writer = self.pdf_generator.generate_single_pdf(html_file, browser)
+            # Check if this is a quiz file and handle differently
+            if self._is_quiz_file(html_file):
+                print(f"[{thread_name}] 📝 Quiz detected: {base_name}")
+                pdf_writer = self._create_quiz_pdf(html_file)
                 
                 with open(temp_pdf_path, "wb") as f:
                     pdf_writer.write(f)
+            else:
+                browser = browser_manager.get_browser()
                 
-                topic_number, topic_name = self.topic_extractor.extract_topic_name_and_number(html_file)
-                
-                # The PDF generation process returns fallback info directly
-                # Check if fallback was used by examining the PDF generation process
-                used_fallback = getattr(pdf_writer, '_fallback_used', False)
-                fallback_reason = getattr(pdf_writer, '_fallback_reason', None)
-                
-                elapsed_time = time.time() - start_time
-                status_icon = "🔄" if used_fallback else "✅"
-                print(f"[{thread_name}] {status_icon} Completed: {topic_number}. {topic_name} ({elapsed_time:.1f}s)")
-                if used_fallback:
-                    print(f"[{thread_name}] 📝 Fallback used: {fallback_reason}")
-                
-                return {
-                    'topic_number': topic_number,
-                    'topic_name': topic_name,
-                    'pdf_path': temp_pdf_path,
-                    'html_file': html_file,
-                    'processing_time': elapsed_time,
-                    'used_fallback': used_fallback,
-                    'fallback_reason': fallback_reason
-                }
-                
-            finally:
-                browser_manager.return_browser(browser)
+                try:
+                    print(f"[{thread_name}] 🔄 Starting: {base_name}")
+                    
+                    # Generate PDF using shared browser
+                    pdf_writer = self.pdf_generator.generate_single_pdf(html_file, browser)
+                    
+                    with open(temp_pdf_path, "wb") as f:
+                        pdf_writer.write(f)
+                        
+                finally:
+                    browser_manager.return_browser(browser)
+            
+            topic_number, topic_name = self.topic_extractor.extract_topic_name_and_number(html_file)
+            
+            # The PDF generation process returns fallback info directly
+            # Check if fallback was used by examining the PDF generation process
+            used_fallback = getattr(pdf_writer, '_fallback_used', False)
+            fallback_reason = getattr(pdf_writer, '_fallback_reason', None)
+            
+            elapsed_time = time.time() - start_time
+            status_icon = "🔄" if used_fallback else "✅"
+            print(f"[{thread_name}] {status_icon} Completed: {topic_number}. {topic_name} ({elapsed_time:.1f}s)")
+            if used_fallback:
+                print(f"[{thread_name}] 📝 Fallback used: {fallback_reason}")
+            
+            return {
+                'topic_number': topic_number,
+                'topic_name': topic_name,
+                'pdf_path': temp_pdf_path,
+                'html_file': html_file,
+                'processing_time': elapsed_time,
+                'used_fallback': used_fallback,
+                'fallback_reason': fallback_reason
+            }
             
         except Exception as e:
             elapsed_time = time.time() - start_time
             print(f"[{thread_name}] ❌ Failed: {base_name} ({elapsed_time:.1f}s) - {str(e)[:100]}")
             raise Exception(f"Html2PdfConverter:_convert_html_threaded: {e}")
+
+    def _is_quiz_file(self, html_file):
+        """Check if this is a quiz file that should be processed differently"""
+        try:
+            # Get the folder containing the HTML file
+            html_folder = os.path.dirname(html_file)
+            base_name = os.path.splitext(os.path.basename(html_file))[0]
+            
+            # Check if filename contains "quiz" (case insensitive)
+            if 'quiz' not in base_name.lower():
+                return False
+            
+            # Check if there's a QUIZ folder in the same directory
+            quiz_folder = os.path.join(html_folder, 'QUIZ')
+            return os.path.exists(quiz_folder) and os.path.isdir(quiz_folder)
+            
+        except Exception as e:
+            print(f"Error checking if quiz file: {e}")
+            return False
+
+    def _create_quiz_pdf(self, html_file):
+        """Create PDF from quiz text file instead of HTML"""
+        import tempfile
+        
+        try:
+            # Get the QUIZ folder path
+            html_folder = os.path.dirname(html_file)
+            quiz_folder = os.path.join(html_folder, 'QUIZ')
+            
+            # Find txt file in QUIZ folder
+            txt_file = None
+            for file in os.listdir(quiz_folder):
+                if file.endswith('.txt'):
+                    txt_file = os.path.join(quiz_folder, file)
+                    break
+            
+            if not txt_file:
+                raise Exception("No txt file found in QUIZ folder")
+            
+            print(f"📝 Reading quiz text from: {txt_file}")
+            
+            # Read the text file
+            with open(txt_file, 'r', encoding='utf-8') as f:
+                quiz_content = f.read()
+            
+            # Create temporary HTML file with the quiz content
+            temp_html = tempfile.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8')
+            base_name = os.path.splitext(os.path.basename(html_file))[0]
+            
+            # Generate HTML content with styling
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Quiz: {base_name}</title>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        margin: 40px;
+                        color: #333;
+                    }}
+                    .quiz-title {{
+                        text-align: center;
+                        font-size: 24px;
+                        font-weight: bold;
+                        margin-bottom: 30px;
+                        color: #2c3e50;
+                        border-bottom: 2px solid #3498db;
+                        padding-bottom: 10px;
+                    }}
+                    .quiz-content {{
+                        font-size: 14px;
+                        white-space: pre-wrap;
+                        word-wrap: break-word;
+                    }}
+                    .question {{
+                        margin-bottom: 20px;
+                        padding: 15px;
+                        background-color: #f8f9fa;
+                        border-left: 4px solid #3498db;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="quiz-title">Quiz: {base_name}</div>
+                <div class="quiz-content">{quiz_content.replace('<', '&lt;').replace('>', '&gt;')}</div>
+                
+                <!-- Add trim marker at the end -->
+                <div id='EDUCATIVE_PDF_TRIM_MARKER' style='
+                    position: relative;
+                    width: 100%;
+                    height: 15px;
+                    background: white;
+                    font-size: 14px;
+                    line-height: 15px;
+                    color: black;
+                    opacity: 1;
+                    z-index: 9999;
+                    margin: 5px 0;
+                    padding: 2px;
+                    border: 2px solid black;
+                    display: block;
+                '>EDUCATIVE_TRIM_POINT_MARKER_HERE</div>
+            </body>
+            </html>
+            """
+            
+            temp_html.write(html_content)
+            temp_html.close()
+            
+            # Use the existing PDF generator to convert HTML to PDF
+            pdf_writer = self.pdf_generator.generate_single_pdf(temp_html.name)
+            
+            # Add fallback info (quiz PDFs use standard processing)
+            if not hasattr(pdf_writer, '_fallback_used'):
+                pdf_writer._fallback_used = False
+                pdf_writer._fallback_reason = None
+            
+            # Clean up temp HTML file
+            os.unlink(temp_html.name)
+            
+            print(f"✅ Created quiz PDF from text file")
+            return pdf_writer
+            
+        except Exception as e:
+            print(f"❌ Error creating quiz PDF: {e}")
+            # Fallback to regular HTML processing
+            raise Exception(f"Quiz PDF creation failed: {e}")
     
     def convert_multiple_courses(self, root_directory=None, max_threads=None):
         """Convert multiple courses to separate PDFs"""
