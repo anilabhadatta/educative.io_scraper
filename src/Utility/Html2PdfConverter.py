@@ -848,27 +848,22 @@ class Html2PdfConverter:
             base_name = os.path.splitext(os.path.basename(html_file))[0]
             temp_pdf_path = os.path.join(temp_dir, f"{base_name}.pdf")
             
-            # Check if this is a quiz file and handle differently
-            if self._is_quiz_file(html_file):
-                print(f"[{thread_name}] 📝 Quiz detected: {base_name}")
-                pdf_writer = self._create_quiz_pdf(html_file)
-                
-                with open(temp_pdf_path, "wb") as f:
-                    pdf_writer.write(f)
-            else:
-                browser = browser_manager.get_browser()
-                
-                try:
-                    print(f"[{thread_name}] 🔄 Starting: {base_name}")
-                    
-                    # Generate PDF using shared browser
-                    pdf_writer = self.pdf_generator.generate_single_pdf(html_file, browser)
-                    
+            browser = browser_manager.get_browser()
+            try:
+                # Check if this is a quiz file and handle differently
+                if self._is_quiz_file(html_file):
+                    print(f"[{thread_name}] 📝 Quiz detected: {base_name}")
+                    pdf_writer = self._create_quiz_pdf(html_file, browser)
                     with open(temp_pdf_path, "wb") as f:
                         pdf_writer.write(f)
-                        
-                finally:
-                    browser_manager.return_browser(browser)
+                else:
+                    print(f"[{thread_name}] 🔄 Starting: {base_name}")
+                    # Generate PDF using shared browser
+                    pdf_writer = self.pdf_generator.generate_single_pdf(html_file, browser)
+                    with open(temp_pdf_path, "wb") as f:
+                        pdf_writer.write(f)      
+            finally:
+                browser_manager.return_browser(browser)
             
             topic_number, topic_name = self.topic_extractor.extract_topic_name_and_number(html_file)
             
@@ -911,13 +906,15 @@ class Html2PdfConverter:
             
             # Check if there's a QUIZ folder in the same directory
             quiz_folder = os.path.join(html_folder, 'QUIZ')
+            if not os.path.exists(quiz_folder) or not os.path.isdir(quiz_folder):
+                quiz_folder = os.path.join(html_folder, 'MARKDOWNQUIZ')
             return os.path.exists(quiz_folder) and os.path.isdir(quiz_folder)
             
         except Exception as e:
             print(f"Error checking if quiz file: {e}")
             return False
 
-    def _create_quiz_pdf(self, html_file):
+    def _create_quiz_pdf(self, html_file, browser):
         """Create PDF from quiz text file instead of HTML"""
         import tempfile
         
@@ -926,6 +923,11 @@ class Html2PdfConverter:
             html_folder = os.path.dirname(html_file)
             quiz_folder = os.path.join(html_folder, 'QUIZ')
             
+            if not os.path.exists(quiz_folder) or not os.path.isdir(quiz_folder):
+                quiz_folder = os.path.join(html_folder, 'MARKDOWNQUIZ')
+            
+            print(f"🔍 Looking for quiz text file in: {quiz_folder}")
+
             # Find txt file in QUIZ folder
             txt_file = None
             for file in os.listdir(quiz_folder):
@@ -941,87 +943,87 @@ class Html2PdfConverter:
             # Read the text file
             with open(txt_file, 'r', encoding='utf-8') as f:
                 quiz_content = f.read()
-            
-            # Create temporary HTML file with the quiz content
-            temp_html = tempfile.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8')
-            base_name = os.path.splitext(os.path.basename(html_file))[0]
-            
-            # Generate HTML content with styling
-            html_content = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Quiz: {base_name}</title>
-                <style>
-                    body {{
-                        font-family: Arial, sans-serif;
-                        line-height: 1.6;
-                        margin: 40px;
-                        color: #333;
-                    }}
-                    .quiz-title {{
-                        text-align: center;
-                        font-size: 24px;
-                        font-weight: bold;
-                        margin-bottom: 30px;
-                        color: #2c3e50;
-                        border-bottom: 2px solid #3498db;
-                        padding-bottom: 10px;
-                    }}
-                    .quiz-content {{
-                        font-size: 14px;
-                        white-space: pre-wrap;
-                        word-wrap: break-word;
-                    }}
-                    .question {{
-                        margin-bottom: 20px;
-                        padding: 15px;
-                        background-color: #f8f9fa;
-                        border-left: 4px solid #3498db;
-                    }}
-                </style>
-            </head>
-            <body>
-                <div class="quiz-title">Quiz: {base_name}</div>
-                <div class="quiz-content">{quiz_content.replace('<', '&lt;').replace('>', '&gt;')}</div>
+                        
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.html', mode='w', encoding='utf-8') as temp_html:
+                base_name = os.path.splitext(os.path.basename(html_file))[0]
                 
-                <!-- Add trim marker at the end -->
-                <div id='EDUCATIVE_PDF_TRIM_MARKER' style='
-                    position: relative;
-                    width: 100%;
-                    height: 15px;
-                    background: white;
-                    font-size: 14px;
-                    line-height: 15px;
-                    color: black;
-                    opacity: 1;
-                    z-index: 9999;
-                    margin: 5px 0;
-                    padding: 2px;
-                    border: 2px solid black;
-                    display: block;
-                '>EDUCATIVE_TRIM_POINT_MARKER_HERE</div>
-            </body>
-            </html>
-            """
-            
-            temp_html.write(html_content)
-            temp_html.close()
-            
-            # Use the existing PDF generator to convert HTML to PDF
-            pdf_writer = self.pdf_generator.generate_single_pdf(temp_html.name)
-            
-            # Add fallback info (quiz PDFs use standard processing)
-            if not hasattr(pdf_writer, '_fallback_used'):
-                pdf_writer._fallback_used = False
-                pdf_writer._fallback_reason = None
-            
-            # Clean up temp HTML file
-            os.unlink(temp_html.name)
-            
-            print(f"✅ Created quiz PDF from text file")
-            return pdf_writer
+                # Generate HTML content with styling
+
+                html_content = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Quiz: {base_name}</title>
+                    <style>
+                        body {{
+                            font-family: Arial, sans-serif;
+                            line-height: 1.6;
+                            margin: 40px;
+                            color: #333;
+                        }}
+                        .quiz-title {{
+                            text-align: center;
+                            font-size: 24px;
+                            font-weight: bold;
+                            margin-bottom: 30px;
+                            color: #2c3e50;
+                            border-bottom: 2px solid #3498db;
+                            padding-bottom: 10px;
+                        }}
+                        .quiz-content {{
+                            font-size: 14px;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        }}
+                        .question {{
+                            margin-bottom: 20px;
+                            padding: 15px;
+                            background-color: #f8f9fa;
+                            border-left: 4px solid #3498db;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class="quiz-title">Quiz: {base_name}</div>
+                    <div class="quiz-content">{quiz_content.replace('<', '&lt;').replace('>', '&gt;')}</div>
+                    
+                    <!-- Add trim marker at the end -->
+                    <div id='EDUCATIVE_PDF_TRIM_MARKER' style='
+                        position: relative;
+                        width: 100%;
+                        height: 15px;
+                        background: white;
+                        font-size: 14px;
+                        line-height: 15px;
+                        color: black;
+                        opacity: 1;
+                        z-index: 9999;
+                        margin: 5px 0;
+                        padding: 2px;
+                        border: 2px solid black;
+                        display: block;
+                    '>EDUCATIVE_TRIM_POINT_MARKER_HERE</div>
+                </body>
+                </html>
+                """
+                
+                temp_html.write(html_content)
+                temp_html.close()
+                
+                # Use the existing PDF generator to convert HTML to PDF
+                pdf_writer = self.pdf_generator.generate_single_pdf(temp_html.name, browser)
+                
+                # Add fallback info (quiz PDFs use standard processing)
+                if not hasattr(pdf_writer, '_fallback_used'):
+                    pdf_writer._fallback_used = False
+                    pdf_writer._fallback_reason = None
+                
+                # Clean up temp HTML file
+                os.unlink(temp_html.name)
+                
+                print(f"✅ Created quiz PDF from text file")
+                return pdf_writer
             
         except Exception as e:
             print(f"❌ Error creating quiz PDF: {e}")
