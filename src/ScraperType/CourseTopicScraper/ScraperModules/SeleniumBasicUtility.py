@@ -52,6 +52,7 @@ class SeleniumBasicUtility:
             articlePageSelector = self.selectors["articlePage"]
             generalPageSelector = self.selectors["generalPage"]
             cloudLabOrProjectSelector = self.selectors[f'{self.configJson["moduleType"]}']
+            mockInterviewSelector = self.selectors["mockInterviewPage"]
             try:
                 try:
                     try:
@@ -62,8 +63,12 @@ class SeleniumBasicUtility:
                         WebDriverWait(self.browser, self.timeout+5).until(
                             EC.visibility_of_element_located((By.XPATH, generalPageSelector)))
                 except Exception as e:
-                    WebDriverWait(self.browser, self.timeout + 5).until(
-                        EC.visibility_of_element_located((By.XPATH, cloudLabOrProjectSelector)))
+                    try:
+                        WebDriverWait(self.browser, self.timeout + 5).until(
+                            EC.visibility_of_element_located((By.XPATH, cloudLabOrProjectSelector)))
+                    except Exception as e:
+                        WebDriverWait(self.browser, self.timeout + 5).until(
+                            EC.visibility_of_element_located((By.XPATH, mockInterviewSelector)))
             except Exception as e:
                 lineNumber = e.__traceback__.tb_lineno
                 self.logger.error(f"SeleniumBasicUtility:waitWebdriverToLoadTopicPage: {lineNumber}: {e}")
