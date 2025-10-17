@@ -33,7 +33,8 @@
     "nextButton": "Next",
     "backButton": "Back",
     "expandAllButton": "//button[contains(., 'Expand All')]",
-    "resizeHorizontalGlutter": "div[style*='30%'][style*='calc']"
+    "resizeHorizontalGlutter": "div[style*='30%'][style*='calc']",
+    "mockInterviewPage": "//div[contains(@class, 'learner-mode')]"
   },
   "RemoveUtility": {
     "articleFooter": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]/div[3]",
@@ -46,8 +47,11 @@
     "bodyChildNodes": "body > *",
     "headChildNodes": "head > *",
     "sidebar": "div[aria-label*='toggle sidebar']",
+    "sidebarV2": "nav",
+    "header": "header",
     "fixed": "div[class*='fixed']",
-    "vscodeProjectWindow": "div[class*='gutter gutter-horizontal'] + div"
+    "vscodeProjectWindow": "div[class*='gutter gutter-horizontal'] + div",
+    "prepBanner": "div[class*='PALBanner_container']"
   },
   "ShowUtility": {
     "showMarkDownQuizSolution": "Show Answer",
