@@ -11,6 +11,14 @@ class RemoveUtility:
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["RemoveUtility"]
         self.logger = Logger(configJson, "RemoveUtility").logger
+    
+
+    def removeDialogBoxIfVisible(self):
+        removeDialogScript = '''const dialog = document.querySelector("dialog");
+                                if (dialog) {{
+                                    dialog.click();
+                                }}'''
+        self.browser.execute_script(removeDialogScript)
 
 
     def removeBlurWithCSS(self):
@@ -71,8 +79,8 @@ class RemoveUtility:
     def removeUnwantedElements(self):
         try:
             self.logger.info("Removing unwanted elements")
-            nodesToDelete = [self.selectors["navNode"], self.selectors["privacyNode"], self.selectors["streakNode"],
-                             self.selectors["askQuestionDarkModeToolbar"], self.selectors["sidebar"], self.selectors["fixed"]]
+            nodesToDelete = [self.selectors["navNode"], self.selectors["privacyNode"], self.selectors["streakNode"], self.selectors["prepBanner"],
+                             self.selectors["askQuestionDarkModeToolbar"], self.selectors["sidebar"], self.selectors["fixed"], self.selectors["sidebarV2"], self.selectors["header"]]
             selectors = ", ".join([f'{node}' for node in nodesToDelete])
             removeTagsJsScript = f"""
             var elements = document.querySelectorAll("{selectors}");

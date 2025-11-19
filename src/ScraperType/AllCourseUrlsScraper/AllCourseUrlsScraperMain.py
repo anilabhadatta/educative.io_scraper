@@ -1,7 +1,7 @@
 import json
 import os
 
-import requests
+import cloudscraper
 from bs4 import BeautifulSoup
 from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
@@ -10,6 +10,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from src.Logging.CourseLinkLogger import CourseLinkLogger
 from src.Logging.Logger import Logger
 from src.Logging.TopicLinkLogger import TopicLinkLogger
+from src.Logging.CloudLabLinkLogger import CloudLabLinkLogger
+from src.Logging.ProjectLinkLogger import ProjectLinkLogger
 from src.Utility.BrowserUtility import BrowserUtility
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -18,9 +20,10 @@ from src.Utility.OSUtility import OSUtility
 
 
 class AllCourseUrlsScraper:
-    def __init__(self, configJson):
+    def __init__(self, configJson, progressQueue):
         self.browser = None
         self.proxies = None
+        self.cloudscraper = cloudscraper.create_scraper()
         self.configJson = configJson
         self.logger = Logger(configJson, "ScrapeAllTopicUrls").logger
         self.browserUtils = BrowserUtility(configJson)
@@ -31,28 +34,41 @@ class AllCourseUrlsScraper:
         self.courseLinkLogData = CourseLinkLogger(configJson).loadDataFromLinkLogger()
         self.topicLinkLogger = TopicLinkLogger(configJson).logger
         self.topicLinkLogData = TopicLinkLogger(configJson).loadDataFromLinkLogger()
+        self.cloudLabLinkLogger = CloudLabLinkLogger(configJson).logger
+        self.cloudLabLinkLogData = CloudLabLinkLogger(configJson).loadDataFromLinkLogger()
+        self.projectLinkLogger = ProjectLinkLogger(configJson).logger
+        self.projectLinkLogData = ProjectLinkLogger(configJson).loadDataFromLinkLogger()
+
         if self.configJson["isProxy"]:
             self.proxies = {
                 'http': "http://" + self.configJson["proxy"],
                 'https': "http://" + self.configJson["proxy"],
             }
-        self.logger.info(f"Current IP: {requests.get('https://httpbin.org/ip', proxies=self.proxies).content}")
+        self.logger.info(f"Current IP: {self.cloudscraper.get('https://httpbin.org/ip', proxies=self.proxies).content}")
 
 
     def start(self):
         self.logger.info("Started All Course Urls scraper.")
         try:
             allDataFromEducative = json.loads(
-                requests.get("https://www.educative.io/api/reader/featured_items").content)
+                self.cloudscraper.get("https://www.educative.io/api/reader/featured_items").content)
             allCoursesData = allDataFromEducative["works"]
             allPathsData = allDataFromEducative["tracks"]
+            allCloudLabData = allDataFromEducative["standalone_cloudlabs"]
+            allProjectData = allDataFromEducative["standalone_projects"]
             allCourseLinks = self.generateLinks(allCoursesData, "courses")
             allPathsLinks = self.generateLinks(allPathsData, "paths")
+            allCloudLabLinks = self.generateLinks(allCloudLabData, "cloudlabs")
+            allProjectLinks = self.generateLinks(allProjectData, "projects")
             self.logger.debug(allCourseLinks)
             self.logger.debug(allPathsLinks)
-            self.logger.info(f"Received Course Links {len(allCourseLinks)} and Path Links {len(allPathsLinks)}")
+            self.logger.debug(allCloudLabLinks)
+            self.logger.debug(allProjectLinks)
+            self.logger.info(f"Received Course Links {len(allCourseLinks)} and Path Links {len(allPathsLinks)} and CloudLab Links {len(allCloudLabLinks)} and Project Links {len(allProjectLinks)}")
             self.generateCourseTopicLinks(allCourseLinks)
             self.generatePathTopicLinks(allPathsLinks)
+            self.generateCloudLabLinks(allCloudLabLinks)
+            self.generateProjectLinks(allProjectLinks)
             self.logger.info("Completed Scraping Topic Urls")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
@@ -66,10 +82,13 @@ class AllCourseUrlsScraper:
                 url = "courses/" + data["course_url_slug"] if ("course_url_slug" in data and
                        data["course_url_slug"]) else "collection/" + str(data["author_id"]) + "/" + str(data["id"])
                 url = ["https://www.educative.io/" + url]
-            else:
+            elif type == "paths":
                 url = "path/" + data["course_url_slug"] if ("course_url_slug" in data and
                        data["course_url_slug"]) else "collection/" + str(data["author_id"]) + "/" + str(data["id"])
                 url = ["https://www.educative.io/" + url, data['module_count'], data['work_titles']]
+            else:
+                url = ["https://www.educative.io/" + type + "/" + data["url_slug"]]
+                
             self.logger.debug(url)
             links.append(url)
         return links
@@ -82,7 +101,7 @@ class AllCourseUrlsScraper:
                     self.logger.info(f"Skipping {courseLink[0]}")
                     continue
                 self.logger.info(f"Getting Topic url for Course url: {courseLink[0]}")
-                response = requests.get(courseLink[0], proxies=self.proxies)
+                response = self.cloudscraper.get(courseLink[0], proxies=self.proxies)
                 if response.status_code == 200:
                     if 'Page Not Found!' in response.text or "Looks like there's been a glitch..." in response.text:
                         raise Exception(f"Page not Found Error on course url: {courseLink[0]}")
@@ -99,6 +118,30 @@ class AllCourseUrlsScraper:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"generateCourseTopicLinks: {lineNumber}: {e}")
+    
+
+    def generateCloudLabLinks(self, allCloudLabLinks):
+        try:
+            for cloudLabLink in allCloudLabLinks:
+                if cloudLabLink[0] in self.cloudLabLinkLogData:
+                    self.logger.info(f"Skipping {cloudLabLink[0]}")
+                    continue
+                self.cloudLabLinkLogger.info(cloudLabLink[0])
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"generateCloudLabLinks: {lineNumber}: {e}")
+
+        
+    def generateProjectLinks(self, allProjectLinks):
+        try:
+            for projectLink in allProjectLinks:
+                if projectLink[0] in self.projectLinkLogData:
+                    self.logger.info(f"Skipping {projectLink[0]}")
+                    continue
+                self.projectLinkLogger.info(projectLink[0])
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"generateProjectLinks: {lineNumber}: {e}")
 
 
     def generatePathTopicLinks(self, allPathsLinks):

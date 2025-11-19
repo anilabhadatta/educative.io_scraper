@@ -29,7 +29,13 @@ class ApiUtility:
         self.logger.info(f"Executing JS to get JSON from URL")
         apiJsonScript = f"""
             return new Promise((resolve, reject) => {{
-                fetch("{url}")
+                fetch("{url}", {{
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {{
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+                    }}
+                }})
                     .then(response => response.json())
                     .then(data => {{
                         resolve(data);
@@ -101,13 +107,13 @@ class ApiUtility:
             courseTitle = jsonData["title"]
             topicApiUrlList = []
             topicNameList = []
-            baseApiUrl = f"https://educative.io/api/collection/{authorId}/{collectionId}/page/"
-            categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT", "CLOUD_LAB"]
+            baseApiUrl = f"https://www.educative.io/api/collection/{authorId}/{collectionId}/page/"
+            categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT", "CLOUD_LAB", "LINKED_MOCK_INTERVIEW"]
             topicIdx = 0
             toc = []
             for category in categories:
                 if any(cType in category["type"] for cType in categoryType) and (
-                        isinstance(category["id"], int) or len(category["id"]) <= 10):
+                        isinstance(category["id"], int) or len(category["id"]) <= 10 or category["type"] in ("LINKED_MOCK_INTERVIEW")):
                     if not category["pages"]:
                         topicApiUrl = baseApiUrl + str(category["id"]) + f"?work_type={courseType}"
                         topicApiUrlList.append(topicApiUrl)
@@ -209,20 +215,59 @@ class ApiUtility:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseUrl: {lineNumber}: {e}")
 
-
     def getNextData(self):
         try:
-            self.logger.info(f"Getting Next Data")
+            self.logger.info(f"Could not find authorid, collectionid, trying to get Next Data")
             nextDataSelector = self.selectors["nextData"]
             nextDataScript = f"""
             return JSON.parse(document.querySelectorAll("{nextDataSelector}")[0].textContent);
-            """
+                            """
             nextData = self.browser.execute_script(nextDataScript)
+            nextData = nextData["query"]
+            self.logger.info(f"Found Next Data")
             courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(nextData)
             return courseApiUrl
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getNextData: {lineNumber}: {e}")
+
+    def getAuthorAndCollectionId(self):
+        try:
+            self.logger.info(f"Getting AuthorAndCollectionId")
+            try:
+                authorAndCollectionIdScript = f"""
+                                        const resultMap = {{}};
+                                        this.__next_f.forEach(entry => {{
+                                        if (!Array.isArray(entry) || typeof entry[1] !== 'string') return;
+
+                                        const text = entry[1];
+
+                                        // Regular expression to match the author_id and collection_id
+                                        const authorMatch = text.match(/["']?author[_I]d["']?:["']?(\d+)["']?/i);
+                                        const collectionMatch = text.match(/["']?collection[_I]d["']?:["']?(\d+)["']?/i);
+
+                                        if (authorMatch && collectionMatch) {{
+                                            const authorId = String(authorMatch[1]);
+                                            const collectionId = String(collectionMatch[1]);
+                                            
+                                            // Add the extracted data to the map
+                                            resultMap['authorId'] = authorId;
+                                            resultMap['collectionId'] = collectionId;
+                                        }}
+                                        }});
+                                        console.log('Printing resultMap');
+                                        console.log(resultMap);
+                                        return resultMap;
+                """
+                resMap = self.browser.execute_script(authorAndCollectionIdScript)
+                self.logger.info(f"Found AuthorAndCollectionId {resMap}")
+                courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(resMap)
+            except:
+                courseApiUrl = self.getNextData()
+            return courseApiUrl
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getAuthorAndCollectionId: {lineNumber}: {e}")
 
 
     def getPathFolderName(self):

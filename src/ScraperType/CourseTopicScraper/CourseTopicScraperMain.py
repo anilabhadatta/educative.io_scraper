@@ -21,7 +21,7 @@ from src.Utility.FileUtility import FileUtility
 from src.Utility.OSUtility import OSUtility
 
 class CourseTopicScraper:
-    def __init__(self, configJson):
+    def __init__(self, configJson, progressQueue):
         self.browser = None
         self.configJson = configJson
         self.outputFolderPath = self.configJson["saveDirectory"]
@@ -43,13 +43,18 @@ class CourseTopicScraper:
         self.networkMonitor = NetworkMonitor(self.configJson)
         selectorPath = os.path.join(os.path.dirname(__file__), "ScraperModules", "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["CourseTopicScraper"]
+        self.progressQueue = progressQueue
 
 
     def start(self):
         self.logger.info("CourseTopicScraper initiated...")
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
-        for textFileUrl in urlsTextFile:
+        self.progressQueue.put(("progress-topic", 0))
+        self.progressQueue.put(("progress-course", 0))
+        self.progressQueue.put(("max-course", len(urlsTextFile)))
+        for textFileIdx, textFileUrl in enumerate(urlsTextFile):
             try:
+                self.progressQueue.put(("progress-course", textFileIdx+1))
                 if "?showContent=true" not in textFileUrl:
                     textFileUrl += "?showContent=true"
                 self.logger.info(f"Started Scraping from Text File URL: {textFileUrl}")
@@ -57,7 +62,10 @@ class CourseTopicScraper:
                 self.apiUtils.browser = self.browser
                 self.loginUtils.browser = self.browser
                 self.browser.set_window_size(1920, 1080)
-                self.scrapeCourse(textFileUrl)
+                if self.configJson["moduleType"] == "COURSE-PATH":
+                    self.scrapeCourseOrPath(textFileUrl)
+                if self.configJson["moduleType"] in ("CLOUDLAB", "PROJECT"):
+                    self.scrapeCloudLabOrProject(textFileUrl)
                 asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
             except Exception as e:
                 asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
@@ -85,10 +93,10 @@ class CourseTopicScraper:
         self.logger.info("CourseTopicScraper Manual completed.")
 
 
-    def scrapeCourse(self, textFileUrl):
+    def scrapeCourseOrPath(self, textFileUrl):
         try:
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
-            courseApiUrl = self.apiUtils.getNextData()
+            courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
             topicUrlsList, pathFolderName = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
             startIndex = topicUrlsList.index(textFileUrl) if textFileUrl in topicUrlsList else 0
             self.loginUtils.checkIfLoggedIn()
@@ -115,8 +123,10 @@ class CourseTopicScraper:
             self.fileUtils.createFolderIfNotExists(coursePath)
             TOCUtility.serializeTocAndStore(courseCollectionsJson["courseTitle"], courseUrl, coursePath,
                                             courseCollectionsJson["toc"], topicUrlsList)
+            self.progressQueue.put(("max-topic", topicUrlsListLen))
 
             for topicIndex in range(startIndex, topicUrlsListLen):
+                self.progressQueue.put(("progress-topic", topicIndex+1))
                 topicUrl = topicUrlsList[topicIndex]
                 topicApiUrl = topicApiUrlList[topicIndex]
                 filenameSlugified = self.fileUtils.filenameSlugify(topicApiNameList[topicIndex])
@@ -128,30 +138,92 @@ class CourseTopicScraper:
                 topicApiContentJson = self.apiUtils.getTopicApiContentJson(topicApiUrl)
                 if not topicApiContentJson:
                     url = topicUrl.split("/")
-                    if not (url[-1] in ["assessment?showContent=true", "cloudlab?showContent=true", "project?showContent=true"]):
+                    if not (url[-1] in ["assessment?showContent=true", "cloudlab?showContent=true", "project?showContent=true", "mock-interview?showContent=true"]):
                         raise Exception("Cannot fetch content from Topic Api Url")
                 self.osUtils.sleep(10)
                 self.scrapeTopic(coursePath, topicName, topicApiContentJson, topicUrl)
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CourseTopicScraper:scrapeCourse: {lineNumber}: {e}")
+        
+
+    def scrapeCloudLabOrProject(self, textFileUrl):
+        try:
+            self.browser.get(textFileUrl)
+            self.osUtils.sleep(5)
+            self.seleniumBasicUtils.browser = self.browser
+            self.seleniumBasicUtils.clickStartCloudlabsOrProject()
+            self.seleniumBasicUtils.clickEndLabForCloudlabs()
+            
+            self.logger.info("Finding Sidebar topics")
+            sideBarTopicsSelector = self.selectors["sideBarTopics"][f'{self.configJson["moduleType"]}']
+            sideBarTopicsJsScript = f"""return document.querySelectorAll("{sideBarTopicsSelector}");"""
+            sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
+            
+            highlightedTopicProp = self.selectors["highlightedTopic"][f'{self.configJson["moduleType"]}']
+            self.progressQueue.put(("max-topic", len(sideBarTopics)))
+            for highlightedTopicIdx in range(len(sideBarTopics)):
+                self.progressQueue.put(("progress-topic", highlightedTopicIdx+1))
+                sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
+                highlightedTopicJsScript = f"""return arguments[0].getAttribute("class").search("{highlightedTopicProp}") !== -1"""
+                highlightedTopic = self.browser.execute_script(highlightedTopicJsScript, sideBarTopics[highlightedTopicIdx])
+
+                if highlightedTopic:
+                    courseHeaderSelector = self.selectors["courseHeader"][f'{self.configJson["moduleType"]}']
+                    courseHeaderJsScript = f"""return document.querySelectorAll("{courseHeaderSelector}")[0].innerText;"""
+                    courseName = self.browser.execute_script(courseHeaderJsScript)
+                    folderNameSlugified = self.fileUtils.filenameSlugify(courseName)
+                    currentPath = os.path.join(self.outputFolderPath, folderNameSlugified)
+
+                    topicHeaderSelector = self.selectors["topicHeader"][f'{self.configJson["moduleType"]}']
+                    topicHeaderJsScript = f"""return document.querySelectorAll("{topicHeaderSelector}")[0].innerText;"""
+                    topicName = self.browser.execute_script(topicHeaderJsScript)
+                    filenameSlugified = self.fileUtils.filenameSlugify(topicName)
+                    topicName = f"{highlightedTopicIdx:03}-{filenameSlugified}"
+                    self.logger.info(f"Scraping topic: {courseName}/{topicName}")
+
+                    topicUrl = self.browser.current_url
+                    self.logger.info(f"""----------------------------------------------------------------------------------
+                                    Scraping Topic: {topicName}: {topicUrl}
+                                    """)
+                    extraArgs = {"removeVScodeProjectWindow" : True, "resizeHorizontalGlutter": True}
+                    self.scrapeTopic(currentPath, topicName, None, topicUrl, extraArgs)
+
+                    if highlightedTopicIdx + 1 < len(sideBarTopics):
+                        clickNextTopicJSScript = f"""arguments[0].click()"""
+                        sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
+                        self.browser.execute_script(clickNextTopicJSScript, sideBarTopics[highlightedTopicIdx + 1])
+                        self.osUtils.sleep(10)
+                    else:
+                        break
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"CourseTopicScraper:scrapeCloudLabOrProject: {lineNumber}: {e}")
+
 
     def scrapeTopicManual(self):
         try:
-            sideBarTopicsSelector = self.selectors["sideBarTopics"][f'{self.selectors["sideBarTopicsCourseType"]}']
+            sideBarTopicsSelector = self.selectors["sideBarTopics"][f'{self.configJson["moduleType"]}']
             sideBarTopicsJsScript = f"""return document.querySelectorAll("{sideBarTopicsSelector}");"""
             sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
 
-            highlightedTopicProp = self.selectors["highlightedTopic"][f'{self.selectors["highlightedTopicCourseType"]}']
+            highlightedTopicProp = self.selectors["highlightedTopic"][f'{self.configJson["moduleType"]}']
             for highlightedTopicIdx in range(len(sideBarTopics)):
                 sideBarTopics = self.browser.execute_script(sideBarTopicsJsScript)
                 highlightedTopicJsScript = f"""return arguments[0].getAttribute("class").search("{highlightedTopicProp}") !== -1"""
                 highlightedTopic = self.browser.execute_script(highlightedTopicJsScript, sideBarTopics[highlightedTopicIdx])
 
                 if highlightedTopic:
-                    courseHeaderSelector = self.selectors["courseHeader"][f'{self.selectors["courseHeaderCourseType"]}']
+                    courseHeaderSelector = self.selectors["courseHeader"][f'{self.configJson["moduleType"]}']
                     courseHeaderJsScript = f"""return document.querySelectorAll("{courseHeaderSelector}")[0].innerText;"""
-                    topicName = self.browser.execute_script(courseHeaderJsScript)
+                    courseName = self.browser.execute_script(courseHeaderJsScript)
+                    folderNameSlugified = self.fileUtils.filenameSlugify(courseName)
+                    currentPath = os.path.join(self.outputFolderPath, folderNameSlugified)
+
+                    topicHeaderSelector = self.selectors["topicHeader"][f'{self.configJson["moduleType"]}']
+                    topicHeaderJsScript = f"""return document.querySelectorAll("{topicHeaderSelector}")[0].innerText;"""
+
+                    topicName = self.browser.execute_script(topicHeaderJsScript)
                     filenameSlugified = self.fileUtils.filenameSlugify(topicName)
                     topicName = f"{highlightedTopicIdx:03}-{filenameSlugified}"
                     topicUrl = self.browser.current_url
@@ -159,7 +231,7 @@ class CourseTopicScraper:
                                     Scraping Topic: {topicName}: {topicUrl}
                                     """)
                     extraArgs = {"removeVScodeProjectWindow" : True, "resizeHorizontalGlutter": True}
-                    self.scrapeTopic(self.outputFolderPath, topicName, None, topicUrl, extraArgs)
+                    self.scrapeTopic(currentPath, topicName, None, topicUrl, extraArgs)
 
                     if self.configJson["autonext"] and highlightedTopicIdx + 1 < len(sideBarTopics):
                         clickNextTopicJSScript = f"""arguments[0].click()"""
@@ -172,6 +244,7 @@ class CourseTopicScraper:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"CourseTopicScraper:scrapeTopicManual: {lineNumber}: {e}")
+        
 
     def scrapeTopic(self, coursePath, topicName, topicApiContentJson, topicUrl, extraArgs=dict()):
         try:
@@ -200,7 +273,7 @@ class CourseTopicScraper:
                     self.browser.close()
 
                     self.browser.switch_to.window(newWindow)
-                    self.singleFileUtils.injectSingleFileViaCDP()
+                    # self.singleFileUtils.injectSingleFileViaCDP()
                     self.browser.get(topicUrl)
                 except:
                     self.logger.info("Page Loading Issue, pressing ESC to stop page load")
@@ -217,12 +290,14 @@ class CourseTopicScraper:
                 self.removeUtils.removeVScodeProjectWindow()
             self.seleniumBasicUtils.addNameAttributeInNextBackButton()
             self.browserUtils.scrollPage()
+            self.removeUtils.removeDialogBoxIfVisible()
             self.removeUtils.removeBlurWithCSS()
             self.removeUtils.removeMarkAsCompleted()
             self.removeUtils.removeUnwantedElements()
             self.showUtils.showSingleMarkDownQuizSolution()
             self.showUtils.showCodeSolutions()
             self.showUtils.showHints()
+            self.showUtils.showHintsV2()
             self.showUtils.showSlides()
             self.browserUtils.setWindowSize()
             self.browserUtils.scrollPage()
@@ -230,9 +305,12 @@ class CourseTopicScraper:
             if self.configJson["scrapingMethod"] == "SingleFile-HTML":
                 if self.configJson["fileType"] == "html":
                     self.singleFileUtils.fixAllObjectTags()
-                    self.singleFileUtils.injectSingleFileScripts()
                     self.singleFileUtils.makeCodeSelectable()
-                    pageData = self.singleFileUtils.getSingleFileHtml()
+                    if not self.configJson["useExtension"]:
+                        self.singleFileUtils.injectSingleFileScriptsV1()
+                        pageData = self.singleFileUtils.getSingleFileHtmlV1()
+                    if self.configJson["useExtension"]:
+                        pageData = self.singleFileUtils.getSingleFileHtmlV2()
                 elif self.configJson["fileType"] == "html2pdf":
                     pageData = self.printFileUtils.printPdfAsCdp(topicName)
             if not pageData:

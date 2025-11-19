@@ -59,7 +59,7 @@ class ScreenshotUtility:
             retry = 0
             while retry < 2:
                 try:
-                    screenshot = self.seleniumBasicUtils.sendCommand("Page.captureScreenshot", params)
+                    screenshot = self.browser.execute_cdp_cmd("Page.captureScreenshot", params)
                     base64ImgTag = f'''<img style="max-width: 140%; display: block; margin-left: auto; margin-right: auto;" src="data:image/png;base64,{screenshot["data"]}">'''
                     self.logger.info("Successfully captured Screenshot")
                     self.osUtils.sleep(2)

@@ -96,6 +96,32 @@ class ShowUtility:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ShowUtility:showHints: {lineNumber}: {e}")
+    
+
+    def showHintsV2(self):
+        try:
+            self.logger.info("Showing hintsV2")
+            showHintSelector = self.selectors["showHintsV2"]
+            showHintJsScript = f"""
+            var gs = document.querySelectorAll("{showHintSelector}");
+            var count = 0;
+            gs.forEach(g => {{
+                var button = g.closest('svg').parentNode;
+                if(button.disabled === false) {{
+                  button.click();
+                  button.disabled = true;
+                  count++;
+            }}}});
+            return count;
+            """
+            isPresent = self.browser.execute_script(showHintJsScript)
+            if isPresent <= 0:
+                self.logger.info("No hints found")
+            else:
+                self.osUtils.sleep(2)
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ShowUtility:showHintsV2: {lineNumber}: {e}")
 
 
     def showSlides(self):
@@ -115,9 +141,75 @@ class ShowUtility:
             return count;
             """
             isPresent = self.browser.execute_script(showSlideJsScript)
-            if isPresent <= 0:
+
+            showSlidesV2JsScript = """
+            // Helper to pause for a given number of milliseconds
+            function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+            }
+            
+            const callback = arguments[0];
+            (async function() {
+            let canvasCount = 0;
+            // Find all divs with id containing "widget-parent-"
+            const widgetParents = Array.from(document.querySelectorAll('div[id*="widget-parent"]'));
+
+            for (let i = 0; i < widgetParents.length; i++) {
+                const parent = widgetParents[i];
+
+                // Find content-secondary span inside this parent
+                const contentSecondary = parent.querySelector('span[class*="content-secondary"]');
+                let extractedNumber = null;
+
+                let canvases = parent.querySelectorAll("div[class*='viewer_canvas']");
+
+                if (contentSecondary) {
+                const text = contentSecondary.textContent;
+                extractedNumber = parseInt(text.replace(/[^0-9]/g, ''), 10);
+                }
+
+                // Output for each widget-parent-
+                console.log(`widget-parent- #${i + 1}:`);
+                console.log(`  extracted number from content-secondary span: ${extractedNumber}`);
+
+                // If extracted number is found, run click sequence
+                if (canvases.length > 0 && extractedNumber !== null && !isNaN(extractedNumber)) {
+                for (let n = 0; n < extractedNumber; n++) {
+                    // Find all next-slide buttons inside this parent (each loop re-queries in case DOM updates)
+                    const nextButtons = Array.from(parent.querySelectorAll('button[data-testid="canvas-animation-next-slide"]:not(:disabled)'));
+                    if (nextButtons.length > 0) {
+                    // Click only the first enabled button each time
+                    console.log(`Clicking button #${n + 1} in widget-parent- #${i + 1}`);
+                    nextButtons[0].click();
+                    await sleep(500); // 1 second delay after each click
+                    } else {
+                    console.log(`No enabled next button found on iteration ${n + 1} in widget-parent- #${i + 1}. Stopping.`);
+                    break;
+                    }
+                }
+                canvasCount++;
+                }
+
+                canvases = parent.querySelectorAll("div[class*='viewer_canvas']");
+
+                // For each canvas, change the style of its parent element
+                canvases.forEach((canvas, i) => {
+                const parent = canvas.parentElement.parentElement;
+                if (parent) {
+                    parent.style.setProperty('display', 'block', 'important');
+                    console.log(`Changed parent style for canvas #${i + 1}`);
+                }
+                });
+                
+            }
+            callback(canvasCount);
+            })();
+            """
+            isPresentV2 = self.browser.execute_async_script(showSlidesV2JsScript)
+            if (isPresent and isPresent <= 0) or (isPresentV2 and isPresentV2 <= 0):
                 self.logger.info("No slides found")
             else:
+                self.logger.info("Scrolling page to load all slides")
                 self.browserUtils.browser = self.browser
                 self.browserUtils.scrollPage()
                 self.osUtils.sleep(10)

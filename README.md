@@ -12,10 +12,14 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v3.8.0 (Recommended)
+Repository Version: v4.0.2 (Recommended)
 Master Branch: v3-master</code></pre>
 ```
 1. Updates Information
+-  Added Html2PdfConverter (v4.0.0+)
+-  Add terminal mode feature - Run `python EducativeScraper.py --help` for details (v3.9.5)
+-  Single file implementation changed - uses extension to get page data. (v3.9.1)
+-  Cloudlabs, Projects can now be scraped using Auto/Manual Scraper (v3.9.0) 
 -  SandPack code container support added
 -  SingleFile injection script now uses single-file-cli logic instead of custom (v3.7.4) 
 -  Injectes SingleFile through Local. Script faster by 10 seconds per topic, fixes Iframe (v3.7.3)
@@ -77,7 +81,11 @@ cd educative.io_scraper
       python -m venv env <or> virtualenv env
       env\Scripts\activate
       pip install -r requirements.txt
-      python EducativeScraper.py
+      
+      python EducativeScraper.py                 (For UI)
+      python EducativeScraper.py --loginbrowser  (Open browser for login to account)
+      python EducativeScraper.py --terminal      (For Terminal)
+      python EducativeScraper.py --help          (For Config and Help info)
       ```
     - #### MacOS/Linux:
       ```
@@ -85,11 +93,17 @@ cd educative.io_scraper
       python3 -m venv env <or> virtualenv env
       source env/bin/activate
       pip3 install -r requirements.txt
-      python3 EducativeScraper.py
+      
+      python3 EducativeScraper.py                 (For UI)
+      python3 EducativeScraper.py --loginbrowser  (Open browser for login to account)
+      python3 EducativeScraper.py --terminal      (For Terminal)
+      python3 EducativeScraper.py --help          (For Config and Help info)
       ```
+    - #### Run the help command to learn about config setup for terminal based scraping before starting the scraper
+
       <div align="center">
          <figure>
-            <img src="https://github.com/anilabhadatta/educative.io_scraper/assets/48487849/8d2fc780-dd82-43b5-8c8c-c58b6c2213b9" style="width: 50%; height:50%;">
+            <img src="https://github.com/user-attachments/assets/52e81b18-356e-4d9a-bd75-24bd032f4280" style="width: 50%; height:50%;">
             <br>
             <figcaption>Recommeded GUI Settings</figcaption>
          </figure>
@@ -139,3 +153,13 @@ cd educative.io_scraper
       </div>
     - An index is `NOT` required in the URL's text file, Simply paste the URLs of the topic from which you
       want to start/resume scraping.
+    - Added new function to auto scraper
+         - Can automatically scrape Cloudlabs and Projects links added in text file.
+         - Select ModuleType [CLOUDLABS/PROJECTS/COURSE-PATH]
+    - Added Manual Scraper Button (Used to scrap a specific topic opening in the browser)
+         - Important: Disable Seleniumbase checkbox for this. 
+         - Open the the browser using Login/Open Browser, Search for a topic in the opened tab. 
+         - AutoNext checkbox will work only with Manual Scraper. This will automatically scrape consecutive topics and will finish at the end of the topic of that specific course.
+         - To stop, click on close browser.
+         - Cloudlabs/Projects can be scraped using this.
+         - Change configuration as per topic type in UI field: ModuleType

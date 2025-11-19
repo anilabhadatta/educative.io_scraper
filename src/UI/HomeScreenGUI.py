@@ -6,7 +6,7 @@ import threading
 import tkinter as tk
 import tkinter.filedialog
 from tkinter import ttk
-
+import queue 
 import psutil
 from PIL import Image, ImageTk
 
@@ -32,6 +32,12 @@ class HomeScreen:
         self.checkboxes = []
 
         self.app = tk.Tk()
+        style = ttk.Style(self.app)
+        style.theme_use('clam')
+
+        # Define styles with different colors
+        style.configure("green.Horizontal.TProgressbar", troughcolor='white', background='#28a745')
+        style.configure("red.Horizontal.TProgressbar", troughcolor='white', background='#dc3545')
         imagePath = os.path.join(constants.commonFolderPath, "icon.gif")
         pilImage = Image.open(imagePath)
         self.app.iconphoto(True, ImageTk.PhotoImage(pilImage))
@@ -51,6 +57,8 @@ class HomeScreen:
         self.proxyVar = tk.StringVar()
         self.loggingLevelVar = tk.StringVar()
         self.loggingLevels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "NOTSET"]
+        self.moduleTypeVar = tk.StringVar()
+        self.moduleTypes = ["COURSE-PATH", "CLOUDLAB", "PROJECT"]
         self.logLevelDesc = {
             "DEBUG": "Detailed info for debugging.",
             "INFO": "Confirmation of expected functionality.",
@@ -68,7 +76,8 @@ class HomeScreen:
 
         self.fileUtil = FileUtility()
         self.downloadUtil = DownloadUtility()
-        self.progressVar = tk.DoubleVar()
+        self.topicProgressVar = tk.DoubleVar()
+        self.courseProgressVar = tk.DoubleVar()
         self.configUtil = ConfigUtility()
         self.loadDefaultConfig()
         self.logLevelDescVar = tk.StringVar(value=self.configJson['logger'])
@@ -79,6 +88,10 @@ class HomeScreen:
 
 
     def onConfigChange(self, *args):
+        # if self.moduleTypeVar.get() != "COURSE-PATH":
+        #     # AUTO RESUME AND AUTO FIX CURRENTLY DISABLED FOR CLOUDLAB AND PROJECTS
+        #     self.autoFixTextFile.set(value=False)
+        #     self.autoResumeScraper.set(value=False)
         self.createConfigJson()
         self.updateTextFromLog = UpdateTxtFileFromLog(self.configJson)
         self.logger = Logger(self.configJson, "HomeScreen").logger
@@ -116,31 +129,14 @@ class HomeScreen:
 
     def createHomeScreen(self, version):
         self.logger = Logger(self.configJson, "HomeScreen").logger
-        if hasattr(self.loggingLevelVar, "trace_add"):
-            self.loggingLevelVar.trace_add("write", self.onConfigChange)
-        else:
-            self.loggingLevelVar.trace("w", self.onConfigChange)
-
-        if hasattr(self.saveDirectoryVar, "trace_add"):
-            self.saveDirectoryVar.trace_add("write", self.onConfigChange)
-        else:
-            self.saveDirectoryVar.trace("w", self.onConfigChange)
-
-        if hasattr(self.logLevelDescVar, "trace_add"):
-            self.logLevelDescVar.trace_add("write", self.onConfigChange)
-        else:
-            self.logLevelDescVar.trace("w", self.onConfigChange)
-
-        if hasattr(self.scrapingMethodVar, "trace_add"):
-            self.scrapingMethodVar.trace_add("write", self.updateComboboxStates)
-        else:
-            self.scrapingMethodVar.trace("w", self.updateComboboxStates)
-        
-        if hasattr(self.scraperTypeVar, "trace_add"):
-            self.scraperTypeVar.trace_add("write", self.updateComboboxStates)
-        else:
-            self.scraperTypeVar.trace("w", self.updateComboboxStates)
-
+        self.loggingLevelVar.trace("w", self.onConfigChange)
+        self.moduleTypeVar.trace("w", self.onConfigChange)
+        self.saveDirectoryVar.trace("w", self.onConfigChange)
+        self.logLevelDescVar.trace("w", self.onConfigChange)
+        self.scrapingMethodVar.trace("w", self.updateComboboxStates)
+        self.scraperTypeVar.trace("w", self.updateComboboxStates)
+        self.autoFixTextFile.trace("w", self.onConfigChange)
+        self.autoResumeScraper.trace("w", self.onConfigChange)
         self.logger.info("Creating Home Screen...")
 
         configFilePathFrame = tk.Frame(self.app)
@@ -176,6 +172,13 @@ class HomeScreen:
         loggingLevelCombobox.grid(row=3, column=1, sticky="w", padx=0, pady=5)
         self.logDescriptionLabel = tk.Label(scraperOptionFrame, text=self.logLevelDesc[self.logLevelDescVar.get()])
         self.logDescriptionLabel.grid(row=3, column=2, sticky="w", padx=2, pady=2)
+
+        moduleTypeLabel = tk.Label(scraperOptionFrame, text="Module Type:")
+        moduleTypeLabel.grid(row=4, column=0, sticky="w", padx=2, pady=0)
+        moduleTypeCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.moduleTypeVar,
+                                            values=self.moduleTypes, state="readonly", width=30)
+        moduleTypeCombobox.grid(row=4, column=1, sticky="w", padx=0, pady=5)
+
         ToolDescriptionLabel0 = tk.Label(scraperOptionFrame, text="About: Educative Scraper")
         ToolDescriptionLabel1 = tk.Label(scraperOptionFrame, text=version)
         ToolDescriptionLabel2 = tk.Label(scraperOptionFrame, text="Developed by Anilabha Datta")
@@ -255,9 +258,9 @@ class HomeScreen:
         #                                          command=self.startChromeDriver, width=19, state="disabled")
         self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Manual Scraper",
                                                  command=self.startManualScraper, width=19)
-        self.loginAccountButton = tk.Button(buttonScraperFrame, text="Login Account", command=self.loginAccount,
+        self.loginAccountButton = tk.Button(buttonScraperFrame, text="Login/Open Browser", command=self.loginAccount,
                                             width=20)
-        self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Scraper", command=self.startScraper,
+        self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Auto Scraper", command=self.startScraper,
                                             width=19)
         self.checkButtonStateVar.set(self.startScraperButton['state'])
 
@@ -278,12 +281,22 @@ class HomeScreen:
         self.terminateProcessButton.grid(row=2, column=1, sticky="w", padx=2, pady=3)
         buttonScraperFrame.pack(pady=4, padx=100, anchor="center")
 
-        progressBarFrame = tk.Frame(self.app)
-        downloadProgressLabel = tk.Label(progressBarFrame, text="Download Progress:")
-        progressBar = ttk.Progressbar(progressBarFrame, length=380, mode="determinate", variable=self.progressVar)
+        topicProgressBarFrame = tk.Frame(self.app)
+        downloadProgressLabel = tk.Label(topicProgressBarFrame, text="Topic Progress:")
+        self.topicProgressBar = ttk.Progressbar(topicProgressBarFrame, length=380, mode="determinate", variable=self.topicProgressVar, style="green.Horizontal.TProgressbar")
         downloadProgressLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
-        progressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        progressBarFrame.pack(pady=3)
+        self.topicProgressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        topicProgressBarFrame.pack(pady=3)
+
+        courseProgressBarFrame = tk.Frame(self.app)
+        downloadProgressLabel = tk.Label(courseProgressBarFrame, text="Course Progress:")
+        self.courseProgressBar = ttk.Progressbar(courseProgressBarFrame, length=380, mode="determinate", variable=self.courseProgressVar, style="green.Horizontal.TProgressbar")
+        downloadProgressLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
+        self.courseProgressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
+        courseProgressBarFrame.pack(pady=3)
+
+        self.progressQueue = multiprocessing.Queue()
+        self.updateProgress()
 
         self.updateComboboxStates()
         self.fixGeometry()
@@ -291,6 +304,30 @@ class HomeScreen:
         self.logger.debug("createHomeScreen completed")
         self.app.protocol("WM_DELETE_WINDOW", self.onClosingWindow)
         self.app.mainloop()
+
+
+    def updateProgress(self):
+        try:
+            while True:
+                msgType, value = self.progressQueue.get_nowait()
+                if msgType == "max-topic":
+                    self.topicProgressBar.config(maximum=value)
+                elif msgType == "progress-topic":
+                    self.topicProgressVar.set(value)
+                elif msgType == "max-course":
+                    self.courseProgressBar.config(maximum=value)
+                elif msgType == "progress-course":
+                    self.courseProgressVar.set(value)
+                elif msgType == "color" and value == "red":
+                    self.topicProgressBar.config(style="red.Horizontal.TProgressbar")
+                    self.courseProgressBar.config(style="red.Horizontal.TProgressbar")
+                elif msgType == "color" and value == "green":
+                    self.topicProgressBar.config(style="green.Horizontal.TProgressbar")
+                    self.courseProgressBar.config(style="green.Horizontal.TProgressbar")
+        except queue.Empty:
+            pass
+
+        self.app.after(100, self.updateProgress)
 
 
     def onClosingWindow(self):
@@ -354,6 +391,7 @@ class HomeScreen:
         self.courseUrlsFilePathVar.set(self.config['courseUrlsFilePath'])
         self.saveDirectoryVar.set(self.config['saveDirectory'])
         self.loggingLevelVar.set(self.config['logger'])
+        self.moduleTypeVar.set(self.config['moduleType'])
         self.isProxyVar.set(self.config['isProxy'])
         self.proxyVar.set(self.config['proxy'])
         self.fileTypeVar.set(self.config["fileType"])
@@ -372,6 +410,7 @@ class HomeScreen:
             'courseUrlsFilePath': self.courseUrlsFilePathVar.get(),
             'saveDirectory': self.saveDirectoryVar.get(),
             'logger': self.loggingLevelVar.get(),
+            'moduleType': self.moduleTypeVar.get(),
             'isProxy': self.isProxyVar.get(),
             'proxy': self.proxyVar.get(),
             'scraperType': self.scraperTypeVar.get(),
@@ -382,7 +421,8 @@ class HomeScreen:
             'autoresume': self.autoResumeScraper.get(),
             'autofixtextfile': self.autoFixTextFile.get(),
             'blockscraper': self.config["blockscraper"],
-            'autonext': self.autoNextVar.get()
+            'autonext': self.autoNextVar.get(),
+            'useExtension': self.config["useExtension"]
         }
 
 
@@ -396,7 +436,7 @@ class HomeScreen:
             if self.configJson['autofixtextfile'] and not self.updateTextFromLog.updateTextFileFromLogMain():
                 self.logger.info("No URL found in log file. Starting Scraper from first url...")
         startScraper = StartScraper()
-        self.process = multiprocessing.Process(name="Scraper", target=startScraper.start, args=(self.configJson, self.updateTextFromLog, ))
+        self.process = multiprocessing.Process(name="Scraper", target=startScraper.start, args=(self.configJson, self.updateTextFromLog, self.progressQueue, ))
         self.process.start()
         self.processes.append(self.process)
         self.updateButtonState()
@@ -524,7 +564,7 @@ class HomeScreen:
         self.updateTextFromLog.setBlockScraper(True)
         self.EnableDisableButtons("disabled")
         downloadThread = threading.Thread(target=lambda: self.downloadUtil.downloadChromeDriver(self.app,
-                                                                                                self.progressVar,
+                                                                                                self.topicProgressVar,
                                                                                                 self.configJson))
         downloadThread.start()
         self.app.after(100, self.checkDownloadThread, downloadThread)
@@ -535,7 +575,7 @@ class HomeScreen:
         self.updateTextFromLog.setBlockScraper(True)
         self.EnableDisableButtons("disabled")
         downloadThread = threading.Thread(target=lambda: self.downloadUtil.downloadChromeBinary(self.app,
-                                                                                                self.progressVar,
+                                                                                                self.topicProgressVar,
                                                                                                 self.configJson))
         downloadThread.start()
         self.app.after(100, self.checkDownloadThread, downloadThread)

@@ -1,29 +1,40 @@
 {
   "CourseTopicScraper" : {
-    "courseHeaderCourseType" : "project",
     "courseHeader" : {
-      "cloudLab" : "p[class*='text-3xl']",
-      "project": "span[class*=body-medium]"
+      "CLOUDLAB" : "span[class*=body-medium]",
+      "PROJECT": "h5[class='heading-five m-0']"
     },
-    "sideBarTopicsCourseType" : "project",
+    "topicHeader" : {
+      "CLOUDLAB" : "p[class*='text-3xl']",
+      "PROJECT": "span[class*=body-medium]"
+    },
     "sideBarTopics": {
-      "cloudLab" : "div[data-testid*='progress-bar-svg']",
-      "project": "div[data-testid*='progress-bar-svg']"
+      "CLOUDLAB" : "div[data-testid*='progress-bar-svg']",
+      "PROJECT": "div[data-testid*='progress-bar-svg']"
     },
-    "highlightedTopicCourseType" : "project",
     "highlightedTopic": {
-      "cloudLab" : "bg-gray-L200 dark:bg-gray-D1200",
-      "project": "bg-gray-L200 dark:bg-gray-D1200"
+      "CLOUDLAB" : "bg-gray-L200 dark:bg-gray-D1200",
+      "PROJECT": "bg-gray-L200 dark:bg-gray-D1200"
     }
   },
   "SeleniumBasicUtility": {
-    "cloudLabPage": "div[id*='viewer-component']",
+    "startButton" : {
+      "CLOUDLAB" : "//button[(normalize-space(.)='Start Lab' or normalize-space(.)='Continue Lab' or normalize-space(.)='Revisit Lab') and not(@disabled)]",
+      "PROJECT": "//button[(normalize-space(.)='Start Project' or normalize-space(.)='Resume Project') and not(@disabled)]"
+    },
+    "endLabButton" : {
+      "CLOUDLAB" : "//button[normalize-space(.)='End Lab']"
+    },
+    "CLOUDLAB": "//div[contains(@id, 'viewer-component')][.//text()[normalize-space()]]",
+    "COURSE-PATH": "//div[contains(@id, 'viewer-component')][.//text()[normalize-space()]]",
+    "PROJECT": "//div[contains(@id, 'widget-parent')][.//text()[normalize-space()]]",
     "articlePage": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]",
     "generalPage": "(//div[@id='view-collection-article-content-root']//div[count(div)>=3])[1]",
     "nextButton": "Next",
     "backButton": "Back",
-    "expandAllButton": "//button[contains(., 'Expand All Sections')]",
-    "resizeHorizontalGlutter": "div[style*='30%'][style*='calc']"
+    "expandAllButton": "//button[contains(., 'Expand All')]",
+    "resizeHorizontalGlutter": "div[style*='30%'][style*='calc']",
+    "mockInterviewPage": "//div[contains(@class, 'learner-mode')]"
   },
   "RemoveUtility": {
     "articleFooter": "(//div[@id='handleArticleScroll']//div[count(div)>=3])[1]/div[3]",
@@ -36,14 +47,18 @@
     "bodyChildNodes": "body > *",
     "headChildNodes": "head > *",
     "sidebar": "div[aria-label*='toggle sidebar']",
+    "sidebarV2": "nav",
+    "header": "header",
     "fixed": "div[class*='fixed']",
-    "vscodeProjectWindow": "div[class*='gutter gutter-horizontal'] + div"
+    "vscodeProjectWindow": "div[class*='gutter gutter-horizontal'] + div",
+    "prepBanner": "div[class*='PALBanner_container']"
   },
   "ShowUtility": {
     "showMarkDownQuizSolution": "Show Answer",
     "showCodeSolution": "Show",
     "confirmShowSolution": "button[aria-label*='confirm']",
     "showHints": "g[id*='noun_lightbulb']",
+    "showHintsV2": "path[fill='#F3B03C']",
     "showSlides": "svg[aria-label*='view all slides']"
   },
   "SingleFileUtility": {

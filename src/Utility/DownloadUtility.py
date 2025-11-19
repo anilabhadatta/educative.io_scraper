@@ -92,8 +92,9 @@ class DownloadUtility:
 
     def updateProgress(self, current, total, width=80):
         percentage = (current / total) * 100
-        self.progressVar.set(percentage)
-        self.app.update_idletasks()
+        if self.progressVar and self.app:
+            self.progressVar.set(percentage)
+            self.app.update_idletasks()
 
 
     def updateDownloadUrlsInConfig(self):
