@@ -59,6 +59,19 @@ cd educative.io_scraper
    ```
 
 -  ### Run the following commands to start Educative Scraper.
+- #### Quick Start (Using Make):
+    - #### For Linux and MacOS (recommended):
+      ```
+      make install
+      make run
+      
+      [Make Commands]
+      make install  - Create virtual environment and install dependencies
+      make run      - Run the Educative scraper
+      make create   - Create an executable file of the scraper
+      make clean    - Remove virtual environment and clean up
+      make help     - Show all available commands
+      ```
 - #### Automatic Steps:
     - #### Use python3 instead of python for Linux and MacOS.
       ```
