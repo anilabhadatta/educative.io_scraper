@@ -11,7 +11,7 @@ class Setup:
         self.args = args
         self.command = None
         self.pythonPrefix = "python3" if self.currentOS != "Windows" else "python"
-        self.pipPrefix = "pip3" if self.currentOS != "Windows" else "pip"
+        self.uvPrefix = "uv"
         self.rootDir = os.path.dirname(os.path.realpath(__file__))
         self.envPath = os.path.join(self.rootDir, "env")
         self.envActivation = ". env/bin/activate" if self.currentOS != "Windows" else r"env\Scripts\activate.bat"
@@ -38,12 +38,10 @@ class Setup:
 
     def installDependencies(self):
         self.removeFolderIfExists(self.envPath)
-        self.command = f"{self.pythonPrefix} -m venv env && {self.envActivation} && {self.pipPrefix} install -r requirements.txt && exit"
+        self.command = f"{self.uvPrefix} venv env && {self.envActivation} && {self.uvPrefix} pip install -r requirements.txt && exit"
         if self.currentOS == "Linux":
             self.installTkinterInLinux()
             self.installPython3DevInLinux()
-            self.installVirtualEnvInLinux()
-            self.command = f"virtualenv env && {self.envActivation} && {self.pipPrefix} install -r requirements.txt && exit"
         subprocess.run(self.command, shell=True)
 
 

@@ -57,7 +57,8 @@ saveDirectory = "D:/Courses"
 
 ### 🔽 **Install Dependencies**
 ```bash
-pip install -r requirements.txt
+# Install uv first: https://github.com/astral-sh/uv
+uv pip install -r requirements.txt
 ```
 
 ### ⚙️ **Setup Configuration**

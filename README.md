@@ -47,6 +47,7 @@ Master Branch: v3-master</code></pre>
 ```
 Git
 Python 3.12 or more
+uv (https://github.com/astral-sh/uv)
 OS: Win(x86/x64) - Mac(ARM64/x64) - Linux(ARM64/x64)
 ```
 
@@ -77,10 +78,10 @@ cd educative.io_scraper
 - #### Manual Steps:
     - #### Windows:
       ```
-      pip install virtualenv
-      python -m venv env <or> virtualenv env
+      # Install uv first: https://github.com/astral-sh/uv
+      uv venv env
       env\Scripts\activate
-      pip install -r requirements.txt
+      uv pip install -r requirements.txt
       
       python EducativeScraper.py                 (For UI)
       python EducativeScraper.py --loginbrowser  (Open browser for login to account)
@@ -89,10 +90,10 @@ cd educative.io_scraper
       ```
     - #### MacOS/Linux:
       ```
-      pip3 install virtualenv
-      python3 -m venv env <or> virtualenv env
+      # Install uv first: https://github.com/astral-sh/uv
+      uv venv env
       source env/bin/activate
-      pip3 install -r requirements.txt
+      uv pip install -r requirements.txt
       
       python3 EducativeScraper.py                 (For UI)
       python3 EducativeScraper.py --loginbrowser  (Open browser for login to account)
