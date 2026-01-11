@@ -98,6 +98,13 @@ class CourseTopicScraper:
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
             courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
             topicUrlsList, pathFolderName = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
+            # Remove duplicates while preserving order
+            originalLen = len(topicUrlsList)
+            seen = set()
+            topicUrlsList = [url for url in topicUrlsList if not (url in seen or seen.add(url))]
+            if len(topicUrlsList) < originalLen:
+                duplicatesRemoved = originalLen - len(topicUrlsList)
+                self.logger.warning(f"Removed {duplicatesRemoved} duplicate URL(s) from topicUrlsList")
             startIndex = topicUrlsList.index(textFileUrl) if textFileUrl in topicUrlsList else 0
             self.loginUtils.checkIfLoggedIn()
             courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
@@ -112,6 +119,12 @@ class CourseTopicScraper:
             self.logger.info(
                 f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
             if topicApiUrlListLen != topicUrlsListLen:
+                topicUrlsSet = set(topicUrlsList)
+                apiUrlsSet = set(topicApiUrlList)
+                api_extra = apiUrlsSet - topicUrlsSet
+                topic_extra = topicUrlsSet - apiUrlsSet
+                self.logger.info(f"Extra in API URLs (not in topic URLs): {api_extra}")
+                self.logger.info(f"Extra in Topic URLs (not in API URLs): {topic_extra}")
                 raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
 
             courseTitle = self.fileUtils.filenameSlugify(courseCollectionsJson["courseTitle"])
