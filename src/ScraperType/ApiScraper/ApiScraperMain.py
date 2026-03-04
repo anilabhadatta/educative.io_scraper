@@ -7,6 +7,7 @@ it fetches each topic's raw API JSON and stores it in SQLite via DatabaseManager
 """
 
 import asyncio
+import shutil
 from urllib.parse import urlparse
 
 from slugify import slugify
@@ -40,6 +41,29 @@ class ApiScraperMain:
     #  Entry points (mirrors CourseTopicScraper.start / startManual)
     # ------------------------------------------------------------------ #
 
+    def _removeUrlFromFile(self, courseUrl: str):
+        """Remove courseUrl (and everything before it) from the URLs text file.
+        Mirrors UpdateTxtFileFromLog.updateUrlsFile — keeps only lines *after*
+        the first occurrence of the URL so the file auto-advances on resume.
+        A .bak copy is made before any write.
+        """
+        try:
+            urlFilePath = self.configJson.get("courseUrlsFilePath", "")
+            if not urlFilePath:
+                return
+            baseCourseUrl = courseUrl.split("?")[0]
+            lines = self.fileUtils.loadTextFileNonStrip(urlFilePath)
+            foundIndex = next((i for i, line in enumerate(lines) if baseCourseUrl in line), None)
+            if foundIndex is None:
+                self.logger.warning(f"_removeUrlFromFile: URL not found in file: {baseCourseUrl}")
+                return
+            shutil.copy2(urlFilePath, urlFilePath + ".bak")
+            remainingLines = lines[foundIndex + 1:]
+            self.fileUtils.writeLines(urlFilePath, remainingLines)
+            self.logger.info(f"Removed URL and all preceding lines from file (index {foundIndex}): {baseCourseUrl}")
+        except Exception as e:
+            self.logger.error(f"_removeUrlFromFile failed: {e}")
+
     def start(self):
         self.logger.info("ApiScraperMain initiated...")
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
@@ -52,19 +76,21 @@ class ApiScraperMain:
                 self.progressQueue.put(("progress-course", textFileIdx + 1))
                 if "?showContent=true" not in textFileUrl:
                     textFileUrl += "?showContent=true"
-                self.logger.info(f"Started from Text File URL: {textFileUrl}")
+                self.logger.info(f"Started Scraping from Text File URL: {textFileUrl}")
                 self.browser = self.browserUtils.loadBrowser()
                 self.apiUtils.browser = self.browser
                 self.loginUtils.browser = self.browser
                 self.browser.set_window_size(1920, 1080)
                 self.scrapeCourseOrPath(textFileUrl)
-                asyncio.get_event_loop().run_until_complete(
-                    self.browserUtils.shutdownChromeViaWebsocket()
-                )
+                asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
+                self._removeUrlFromFile(textFileUrl)
+            except KeyboardInterrupt:
+                asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
+                self._removeUrlFromFile(textFileUrl)
+                raise
             except Exception as e:
-                asyncio.get_event_loop().run_until_complete(
-                    self.browserUtils.shutdownChromeViaWebsocket()
-                )
+                asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
+                self._removeUrlFromFile(textFileUrl)
                 lineNumber = e.__traceback__.tb_lineno
                 raise Exception(f"ApiScraperMain:start: {lineNumber}: {e}")
 
@@ -88,8 +114,6 @@ class ApiScraperMain:
             if len(topicUrlsList) < originalLen:
                 self.logger.warning(f"Removed {originalLen - len(topicUrlsList)} duplicate URL(s)")
 
-            startIndex = topicUrlsList.index(textFileUrl) if textFileUrl in topicUrlsList else 0
-
             self.loginUtils.checkIfLoggedIn()
             courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
             topicApiUrlList  = courseCollectionsJson["topicApiUrlList"]
@@ -110,6 +134,7 @@ class ApiScraperMain:
             # ── Persist course + all topic stubs to DB ─────────────────────────
             courseTitle = courseCollectionsJson["courseTitle"]
             toc         = courseCollectionsJson["toc"]
+            topicSlugs  = courseCollectionsJson["topicSlugList"]
 
             # Parse authorId / collectionId from the collection API URL
             # e.g. https://www.educative.io/api/collection/123/456?work_type=collection
@@ -157,16 +182,18 @@ class ApiScraperMain:
                 path_id       = path_id,
             )
             self.db.upsert_topics_for_course(
-                course_id   = course_id,
-                topic_names = topicApiNameList,
-                topic_urls  = topicUrlsList,
-                api_urls    = topicApiUrlList,
+                course_id    = course_id,
+                topic_names  = topicApiNameList,
+                topic_slugs  = topicSlugs,
+                topic_urls   = topicUrlsList,
+                api_urls     = topicApiUrlList,
             )
 
             self.progressQueue.put(("max-topic", topicUrlsListLen))
+            overwrite = self.configJson.get("overwrite", False)
 
             # ── Fetch & store each topic JSON ──────────────────────────────────
-            for topicIndex in range(startIndex, topicUrlsListLen):
+            for topicIndex in range(0, topicUrlsListLen):
                 self.progressQueue.put(("progress-topic", topicIndex + 1))
                 topicUrl    = topicUrlsList[topicIndex]
                 topicApiUrl = topicApiUrlList[topicIndex]
@@ -174,8 +201,14 @@ class ApiScraperMain:
 
                 self.logger.info(
                     f"----------------------------------------------------------------------------------\n"
-                    f"Fetching Topic: {topicName}: {topicApiUrl}"
+                    f"Scraping Topic: {topicName}: {topicUrl}"
                 )
+
+                # DB-based resume: skip done topics unless overwrite=True
+                topicRow = self.db.get_topic_by_api_url(course_id, topicApiUrl)
+                if not overwrite and topicRow and topicRow["status"] == "done":
+                    self.logger.info(f"Skipping already-done topic: {topicName}")
+                    continue
 
                 # Re-check session before every fetch (same as original scraper)
                 self.loginUtils.checkIfLoggedIn()
@@ -184,10 +217,6 @@ class ApiScraperMain:
                 # executeJsToGetJson runs a browser-side fetch() so auth cookies
                 # are sent automatically — no manual cookie handling needed.
                 topicRawJson = self.apiUtils.executeJsToGetJson(topicApiUrl)
-
-                # Locate the matching DB row — use direct lookup so topic_id is
-                # always the correct topics.id regardless of status (pending/done/error)
-                topicRow = self.db.get_topic_by_api_url(course_id, topicApiUrl)
 
                 if topicRawJson:
                     topicRawJson = self.resolveLazyLoadPlaceholders(

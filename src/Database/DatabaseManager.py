@@ -56,6 +56,7 @@ class DatabaseManager:
         course_id       INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
         topic_index     INTEGER NOT NULL,
         topic_name      TEXT    NOT NULL,
+        topic_slug      TEXT    NOT NULL DEFAULT '',
         topic_url       TEXT    NOT NULL,
         api_url         TEXT    NOT NULL,
         status          TEXT    NOT NULL DEFAULT 'pending',
@@ -186,20 +187,26 @@ class DatabaseManager:
     # ------------------------------------------------------------------ #
 
     def upsert_topics_for_course(self, course_id: int, topic_names: list,
-                                  topic_urls: list, api_urls: list):
+                                  topic_urls: list, api_urls: list,
+                                  topic_slugs: list = None):
         """Insert or update topic stubs. Keeps status=done for already-completed topics."""
         now = datetime.utcnow().isoformat()
+        if topic_slugs is None:
+            topic_slugs = [""] * len(topic_names)
         with self._lock:
             conn = self._connect()
             try:
-                for idx, (name, url, api_url) in enumerate(zip(topic_names, topic_urls, api_urls)):
+                for idx, (name, slug, url, api_url) in enumerate(
+                    zip(topic_names, topic_slugs, topic_urls, api_urls)
+                ):
                     conn.execute(
                         """
                         INSERT INTO topics
-                            (course_id, topic_index, topic_name, topic_url, api_url, status, scraped_at)
-                        VALUES (?, ?, ?, ?, ?, 'pending', ?)
+                            (course_id, topic_index, topic_name, topic_slug, topic_url, api_url, status, scraped_at)
+                        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
                         ON CONFLICT(course_id, topic_index) DO UPDATE SET
                             topic_name = excluded.topic_name,
+                            topic_slug = excluded.topic_slug,
                             topic_url  = excluded.topic_url,
                             api_url    = excluded.api_url,
                             scraped_at = excluded.scraped_at,
@@ -208,7 +215,7 @@ class DatabaseManager:
                                            ELSE 'pending'
                                          END
                         """,
-                        (course_id, idx, name, url, api_url, now),
+                        (course_id, idx, name, slug, url, api_url, now),
                     )
                 conn.commit()
                 self.logger.info(f"Upserted {len(topic_names)} topics for course_id={course_id}")

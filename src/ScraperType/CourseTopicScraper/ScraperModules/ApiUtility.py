@@ -1,5 +1,6 @@
 import os
 
+from slugify import slugify
 from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -107,6 +108,7 @@ class ApiUtility:
             courseTitle = jsonData["title"]
             topicApiUrlList = []
             topicNameList = []
+            topicSlugList = []
             baseApiUrl = f"https://www.educative.io/api/collection/{authorId}/{collectionId}/page/"
             categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT", "CLOUD_LAB", "LINKED_MOCK_INTERVIEW"]
             topicIdx = 0
@@ -118,7 +120,8 @@ class ApiUtility:
                         topicApiUrl = baseApiUrl + str(category["id"]) + f"?work_type={courseType}"
                         topicApiUrlList.append(topicApiUrl)
                         topicNameList.append(category["title"])
-                        category_topic = (topicIdx, category["title"], topicApiUrl)
+                        topicSlugList.append(slugify(category["title"]))
+                        category_topic = {"index": topicIdx, "title": category["title"], "slug": slugify(category["title"]), "api_url": topicApiUrl}
                         toc.append(category_topic)
                         topicIdx += 1
                     else:
@@ -129,13 +132,15 @@ class ApiUtility:
                             topicApiUrl = baseApiUrl + str(page["id"]) + f"?work_type={courseType}"
                             topicApiUrlList.append(topicApiUrl)
                             topicNameList.append(page["title"])
-                            category_topic["topics"].append((topicIdx, page["title"], topicApiUrl))
+                            topicSlugList.append(slugify(page["title"]))
+                            category_topic["topics"].append({"index": topicIdx, "title": page["title"], "slug": slugify(page["title"]), "api_url": topicApiUrl})
                             topicIdx += 1
 
             return {
                 "courseTitle": courseTitle,
                 "topicApiUrlList": topicApiUrlList,
                 "topicNameList": topicNameList,
+                "topicSlugList": topicSlugList,
                 "toc": toc
             }
         except Exception as e:
@@ -210,6 +215,7 @@ class ApiUtility:
             return "https://www.educative.io" + hrefValue + "?showContent=true";
             """
             courseUrl = self.browser.execute_script(courseUrlJsScript)
+            self.logger.info(f"Found Course URL: {courseUrl}")
             return courseUrl
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
@@ -220,9 +226,13 @@ class ApiUtility:
             self.logger.info(f"Could not find authorid, collectionid, trying to get Next Data")
             nextDataSelector = self.selectors["nextData"]
             nextDataScript = f"""
-            return JSON.parse(document.querySelectorAll("{nextDataSelector}")[0].textContent);
+            const el = document.querySelectorAll("{nextDataSelector}")[0];
+            if (!el) return null;
+            return JSON.parse(el.textContent);
                             """
             nextData = self.browser.execute_script(nextDataScript)
+            if not nextData:
+                raise Exception("__NEXT_DATA__ script element not found on page")
             nextData = nextData["query"]
             self.logger.info(f"Found Next Data")
             courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(nextData)
@@ -234,35 +244,39 @@ class ApiUtility:
     def getAuthorAndCollectionId(self):
         try:
             self.logger.info(f"Getting AuthorAndCollectionId")
-            try:
-                authorAndCollectionIdScript = f"""
-                                        const resultMap = {{}};
-                                        this.__next_f.forEach(entry => {{
+            authorAndCollectionIdScript = f"""
+                                    const resultMap = {{}};
+                                    if (!window.__next_f || !Array.isArray(window.__next_f)) return resultMap;
+                                    window.__next_f.forEach(entry => {{
                                         if (!Array.isArray(entry) || typeof entry[1] !== 'string') return;
 
                                         const text = entry[1];
 
-                                        // Regular expression to match the author_id and collection_id
-                                        const authorMatch = text.match(/["']?author[_I]d["']?:["']?(\d+)["']?/i);
-                                        const collectionMatch = text.match(/["']?collection[_I]d["']?:["']?(\d+)["']?/i);
+                                        const authorMatch = text.match(/["']?author_?[iI]d["']?\s*:\s*["']?(\d+)["']?/i);
+                                        const collectionMatch = text.match(/["']?collection_?[iI]d["']?\s*:\s*["']?(\d+)["']?/i);
 
                                         if (authorMatch && collectionMatch) {{
-                                            const authorId = String(authorMatch[1]);
-                                            const collectionId = String(collectionMatch[1]);
-                                            
-                                            // Add the extracted data to the map
-                                            resultMap['authorId'] = authorId;
-                                            resultMap['collectionId'] = collectionId;
+                                            resultMap['authorId'] = String(authorMatch[1]);
+                                            resultMap['collectionId'] = String(collectionMatch[1]);
                                         }}
-                                        }});
-                                        console.log('Printing resultMap');
-                                        console.log(resultMap);
-                                        return resultMap;
-                """
+                                    }});
+                                    return resultMap;
+            """
+            # window.__next_f is populated progressively — retry to handle timing
+            retry = 1
+            resMap = {}
+            while retry <= 3:
                 resMap = self.browser.execute_script(authorAndCollectionIdScript)
-                self.logger.info(f"Found AuthorAndCollectionId {resMap}")
+                self.logger.info(f"Attempt {retry}: Found AuthorAndCollectionId {resMap}")
+                if resMap.get('authorId') and resMap.get('collectionId'):
+                    break
+                retry += 1
+                self.osUtils.sleep(2)
+
+            if resMap.get('authorId') and resMap.get('collectionId'):
                 courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(resMap)
-            except:
+            else:
+                self.logger.info("authorId/collectionId not found in __next_f, falling back to getNextData")
                 courseApiUrl = self.getNextData()
             return courseApiUrl
         except Exception as e:

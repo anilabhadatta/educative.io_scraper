@@ -45,19 +45,6 @@ class StartApiScraper:
         finally:
             self.logger.debug("StartApiScraper exiting.")
 
-    def startManual(self, configJson: dict):
-        self.logger = Logger(configJson, "StartApiScraper").logger
-        self.logger.info("StartApiScraper – manual (attach) mode initiated.")
-        try:
-            ApiScraperMain(configJson).startManual()
-        except KeyboardInterrupt:
-            self.logger.warning("Keyboard interrupt – stopping.")
-        except Exception as e:
-            ln = e.__traceback__.tb_lineno
-            self.logger.error(f"startManual: {ln}: {e}")
-        finally:
-            self.logger.debug("StartApiScraper (manual) exiting.")
-
 
 # ── CLI entry point ───────────────────────────────────────────────────────────
 
@@ -71,13 +58,5 @@ if __name__ == "__main__":
 
     config = ConfigUtility().loadConfig()
     configJson = dict(config["ScraperConfig"])
-    # Normalise boolean strings
-    for key in ("headless", "useExtension", "autonext"):
-        if key in configJson:
-            configJson[key] = configJson[key].lower() in ("true", "1", "yes")
 
-    runner = StartApiScraper()
-    if args.manual:
-        runner.startManual(configJson)
-    else:
-        runner.start(configJson)
+    runner = StartApiScraper().start(configJson)

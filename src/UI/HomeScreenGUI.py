@@ -51,6 +51,7 @@ class HomeScreen:
         self.ucdriverVar = tk.BooleanVar(value=False)
         self.autoResumeScraper = tk.BooleanVar(value=False)
         self.autoFixTextFile = tk.BooleanVar(value=False)
+        self.overwriteVar = tk.BooleanVar(value=False)
         self.courseUrlsFilePathVar = tk.StringVar()
         self.saveDirectoryVar = tk.StringVar()
         self.isProxyVar = tk.BooleanVar(value=True)
@@ -210,6 +211,8 @@ class HomeScreen:
         self.autoResumeScraperCheckbox.grid(row=len(optionCheckboxes)-2, column=2, sticky="w", padx=(0,0), pady=2)
         self.autoFixTextFileCheckbox = tk.Checkbutton(checkboxesFrame, text="Auto Fix Url File", variable=self.autoFixTextFile, wraplength=400, anchor="w")
         self.autoFixTextFileCheckbox.grid(row=len(optionCheckboxes)-2, column=3, sticky="w", padx=(15,0), pady=2)
+        self.overwriteCheckbox = tk.Checkbutton(checkboxesFrame, text="Overwrite (API Scraper)", variable=self.overwriteVar, wraplength=400, anchor="w")
+        self.overwriteCheckbox.grid(row=len(optionCheckboxes)-1, column=2, sticky="w", padx=(0,0), pady=2)
 
         scraperOptionFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
         checkboxesFrame.grid(row=1, column=0, padx=0, pady=3, sticky="nw")
@@ -396,6 +399,7 @@ class HomeScreen:
         self.autoResumeScraper.set(self.config["autoresume"])
         self.autoFixTextFile.set(self.config["autofixtextfile"])
         self.autoNextVar.set(self.config["autonext"])
+        self.overwriteVar.set(self.config["overwrite"])
 
 
     def createConfigJson(self):
@@ -417,6 +421,7 @@ class HomeScreen:
             'autofixtextfile': self.autoFixTextFile.get(),
             'blockscraper': self.config["blockscraper"],
             'autonext': self.autoNextVar.get(),
+            'overwrite': self.overwriteVar.get(),
             'useExtension': self.config["useExtension"]
         }
 
