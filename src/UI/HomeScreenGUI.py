@@ -70,7 +70,7 @@ class HomeScreen:
         self.scrapingMethodVar = tk.StringVar()
         self.scrapingMethods = ["SingleFile-HTML", "Full-Page-Screenshot"]
         self.scraperTypeVar = tk.StringVar()
-        self.scraperTypes = ["Course-Topic-Scraper", "All-Course-Urls-Text-File-Generator"]
+        self.scraperTypes = ["Course-Topic-Scraper", "All-Course-Urls-Text-File-Generator", "API-JSON-Scraper"]
         self.fileTypeVar = tk.StringVar()
         self.fileTypes = ["html2pdf", "html", "png2pdf", "png"]
 
@@ -100,7 +100,7 @@ class HomeScreen:
 
 
     def updateComboboxStates(self, *args):
-        if self.scraperTypeVar.get() == "All-Course-Urls-Text-File-Generator":
+        if self.scraperTypeVar.get() in ("All-Course-Urls-Text-File-Generator", "API-JSON-Scraper"):
             self.scrapingMethodCombobox.config(state="disabled")
             self.fileTypeCombobox.config(state="disabled")
         elif self.scraperTypeVar.get() == "Course-Topic-Scraper":

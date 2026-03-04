@@ -4,6 +4,7 @@ from src.Logging.Logger import Logger
 from src.Main.MailNotify import MailNotify
 from src.ScraperType.AllCourseUrlsScraper.AllCourseUrlsScraperMain import AllCourseUrlsScraper
 from src.ScraperType.CourseTopicScraper.CourseTopicScraperMain import CourseTopicScraper
+from src.ScraperType.ApiScraper.ApiScraperMain import ApiScraperMain
 
 
 class StartScraper:
@@ -21,6 +22,8 @@ class StartScraper:
             progressQueue.put(("color", "green"))
             if configJson["scraperType"] == "All-Course-Urls-Text-File-Generator":
                 AllCourseUrlsScraper(configJson, progressQueue).start()
+            elif configJson["scraperType"] == "API-JSON-Scraper":
+                ApiScraperMain(configJson, progressQueue).start()
             else:
                 CourseTopicScraper(configJson, progressQueue).start()
             self.mailNotify.send_email("Scraping Complete")
@@ -42,7 +45,10 @@ class StartScraper:
                             To Terminate, Click on Stop ScraperType Button
                         """)
         try:
-            CourseTopicScraper(configJson).startManual()
+            if configJson.get("scraperType") == "API-JSON-Scraper":
+                ApiScraperMain(configJson).startManual()
+            else:
+                CourseTopicScraper(configJson).startManual()
             # self.mailNotify.send_email("Scraping Complete")
         except KeyboardInterrupt:
             self.logger.error("Keyboard Interrupt")
