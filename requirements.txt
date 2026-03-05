@@ -14,7 +14,3 @@ psutil==5.9.5
 selenium==4.18.1
 cloudscraper==1.2.71
 PyMuPDF==1.26.3
-
-# API backend (new architecture)
-fastapi>=0.111.0
-uvicorn[standard]>=0.29.0

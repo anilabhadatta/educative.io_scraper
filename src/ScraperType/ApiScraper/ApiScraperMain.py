@@ -224,9 +224,12 @@ class ApiScraperMain:
                     )
                     if topicRow:
                         self.db.save_topic_content(
-                            course_id   = course_id,
-                            topic_index = topicRow["topic_index"],
-                            components  = topicRawJson.get("components", []),
+                            course_id     = course_id,
+                            topic_index   = topicRow["topic_index"],
+                            components    = topicRawJson.get("components", []),
+                            author_id     = author_id,
+                            collection_id = collection_id,
+                            topic_api_url = topicApiUrl,
                         )
                     self.logger.info(f"Saved JSON for: {topicName}")
                 else:

@@ -12,12 +12,50 @@ components  – one row per widget, linked by (course_id, topic_index)
 """
 
 import json
+import re
 import sqlite3
 import threading
 from datetime import datetime
 from pathlib import Path
 
 from src.Logging.Logger import Logger
+
+# ── Static-asset URL extraction (mirrors StaticAssetExtractor logic) ──────── #
+
+_API_RE = re.compile(r'/api/collection/[^\s"\'<>{}\\?\]]+')
+
+
+def _page_id_from_api_url(api_url: str) -> str:
+    try:
+        return api_url.split("/page/")[1].split("?")[0]
+    except IndexError:
+        return ""
+
+
+def _urls_for_file(content: dict, author_id: str, collection_id: str, page_id: str) -> list:
+    image_id  = content.get("image_id")
+    file_name = content.get("file_name") or ""
+    if not image_id:
+        return []
+    return [f"https://www.educative.io/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}/{file_name}"]
+
+
+def _urls_for_image(content: dict, author_id: str, collection_id: str, page_id: str) -> list:
+    image_id = content.get("image_id")
+    if not image_id:
+        return []
+    return [f"https://www.educative.io/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}"]
+
+
+def _urls_from_scan(content_json_str: str) -> list:
+    matches = _API_RE.findall(content_json_str)
+    seen, result = set(), []
+    for path in matches:
+        url = "https://www.educative.io" + path
+        if url not in seen:
+            seen.add(url)
+            result.append(url)
+    return result
 
 
 class DatabaseManager:
@@ -78,10 +116,22 @@ class DatabaseManager:
             REFERENCES topics(course_id, topic_index) ON DELETE CASCADE
     );
 
-    CREATE INDEX IF NOT EXISTS idx_courses_path      ON courses(path_id);
-    CREATE INDEX IF NOT EXISTS idx_topics_course     ON topics(course_id);
-    CREATE INDEX IF NOT EXISTS idx_components_topic  ON components(course_id, topic_index);
-    CREATE INDEX IF NOT EXISTS idx_components_type   ON components(type);
+    -- One row per (course_id, topic_index).
+    -- assets_json: { "component_index": ["url1", "url2", ...], ... }
+    CREATE TABLE IF NOT EXISTS static_assets (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        course_id   INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        topic_index INTEGER NOT NULL,
+        assets_json TEXT    NOT NULL DEFAULT '{}',
+        created_at  TEXT    NOT NULL,
+        UNIQUE(course_id, topic_index)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_courses_path       ON courses(path_id);
+    CREATE INDEX IF NOT EXISTS idx_topics_course      ON topics(course_id);
+    CREATE INDEX IF NOT EXISTS idx_components_topic   ON components(course_id, topic_index);
+    CREATE INDEX IF NOT EXISTS idx_components_type    ON components(type);
+    CREATE INDEX IF NOT EXISTS idx_static_assets_course ON static_assets(course_id);
     """
 
     def __init__(self, configJson, db_path: str = None):
@@ -237,9 +287,30 @@ class DatabaseManager:
     #  Components
     # ------------------------------------------------------------------ #
 
-    def save_topic_content(self, course_id: int, topic_index: int, components: list):
-        """Mark topic done and store its components (replaces previous on re-scrape)."""
+    def save_topic_content(self, course_id: int, topic_index: int, components: list,
+                            author_id: str = "", collection_id: str = "",
+                            topic_api_url: str = ""):
+        """Mark topic done, store components, and extract static asset URLs into static_assets."""
         now = datetime.utcnow().isoformat()
+        page_id = _page_id_from_api_url(topic_api_url)
+
+        # Build assets dict: { "<component_index>": ["url", ...] }
+        assets: dict = {}
+        for idx, component in enumerate(components):
+            comp_type   = component.get("type", "")
+            content     = component.get("content", {})
+            content_str = json.dumps(content, ensure_ascii=False)
+
+            if comp_type == "File":
+                urls = _urls_for_file(content, author_id, collection_id, page_id)
+            elif comp_type == "Image":
+                urls = _urls_for_image(content, author_id, collection_id, page_id)
+            else:
+                urls = _urls_from_scan(content_str)
+
+            if urls:
+                assets[str(idx)] = urls
+
         with self._lock:
             conn = self._connect()
             try:
@@ -268,9 +339,21 @@ class DatabaseManager:
                             now,
                         ),
                     )
+                if assets:
+                    conn.execute(
+                        """
+                        INSERT INTO static_assets (course_id, topic_index, assets_json, created_at)
+                        VALUES (?, ?, ?, ?)
+                        ON CONFLICT(course_id, topic_index) DO UPDATE SET
+                            assets_json = excluded.assets_json,
+                            created_at  = excluded.created_at
+                        """,
+                        (course_id, topic_index, json.dumps(assets, ensure_ascii=False), now),
+                    )
                 conn.commit()
                 self.logger.info(
-                    f"Saved {len(components)} components for course_id={course_id} topic_index={topic_index}"
+                    f"Saved {len(components)} components for course_id={course_id} "
+                    f"topic_index={topic_index}, assets keys={len(assets)}"
                 )
             finally:
                 conn.close()
