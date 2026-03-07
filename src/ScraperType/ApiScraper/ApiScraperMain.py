@@ -46,7 +46,10 @@ class ApiScraperMain:
         Mirrors UpdateTxtFileFromLog.updateUrlsFile — keeps only lines *after*
         the first occurrence of the URL so the file auto-advances on resume.
         A .bak copy is made before any write.
+        Only runs when autofixtextfile=true in config.
         """
+        if not self.configJson.get("autofixtextfile", False):
+            return
         try:
             urlFilePath = self.configJson.get("courseUrlsFilePath", "")
             if not urlFilePath:
@@ -188,6 +191,8 @@ class ApiScraperMain:
                 topic_urls   = topicUrlsList,
                 api_urls     = topicApiUrlList,
             )
+            # Enrich toc_json with DB-sourced course_id + topic_index now that topics exist
+            self.db.finalize_course_toc(course_id)
 
             self.progressQueue.put(("max-topic", topicUrlsListLen))
             overwrite = self.configJson.get("overwrite", False)

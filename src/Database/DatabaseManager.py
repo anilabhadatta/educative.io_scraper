@@ -97,6 +97,7 @@ class DatabaseManager:
         topic_slug      TEXT    NOT NULL DEFAULT '',
         topic_url       TEXT    NOT NULL,
         api_url         TEXT    NOT NULL,
+        page_id         TEXT    NOT NULL DEFAULT '',
         status          TEXT    NOT NULL DEFAULT 'pending',
         scraped_at      TEXT,
         error_msg       TEXT,
@@ -202,6 +203,10 @@ class DatabaseManager:
     def upsert_course(self, url: str, slug: str, author_id: str, collection_id: str,
                       title: str, toc: list, course_type: str = "Course",
                       path_id: int = None) -> int:
+        """Persist the course row. toc_json is stored raw here;
+        call finalize_course_toc() after upsert_topics_for_course() to
+        enrich it with DB-sourced course_id / topic_index values.
+        """
         toc_json = json.dumps(toc, ensure_ascii=False)
         now = datetime.utcnow().isoformat()
         with self._lock:
@@ -232,6 +237,67 @@ class DatabaseManager:
             finally:
                 conn.close()
 
+    def finalize_course_toc(self, course_id: int):
+        """Enrich toc_json with course_id and topic_index sourced from the topics table.
+
+        Must be called AFTER upsert_topics_for_course() so the topics rows exist.
+        Looks up each toc entry's api_url in the topics table to get the
+        authoritative topic_index instead of relying on the in-memory counter.
+
+        Backward-compatible: all existing keys in each topic dict are preserved.
+        """
+        with self._lock:
+            conn = self._connect()
+            try:
+                # Load the current (raw) toc_json for this course
+                course_row = conn.execute(
+                    "SELECT toc_json FROM courses WHERE id = ?",
+                    (course_id,),
+                ).fetchone()
+                if not course_row or not course_row["toc_json"]:
+                    self.logger.warning(f"finalize_course_toc: no course row found for id={course_id}")
+                    return
+
+                toc = json.loads(course_row["toc_json"])
+
+                # Build api_url -> topic_index lookup from the topics table (ground truth)
+                rows = conn.execute(
+                    "SELECT api_url, topic_index FROM topics WHERE course_id = ?",
+                    (course_id,),
+                ).fetchall()
+                api_url_to_index: dict = {r["api_url"]: r["topic_index"] for r in rows}
+
+                # Walk the toc and inject course_id + topic_index from DB
+                enriched = []
+                for item in toc:
+                    if "category" in item:
+                        new_topics = []
+                        for topic in item.get("topics", []):
+                            new_topic = dict(topic)
+                            new_topic["course_id"]   = course_id
+                            new_topic["topic_index"] = api_url_to_index.get(new_topic.get("api_url"))
+                            new_topics.append(new_topic)
+                        new_item = dict(item)
+                        new_item["topics"] = new_topics
+                        enriched.append(new_item)
+                    else:
+                        new_item = dict(item)
+                        new_item["course_id"]   = course_id
+                        new_item["topic_index"] = api_url_to_index.get(new_item.get("api_url"))
+                        enriched.append(new_item)
+
+                conn.execute(
+                    "UPDATE courses SET toc_json = ? WHERE id = ?",
+                    (json.dumps(enriched, ensure_ascii=False), course_id),
+                )
+                conn.commit()
+                self.logger.info(
+                    f"finalize_course_toc: enriched toc_json for course_id={course_id} "
+                    f"({len(api_url_to_index)} topics mapped)"
+                )
+            finally:
+                conn.close()
+
     # ------------------------------------------------------------------ #
     #  Topics
     # ------------------------------------------------------------------ #
@@ -249,23 +315,25 @@ class DatabaseManager:
                 for idx, (name, slug, url, api_url) in enumerate(
                     zip(topic_names, topic_slugs, topic_urls, api_urls)
                 ):
+                    page_id = _page_id_from_api_url(api_url)
                     conn.execute(
                         """
                         INSERT INTO topics
-                            (course_id, topic_index, topic_name, topic_slug, topic_url, api_url, status, scraped_at)
-                        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+                            (course_id, topic_index, topic_name, topic_slug, topic_url, api_url, page_id, status, scraped_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
                         ON CONFLICT(course_id, topic_index) DO UPDATE SET
                             topic_name = excluded.topic_name,
                             topic_slug = excluded.topic_slug,
                             topic_url  = excluded.topic_url,
                             api_url    = excluded.api_url,
+                            page_id    = excluded.page_id,
                             scraped_at = excluded.scraped_at,
                             status     = CASE
                                            WHEN topics.status = 'done' THEN 'done'
                                            ELSE 'pending'
                                          END
                         """,
-                        (course_id, idx, name, slug, url, api_url, now),
+                        (course_id, idx, name, slug, url, api_url, page_id, now),
                     )
                 conn.commit()
                 self.logger.info(f"Upserted {len(topic_names)} topics for course_id={course_id}")
@@ -295,21 +363,30 @@ class DatabaseManager:
         page_id = _page_id_from_api_url(topic_api_url)
 
         # Build assets dict: { "<component_index>": ["url", ...] }
+        # For Image/File components also inject a "path" key into content so
+        # the UI can use it directly without re-constructing the URL.
         assets: dict = {}
+        enriched_components: list = []
         for idx, component in enumerate(components):
-            comp_type   = component.get("type", "")
-            content     = component.get("content", {})
+            comp_type = component.get("type", "")
+            content   = dict(component.get("content", {}))  # shallow copy to avoid mutating caller's data
             content_str = json.dumps(content, ensure_ascii=False)
 
             if comp_type == "File":
                 urls = _urls_for_file(content, author_id, collection_id, page_id)
+                if urls:
+                    content["path"] = urls[0].replace("https://www.educative.io", "")
             elif comp_type == "Image":
                 urls = _urls_for_image(content, author_id, collection_id, page_id)
+                if urls:
+                    content["path"] = urls[0].replace("https://www.educative.io", "")
             else:
                 urls = _urls_from_scan(content_str)
 
             if urls:
                 assets[str(idx)] = urls
+
+            enriched_components.append({**component, "content": content})
 
         with self._lock:
             conn = self._connect()
@@ -325,7 +402,7 @@ class DatabaseManager:
                     "DELETE FROM components WHERE course_id = ? AND topic_index = ?",
                     (course_id, topic_index),
                 )
-                for idx, component in enumerate(components):
+                for idx, component in enumerate(enriched_components):
                     conn.execute(
                         """
                         INSERT INTO components
@@ -352,7 +429,7 @@ class DatabaseManager:
                     )
                 conn.commit()
                 self.logger.info(
-                    f"Saved {len(components)} components for course_id={course_id} "
+                    f"Saved {len(enriched_components)} components for course_id={course_id} "
                     f"topic_index={topic_index}, assets keys={len(assets)}"
                 )
             finally:
