@@ -106,8 +106,18 @@ class ApiScraperMain:
     def scrapeCourseOrPath(self, textFileUrl):
         try:
             # ── Resolve course & topic URL lists (identical to CourseTopicScraper) ──
-            courseUrl    = self.apiUtils.getCourseUrl(textFileUrl)
-            courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
+            courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
+
+            # Navigate to courseUrl and read author/collection IDs while window.__next_f
+            # is freshly populated, BEFORE getCourseTopicUrlsList's expandAllSections()
+            # alters the page's Next.js flight data and makes the IDs undetectable.
+            self.browser.get(courseUrl)
+            self.osUtils.sleep(3)
+            courseApiUrl  = self.apiUtils.getAuthorAndCollectionId()
+
+            # getCourseTopicUrlsList independently navigates to courseUrl again, expands
+            # all sidebar sections, then collects the topic hrefs — this double-load is
+            # intentional and necessary for reliability.
             topicUrlsList, pathFolderName = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
 
             # Remove duplicates while preserving order
