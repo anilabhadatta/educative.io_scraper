@@ -205,8 +205,26 @@ class ApiScraperMain:
             self.progressQueue.put(("max-topic", topicUrlsListLen))
             overwrite = self.configJson.get("overwrite", False)
 
+            # ── Determine start index ──────────────────────────────────────────
+            # When overwrite=True the caller expects scraping to resume from the
+            # URL that was passed in (textFileUrl), not from the very first topic.
+            # Strip the query string for matching since topicUrlsList entries may
+            # or may not include ?showContent=true.
+            startIndex = 0
+            if overwrite:
+                baseTextFileUrl = textFileUrl.split("?")[0]
+                for idx, url in enumerate(topicUrlsList):
+                    if url.split("?")[0] == baseTextFileUrl:
+                        startIndex = idx
+                        break
+                if startIndex:
+                    self.logger.info(
+                        f"overwrite=True: starting from topic index {startIndex} "
+                        f"matching URL: {baseTextFileUrl}"
+                    )
+
             # ── Fetch & store each topic JSON ──────────────────────────────────
-            for topicIndex in range(0, topicUrlsListLen):
+            for topicIndex in range(startIndex, topicUrlsListLen):
                 self.progressQueue.put(("progress-topic", topicIndex + 1))
                 topicUrl    = topicUrlsList[topicIndex]
                 topicApiUrl = topicApiUrlList[topicIndex]
@@ -217,7 +235,9 @@ class ApiScraperMain:
                     f"Scraping Topic: {topicName}: {topicUrl}"
                 )
 
-                # DB-based resume: skip done topics unless overwrite=True
+                # DB-based resume: skip done topics only when not in overwrite mode.
+                # In overwrite mode we started from the matching URL index, so every
+                # topic from that point onwards is intentionally re-scraped.
                 topicRow = self.db.get_topic_by_api_url(course_id, topicApiUrl)
                 if not overwrite and topicRow and topicRow["status"] == "done":
                     self.logger.info(f"Skipping already-done topic: {topicName}")
@@ -265,6 +285,10 @@ class ApiScraperMain:
                     topicRawJson = self.resolveLazyLoadPlaceholders(
                         topicRawJson, author_id, collection_id, work_type
                     )
+                    page_id = topicRow["page_id"] if topicRow else ""
+                    topicRawJson = self.resolveDrawIOSlides(
+                        topicRawJson, author_id, collection_id, page_id
+                    )
                     if topicRow:
                         self.db.save_topic_content(
                             course_id     = course_id,
@@ -294,6 +318,92 @@ class ApiScraperMain:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiScraperMain:scrapeCourseOrPath: {lineNumber}: {e}")
+
+    # ------------------------------------------------------------------ #
+    #  DrawIO slides resolution
+    # ------------------------------------------------------------------ #
+
+    def resolveDrawIOSlides(self, topicJson: dict, author_id: str, collection_id: str, page_id: str) -> dict:
+        """
+        For DrawIOWidget components that carry slide data (slidesEnabled=True,
+        isSlides=True, slidesId present), fetch
+          GET /api/slides/data?slides_id=<slidesId>
+        and enrich the component content with:
+          slidesApiData  – raw API response
+          slidesImages   – list of image URLs in the form:
+                           /api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}
+
+        Plain DrawIOWidget components (no slides fields) are left untouched.
+        """
+        try:
+            components = topicJson.get("components", [])
+            for component in components:
+                if component.get("type") != "DrawIOWidget":
+                    continue
+                content = component.get("content", {})
+                # Only handle the slides variant — plain DrawIO has no slidesId
+                slides_id = content.get("slidesId")
+                if not (content.get("slidesEnabled") and content.get("isSlides") and slides_id):
+                    continue
+
+                slides_api_url = f"https://www.educative.io/api/slides/data?slides_id={slides_id}"
+                self.logger.info(f"Fetching slides data for DrawIOWidget slidesId={slides_id}")
+                self.loginUtils.checkIfLoggedIn()
+                slides_data = self.apiUtils.executeJsToGetJson(slides_api_url)
+
+                if not slides_data or isinstance(slides_data, str):
+                    self.logger.warning(
+                        f"No slides data for slidesId={slides_id} — response: {slides_data}"
+                    )
+                    continue
+
+                # Store the full raw API response so nothing is lost
+                component["content"]["slidesApiData"] = slides_data
+
+                # Best-effort: extract image URLs from common response shapes.
+                # Educative's slides API may return a list directly, or nest under
+                # a key such as "slides", "images", or "data".
+                image_urls = self._extractSlidesImageUrls(slides_data, author_id, collection_id, page_id)
+                if image_urls:
+                    component["content"]["slidesImages"] = image_urls
+                    self.logger.info(
+                        f"Stored {len(image_urls)} slidesImages for DrawIOWidget slidesId={slides_id}"
+                    )
+                else:
+                    self.logger.warning(
+                        f"Could not extract image URLs from slides response for slidesId={slides_id}. "
+                        f"Raw data stored in slidesApiData for manual inspection."
+                    )
+            return topicJson
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            self.logger.error(f"resolveDrawIOSlides: {lineNumber}: {e}")
+            return topicJson
+
+    def _extractSlidesImageUrls(self, slides_data: dict, author_id: str, collection_id: str, page_id: str) -> list:
+        """
+        Build image URLs from a slides API response.
+        Known response format:
+          { "status": 4002, "image_ids": [5505347740106752, ...], "error_msg": "" }
+        Image URLs use the collection image format:
+          /api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}
+        Returns an empty list when no image IDs can be found — caller will
+        log a warning so the raw slidesApiData can be inspected.
+        """
+        BASE = f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image"
+
+        def _url_from_id(image_id) -> str:
+            return f"{BASE}/{image_id}"
+
+        if not isinstance(slides_data, dict):
+            return []
+
+        # Primary: { "image_ids": [...] }  — confirmed response format
+        image_ids = slides_data.get("image_ids")
+        if isinstance(image_ids, list):
+            return [_url_from_id(img_id) for img_id in image_ids if img_id]
+
+        return []
 
     # ------------------------------------------------------------------ #
     #  Lazy load placeholder resolution
