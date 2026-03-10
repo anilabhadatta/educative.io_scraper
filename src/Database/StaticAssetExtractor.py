@@ -11,7 +11,7 @@ URL extraction rules
           /api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}/{file_name}
       where:
           author_id / collection_id  – from the courses row
-          page_id                    – parsed from the topic api_url
+          page_id                    – read from the topics.page_id column
           image_id / file_name       – from content_json
 
   all other types
@@ -54,17 +54,6 @@ def _connect(db_path: str) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA foreign_keys=ON;")
     return conn
-
-
-def _page_id_from_api_url(api_url: str) -> str:
-    """Extract the page-id segment from a topic api_url.
-
-    e.g. https://.../api/collection/123/456/page/789?work_type=...  ->  '789'
-    """
-    try:
-        return api_url.split("/page/")[1].split("?")[0]
-    except IndexError:
-        return ""
 
 
 def _urls_for_file(content: dict, author_id: str, collection_id: str, page_id: str) -> list:
@@ -125,11 +114,11 @@ def extract_and_store(db_path: str):
             ).fetchall()
         }
 
-        # (course_id, topic_index) -> api_url  (for page_id extraction)
-        topic_api_urls = {
-            (row["course_id"], row["topic_index"]): row["api_url"]
+        # (course_id, topic_index) -> page_id  (stored directly in topics row)
+        topic_page_ids = {
+            (row["course_id"], row["topic_index"]): row["page_id"]
             for row in conn.execute(
-                "SELECT course_id, topic_index, api_url FROM topics"
+                "SELECT course_id, topic_index, page_id FROM topics"
             ).fetchall()
         }
 
@@ -148,8 +137,7 @@ def extract_and_store(db_path: str):
             topic_index = pair["topic_index"]
 
             author_id, collection_id = courses.get(course_id, ("", ""))
-            api_url = topic_api_urls.get((course_id, topic_index), "")
-            page_id = _page_id_from_api_url(api_url)
+            page_id = topic_page_ids.get((course_id, topic_index), "")
 
             components = conn.execute(
                 """

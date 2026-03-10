@@ -89,11 +89,9 @@ class ApiScraperMain:
                 self._removeUrlFromFile(textFileUrl)
             except KeyboardInterrupt:
                 asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
-                self._removeUrlFromFile(textFileUrl)
                 raise
             except Exception as e:
                 asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
-                self._removeUrlFromFile(textFileUrl)
                 lineNumber = e.__traceback__.tb_lineno
                 raise Exception(f"ApiScraperMain:start: {lineNumber}: {e}")
 
@@ -225,6 +223,13 @@ class ApiScraperMain:
                     self.logger.info(f"Skipping already-done topic: {topicName}")
                     continue
 
+                isSpecialTopic = topicUrl.split("/")[-1] in [
+                    "assessment?showContent=true",
+                    "cloudlab?showContent=true",
+                    "project?showContent=true",
+                    "mock-interview?showContent=true",
+                ]
+
                 # Re-check session before every fetch (same as original scraper)
                 self.loginUtils.checkIfLoggedIn()
 
@@ -233,7 +238,30 @@ class ApiScraperMain:
                 # are sent automatically — no manual cookie handling needed.
                 topicRawJson = self.apiUtils.executeJsToGetJson(topicApiUrl)
 
+                # Any non-200 HTTP response on a special topic is not an error —
+                # content simply isn't available; mark done and proceed.
+                # On a normal topic, any non-200 is a real error — raise immediately.
+                if isinstance(topicRawJson, str) and topicRawJson.startswith("HTTP_"):
+                    httpCode = topicRawJson.split("_")[1]
+                    if isSpecialTopic:
+                        if topicRow:
+                            self.db.mark_topic_done(course_id, topicRow["topic_index"])
+                        self.logger.info(f"HTTP {httpCode} on special topic — marking done and skipping: {topicName}")
+                        self.osUtils.sleep(2)
+                        continue
+                    else:
+                        raise Exception(f"HTTP {httpCode} fetching topic API URL: {topicApiUrl}")
+
                 if topicRawJson:
+                    # Normal topics must have components data — empty components indicates a problem.
+                    if not isSpecialTopic and not topicRawJson.get("components"):
+                        if topicRow:
+                            self.db.mark_topic_error(
+                                course_id   = course_id,
+                                topic_index = topicRow["topic_index"],
+                                error_msg   = "API returned JSON with no components",
+                            )
+                        raise Exception(f"Topic JSON missing 'components' data: {topicApiUrl}")
                     topicRawJson = self.resolveLazyLoadPlaceholders(
                         topicRawJson, author_id, collection_id, work_type
                     )
@@ -248,13 +276,6 @@ class ApiScraperMain:
                         )
                     self.logger.info(f"Saved JSON for: {topicName}")
                 else:
-                    url = topicUrl.split("/")
-                    isSpecialTopic = url[-1] in [
-                        "assessment?showContent=true",
-                        "cloudlab?showContent=true",
-                        "project?showContent=true",
-                        "mock-interview?showContent=true",
-                    ]
                     if topicRow:
                         self.db.mark_topic_error(
                             course_id   = course_id,

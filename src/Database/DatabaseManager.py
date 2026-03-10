@@ -435,6 +435,20 @@ class DatabaseManager:
             finally:
                 conn.close()
 
+    def mark_topic_done(self, course_id: int, topic_index: int):
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            conn = self._connect()
+            try:
+                conn.execute(
+                    "UPDATE topics SET status = 'done', error_msg = NULL, scraped_at = ? "
+                    "WHERE course_id = ? AND topic_index = ?",
+                    (now, course_id, topic_index),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
     def mark_topic_error(self, course_id: int, topic_index: int, error_msg: str):
         now = datetime.utcnow().isoformat()
         with self._lock:

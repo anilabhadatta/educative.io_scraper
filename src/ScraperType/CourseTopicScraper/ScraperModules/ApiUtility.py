@@ -27,7 +27,7 @@ class ApiUtility:
 
 
     def executeJsToGetJson(self, url):
-        self.logger.info(f"Executing JS to get JSON from URL")
+        self.logger.info(f"Executing JS to get JSON from URL: {url}")
         apiJsonScript = f"""
             return new Promise((resolve, reject) => {{
                 fetch("{url}", {{
@@ -37,16 +37,30 @@ class ApiUtility:
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
                     }}
                 }})
-                    .then(response => response.json())
+                    .then(response => {{
+                        if (response.status === 401 || response.status === 403) {{
+                            reject('HTTP_' + response.status);
+                            return;
+                        }}
+                        if (response.status !== 200) {{
+                            resolve('HTTP_' + response.status);
+                            return;
+                        }}
+                        return response.json();
+                    }})
                     .then(data => {{
-                        resolve(data);
+                        if (data !== undefined) resolve(data);
                     }})
                     .catch(error => {{
                         reject(error);
                     }});
             }});
         """
-        return self.browser.execute_script(apiJsonScript)
+        result = self.browser.execute_script(apiJsonScript)
+        if isinstance(result, str) and result in ("HTTP_401", "HTTP_403"):
+            code = result.split("_")[1]
+            raise Exception(f"HTTP {code} fetching API URL — topic inaccessible or session expired: {url}")
+        return result
 
 
     def getTopicApiContentJson(self, topicApiUrl):

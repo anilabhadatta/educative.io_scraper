@@ -143,33 +143,18 @@ def download_all(db_path: str, config_json: dict):
     save_dir = Path(config_json["saveDirectory"])
 
     conn = _connect(db_path)
-    try:
-        rows = conn.execute(
-            "SELECT course_id, topic_index, assets_json FROM static_assets ORDER BY course_id, topic_index"
-        ).fetchall()
-    finally:
-        conn.close()
+
+    rows = conn.execute(
+        "SELECT course_id, topic_index, assets_json FROM static_assets ORDER BY course_id, topic_index"
+    ).fetchall()
 
     if not rows:
         print("No rows found in static_assets. Run StaticAssetExtractor first.")
+        conn.close()
         return
 
-    # Collect all unique URLs across all topics (preserving encounter order)
-    all_urls: list = []
-    seen_urls: set = set()
-    for row in rows:
-        try:
-            assets = json.loads(row["assets_json"])
-        except json.JSONDecodeError:
-            continue
-        for comp_idx, url_list in assets.items():
-            for url in url_list:
-                if url not in seen_urls:
-                    seen_urls.add(url)
-                    all_urls.append(url)
-
-    logger.info(f"Total unique asset URLs to process: {len(all_urls)}")
-    print(f"Total unique asset URLs to process: {len(all_urls)}")
+    logger.info(f"Found {len(rows)} topic row(s) in static_assets.")
+    print(f"Found {len(rows)} topic row(s) in static_assets.")
 
     # ── Start browser, log in, extract cookies, then close browser ── #
     browserUtils = BrowserUtility(config_json)
@@ -189,6 +174,7 @@ def download_all(db_path: str, config_json: dict):
         logger.info(f"Extracted {len(browser.get_cookies())} cookies from browser session")
     except Exception as e:
         logger.error(f"Login / cookie extraction failed: {e}")
+        conn.close()
         raise
     finally:
         try:
@@ -198,67 +184,113 @@ def download_all(db_path: str, config_json: dict):
         except Exception:
             pass
 
-    # ── Download loop — pure Python requests, no browser, no CORS ── #
-    downloaded_set: set = set()
-    downloaded = 0
-    skipped    = 0
-    failed     = 0
+    # ── Download loop — per topic row, pure Python requests, no browser, no CORS ── #
+    downloaded_set: set = set()   # cross-row dedup (same URL referenced by multiple topics)
+    downloaded    = 0
+    skipped       = 0
+    failed_total  = 0
+    deleted_rows  = 0
 
     try:
-        for idx, url in enumerate(all_urls, 1):
-            if url in downloaded_set:
-                skipped += 1
-                continue
+        for row in rows:
+            course_id   = row["course_id"]
+            topic_index = row["topic_index"]
 
-            # Check if already on disk (glob handles bare-ID files with any extension)
-            stem_path = save_dir / _url_path(url)
-            existing  = (
-                list(stem_path.parent.glob(f"{stem_path.name}*"))
-                if stem_path.parent.exists() else []
-            )
-            if existing:
-                logger.info(f"[{idx}/{len(all_urls)}] Already on disk, skipping: {url}")
-                downloaded_set.add(url)
-                skipped += 1
-                continue
-
-            logger.info(f"[{idx}/{len(all_urls)}] Downloading: {url}")
             try:
-                resp = session.get(url, timeout=30, stream=True)
-            except requests.RequestException as e:
-                logger.warning(f"Request error for {url}: {e}")
-                failed += 1
+                assets = json.loads(row["assets_json"])
+            except json.JSONDecodeError:
                 continue
 
-            if not resp.ok:
-                logger.warning(f"Failed (HTTP {resp.status_code}): {url}")
-                failed += 1
-                continue
+            # Flatten and deduplicate URLs across all components in this topic row.
+            # Dedup here prevents double-counting row_failed if the same URL appears
+            # in more than one component.
+            seen_in_row: set = set()
+            row_urls: list = []
+            for urls in assets.values():
+                for url in urls:
+                    if url not in seen_in_row:
+                        seen_in_row.add(url)
+                        row_urls.append(url)
+            row_failed = 0
 
-            file_bytes = resp.content
-            if not file_bytes:
-                logger.warning(f"Empty response body for: {url}")
-                failed += 1
-                continue
+            for url in row_urls:
+                if url in downloaded_set:
+                    skipped += 1
+                    continue
 
-            dest = _file_path_for_url(url, save_dir)
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes(file_bytes)
+                # Check if already on disk
+                stem_path = save_dir / _url_path(url)
+                existing  = (
+                    list(stem_path.parent.glob(f"{stem_path.name}*"))
+                    if stem_path.parent.exists() else []
+                )
+                if existing:
+                    logger.info(f"Already on disk, skipping: {url}")
+                    downloaded_set.add(url)
+                    skipped += 1
+                    continue
 
-            downloaded_set.add(url)
-            downloaded += 1
-            content_type = resp.headers.get("content-type", "")
-            logger.info(f"Saved ({len(file_bytes)} bytes, {content_type}): {dest}")
+                logger.info(f"Downloading: {url}")
+                try:
+                    resp = session.get(url, timeout=30)
+                except requests.RequestException as e:
+                    logger.warning(f"Request error for {url}: {e}")
+                    row_failed   += 1
+                    failed_total += 1
+                    continue
 
-            osUtils.sleep(0.3)
+                if not resp.ok:
+                    logger.warning(f"Failed (HTTP {resp.status_code}): {url}")
+                    row_failed   += 1
+                    failed_total += 1
+                    continue
+
+                file_bytes = resp.content
+                if not file_bytes:
+                    logger.warning(f"Empty response body for: {url}")
+                    row_failed   += 1
+                    failed_total += 1
+                    continue
+
+                dest = _file_path_for_url(url, save_dir)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(file_bytes)
+
+                downloaded_set.add(url)
+                downloaded += 1
+                content_type = resp.headers.get("content-type", "")
+                logger.info(f"Saved ({len(file_bytes)} bytes, {content_type}): {dest}")
+
+                osUtils.sleep(0.3)
+
+            # All URLs for this topic succeeded (downloaded or already on disk) — clean up DB row
+            if row_failed == 0:
+                conn.execute(
+                    "DELETE FROM static_assets WHERE course_id = ? AND topic_index = ?",
+                    (course_id, topic_index),
+                )
+                conn.commit()
+                deleted_rows += 1
+                logger.info(
+                    f"Deleted static_assets row: course_id={course_id}, topic_index={topic_index}"
+                )
+            else:
+                logger.warning(
+                    f"Keeping static_assets row (course_id={course_id}, topic_index={topic_index}): "
+                    f"{row_failed} URL(s) failed — will retry on next run"
+                )
 
     except KeyboardInterrupt:
+        conn.commit()
         logger.info("Interrupted by user.")
+    finally:
+        conn.close()
 
     summary = (
         f"\nDone. Downloaded: {downloaded} | "
         f"Skipped (already on disk / dup): {skipped} | "
-        f"Failed: {failed}"
+        f"Failed: {failed_total} | "
+        f"DB rows deleted: {deleted_rows}"
     )
     logger.info(summary)
     print(summary)
