@@ -15,6 +15,7 @@ from slugify import slugify
 from src.Database.DatabaseManager import DatabaseManager
 from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
+from src.ScraperType.CourseTopicScraper.ScraperModules.NetworkMonitor import NetworkMonitor
 from src.ScraperType.CourseTopicScraper.ScraperModules.ApiUtility import ApiUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
 from src.Utility.BrowserUtility import BrowserUtility
@@ -36,6 +37,7 @@ class ApiScraperMain:
         self.seleniumBasicUtils = SeleniumBasicUtility(configJson)
         self.browserUtils = BrowserUtility(configJson)
         self.db = DatabaseManager(configJson)
+        self.networkMonitor = NetworkMonitor(self.configJson)
 
     # ------------------------------------------------------------------ #
     #  Entry points (mirrors CourseTopicScraper.start / startManual)
@@ -109,9 +111,14 @@ class ApiScraperMain:
             # Navigate to courseUrl and read author/collection IDs while window.__next_f
             # is freshly populated, BEFORE getCourseTopicUrlsList's expandAllSections()
             # alters the page's Next.js flight data and makes the IDs undetectable.
-            self.browser.get(courseUrl)
+            self.browser.get(textFileUrl)
             self.osUtils.sleep(3)
-            courseApiUrl  = self.apiUtils.getAuthorAndCollectionId()
+            self.networkMonitor.browser = self.browser
+            self.apiUrls = self.networkMonitor.getAPIUrls()
+            courseApiUrlV2 = self.apiUtils.getCourseApiUrlFromNetworkUrls(self.apiUrls, courseUrl)
+            self.logger.info(f"Derived Course API URL from network capture: {courseApiUrlV2}")
+            courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
+            self.logger.info(f"Derived Course API URL from author/collection logic: {courseApiUrl}")
 
             # getCourseTopicUrlsList independently navigates to courseUrl again, expands
             # all sidebar sections, then collects the topic hrefs — this double-load is
@@ -126,7 +133,7 @@ class ApiScraperMain:
                 self.logger.warning(f"Removed {originalLen - len(topicUrlsList)} duplicate URL(s)")
 
             self.loginUtils.checkIfLoggedIn()
-            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
+            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrlV2, courseUrl)
             topicApiUrlList  = courseCollectionsJson["topicApiUrlList"]
             topicApiNameList = courseCollectionsJson["topicNameList"]
             topicApiUrlListLen = len(topicApiUrlList)
@@ -136,11 +143,24 @@ class ApiScraperMain:
             self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
             self.logger.info(f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
             if topicApiUrlListLen != topicUrlsListLen:
-                apiUrlsSet   = set(topicApiUrlList)
-                topicUrlsSet = set(topicUrlsList)
-                self.logger.info(f"Extra in API URLs (not in topic URLs): {apiUrlsSet - topicUrlsSet}")
-                self.logger.info(f"Extra in Topic URLs (not in API URLs): {topicUrlsSet - apiUrlsSet}")
-                raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
+                self.logger.warning(
+                    f"Primary collection API count mismatch ({topicApiUrlListLen} != {topicUrlsListLen}). "
+                    f"Trying fallback endpoint for topic API URLs."
+                )
+                courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
+                topicApiUrlList  = courseCollectionsJson["topicApiUrlList"]
+                topicApiNameList = courseCollectionsJson["topicNameList"]
+                topicApiUrlListLen = len(topicApiUrlList)
+                topicUrlsListLen   = len(topicUrlsList)
+
+                self.logger.debug(f"Course Topic URLs: {topicUrlsList}")
+                self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
+                if topicApiUrlListLen != topicUrlsListLen:
+                    apiUrlsSet = set(topicApiUrlList)
+                    topicUrlsSet = set(topicUrlsList)
+                    self.logger.debug(f"Extra API URLs (not in topic URLs): {apiUrlsSet - topicUrlsSet}")
+                    self.logger.debug(f"Extra in Topic URLs (not API URLs): {topicUrlsSet - apiUrlsSet}")
+                    raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
 
             # ── Persist course + all topic stubs to DB ─────────────────────────
             courseTitle = courseCollectionsJson["courseTitle"]

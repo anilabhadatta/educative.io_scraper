@@ -84,7 +84,7 @@ class CourseTopicScraper:
             self.browser = self.browserUtils.loadBrowser()
             self.browser.set_window_size(1920, 1080)
             # self.networkMonitor.browser = self.browser
-            # self.apiUrls = asyncio.run(self.networkMonitor.getAPIUrls())
+            # self.apiUrls = self.networkMonitor.getAPIUrls()
             # self.logger.info(f"Api urls: {self.apiUrls}")
             self.scrapeTopicManual()
         except Exception as e:

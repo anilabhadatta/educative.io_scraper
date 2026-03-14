@@ -1,4 +1,5 @@
 import os
+import re
 
 from slugify import slugify
 from selenium.common import TimeoutException
@@ -24,6 +25,43 @@ class ApiUtility:
         selectorPath = os.path.join(os.path.dirname(__file__), "Selectors.json")
         self.selectors = self.fileUtils.loadJsonFile(selectorPath)["ApiUtility"]
         self.logger = Logger(configJson, "ApiUtility").logger
+
+
+    def getCourseApiUrlFromNetworkUrls(self, apiUrls, courseUrl):
+        try:
+            if not apiUrls:
+                return None
+
+            workType = "module" if "/module/" in courseUrl or "/pal/" in courseUrl else "collection"
+            collectionPattern = re.compile(
+                r"^https:\/\/(?:www\.)?educative\.io\/api\/collection\/(\d+)\/(\d+)(?:\?.*)?$"
+            )
+            palPattern = re.compile(
+                r"^https:\/\/(?:www\.)?educative\.io\/api\/pal\/(\d+)\/(\d+)(?:\?.*)?$"
+            )
+
+            # Prefer direct collection API URLs from captured traffic.
+            for url in reversed(apiUrls):
+                match = collectionPattern.match(url)
+                if not match:
+                    continue
+                authorId, collectionId = match.group(1), match.group(2)
+                if "work_type=" in url:
+                    return url
+                return f"https://www.educative.io/api/collection/{authorId}/{collectionId}?work_type={workType}"
+
+            # If only PAL was captured, convert to collection endpoint format.
+            for url in reversed(apiUrls):
+                match = palPattern.match(url)
+                if not match:
+                    continue
+                authorId, collectionId = match.group(1), match.group(2)
+                return f"https://www.educative.io/api/pal/{authorId}/{collectionId}?work_type={workType}"
+
+            return None
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getCourseApiUrlFromNetworkUrls: {lineNumber}: {e}")
 
 
     def executeJsToGetJson(self, url):
@@ -106,6 +144,105 @@ class ApiUtility:
             raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
 
 
+    def getCourseCollectionsJsonPal(self, courseApiUrl, categoryType, courseType, jsonData):
+        try:
+            self.logger.info(f"Getting Course Collections JSON (PAL) from URL: {courseApiUrl}")
+            categories = jsonData["toc"]["categories"]
+            courseTitle = jsonData["title"]
+
+            topicApiUrlList = []
+            topicNameList = []
+            topicSlugList = []
+            topicIdx = 0
+            toc = []
+
+            def appendTopic(topicId, topicTitle, authorId, collectionId, topicBucket=None):
+                nonlocal topicIdx
+                if topicId is None or not topicTitle:
+                    return
+                baseApiUrl = f"https://www.educative.io/api/collection/{authorId}/{collectionId}/page/"
+                topicApiUrl = baseApiUrl + str(topicId) + f"?work_type={courseType}"
+                topicSlug = slugify(topicTitle)
+
+                topicApiUrlList.append(topicApiUrl)
+                topicNameList.append(topicTitle)
+                topicSlugList.append(topicSlug)
+
+                topicData = {
+                    "index": topicIdx,
+                    "title": topicTitle,
+                    "slug": topicSlug,
+                    "api_url": topicApiUrl,
+                }
+                if topicBucket is None:
+                    toc.append(topicData)
+                else:
+                    topicBucket.append(topicData)
+                topicIdx += 1
+
+            for category in categories:
+                if not (
+                    any(cType in category.get("type", "") for cType in categoryType)
+                    and (
+                        isinstance(category.get("id"), int)
+                        or len(str(category.get("id", ""))) <= 10
+                        or category.get("type") in ("LINKED_MOCK_INTERVIEW",)
+                    )
+                ):
+                    continue
+
+                moduleTitle = category.get("title", "")
+                moduleTopics = []
+
+                nestedToc = category.get("toc")
+                if isinstance(nestedToc, list) and nestedToc:
+                    # PAL module payload keeps lessons under category.toc[*].pages.
+                    for tocEntry in nestedToc:
+                        pages = tocEntry.get("pages")
+                        if isinstance(pages, list) and pages:
+                            for page in pages:
+                                topicId = page.get("page_id", page.get("id"))
+                                topicTitle = page.get("title", tocEntry.get("title", moduleTitle))
+                                authorId = page.get("author_id", jsonData["author_id"])
+                                collectionId = page.get("collection_id", jsonData["collection_id"])
+                                appendTopic(topicId, topicTitle, authorId, collectionId, moduleTopics)
+                        else:
+                            topicId = tocEntry.get("page_id", tocEntry.get("id"))
+                            topicTitle = tocEntry.get("title", moduleTitle)
+                            authorId = tocEntry.get("author_id", jsonData["author_id"])
+                            collectionId = tocEntry.get("collection_id", jsonData["collection_id"])
+                            appendTopic(topicId, topicTitle, authorId, collectionId, moduleTopics)
+                else:
+                    pages = category.get("pages")
+                    if isinstance(pages, list) and pages:
+                        for page in pages:
+                            topicId = page.get("page_id", page.get("id"))
+                            topicTitle = page.get("title", moduleTitle)
+                            authorId = page.get("author_id", jsonData["author_id"])
+                            collectionId = page.get("collection_id", jsonData["collection_id"])
+                            appendTopic(topicId, topicTitle, authorId, collectionId, moduleTopics)
+                    else:
+                        topicId = category.get("page_id", category.get("id"))
+                        topicTitle = category.get("title", "")
+                        authorId = category.get("author_id", jsonData["author_id"])
+                        collectionId = category.get("collection_id", jsonData["collection_id"])
+                        appendTopic(topicId, topicTitle, authorId, collectionId, moduleTopics)
+
+                if moduleTopics:
+                    toc.append({"category": moduleTitle, "topics": moduleTopics})
+
+            return {
+                "courseTitle": courseTitle,
+                "topicApiUrlList": topicApiUrlList,
+                "topicNameList": topicNameList,
+                "topicSlugList": topicSlugList,
+                "toc": toc,
+            }
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getCourseCollectionsJsonPal: {lineNumber}: {e}")
+
+
     def getCourseCollectionsJson(self, courseApiUrl, courseUrl):
         try:
             self.logger.info(f"Getting Course Collections JSON from URL: {courseApiUrl}")
@@ -123,8 +260,10 @@ class ApiUtility:
             topicApiUrlList = []
             topicNameList = []
             topicSlugList = []
+            categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT", "CLOUD_LAB", "LINKED_MOCK_INTERVIEW", "PATH_INTERNAL_MODULE"]
+            if "/pal/" in courseApiUrl:
+                return self.getCourseCollectionsJsonPal(courseApiUrl, categoryType, courseType, jsonData)
             baseApiUrl = f"https://www.educative.io/api/collection/{authorId}/{collectionId}/page/"
-            categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT", "CLOUD_LAB", "LINKED_MOCK_INTERVIEW"]
             topicIdx = 0
             toc = []
             for category in categories:
