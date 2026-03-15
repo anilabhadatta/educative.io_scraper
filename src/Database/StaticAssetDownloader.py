@@ -135,6 +135,24 @@ def _build_session(browser) -> requests.Session:
     })
     return session
 
+def _normalize_educative_api_url(raw_url) -> str:
+    if not isinstance(raw_url, str):
+        return ""
+
+    url = raw_url.strip()
+    if not url:
+        return ""
+
+    if url.startswith("/api/"):
+        return "https://www.educative.io" + url
+    if url.startswith("api/"):
+        return "https://www.educative.io/" + url
+    if url.startswith("https://www.educative.io/api/"):
+        return url
+    if url.startswith("http://www.educative.io/api/"):
+        return "https://" + url[len("http://"):]
+    return ""
+
 
 # ── Core download logic ───────────────────────────────────────────────────── #
 
@@ -155,6 +173,24 @@ def download_all(db_path: str, config_json: dict):
 
     logger.info(f"Found {len(rows)} topic row(s) in static_assets.")
     print(f"Found {len(rows)} topic row(s) in static_assets.")
+
+    # Build the global unique URL set once for progress and final totals.
+    unique_urls: set = set()
+    for row in rows:
+        try:
+            assets = json.loads(row["assets_json"])
+        except json.JSONDecodeError:
+            continue
+
+        for urls in assets.values():
+            for url in urls:
+                normalized = _normalize_educative_api_url(url)
+                if normalized:
+                    unique_urls.add(normalized)
+
+    total_urls = len(unique_urls)
+    logger.info(f"Total unique URL(s) to resolve: {total_urls}")
+    print(f"Total unique URL(s) to resolve: {total_urls}")
 
     # ── Start browser, log in, extract cookies, then close browser ── #
     browserUtils = BrowserUtility(config_json)
@@ -186,13 +222,15 @@ def download_all(db_path: str, config_json: dict):
 
     # ── Download loop — per topic row, pure Python requests, no browser, no CORS ── #
     downloaded_set: set = set()   # cross-row dedup (same URL referenced by multiple topics)
+    already_in_disk = 0
     downloaded    = 0
     skipped       = 0
+    skipped_dup   = 0
     failed_total  = 0
     deleted_rows  = 0
 
     try:
-        for row in rows:
+        for row_num, row in enumerate(rows, start=1):
             course_id   = row["course_id"]
             topic_index = row["topic_index"]
 
@@ -208,7 +246,8 @@ def download_all(db_path: str, config_json: dict):
             row_urls: list = []
             for urls in assets.values():
                 for url in urls:
-                    if url not in seen_in_row:
+                    url = _normalize_educative_api_url(url)
+                    if url and url not in seen_in_row:
                         seen_in_row.add(url)
                         row_urls.append(url)
             row_failed = 0
@@ -216,6 +255,7 @@ def download_all(db_path: str, config_json: dict):
             for url in row_urls:
                 if url in downloaded_set:
                     skipped += 1
+                    skipped_dup += 1
                     continue
 
                 # Check if already on disk
@@ -228,6 +268,7 @@ def download_all(db_path: str, config_json: dict):
                     logger.info(f"Already on disk, skipping: {url}")
                     downloaded_set.add(url)
                     skipped += 1
+                    already_in_disk += 1
                     continue
 
                 logger.info(f"Downloading: {url}")
@@ -261,7 +302,7 @@ def download_all(db_path: str, config_json: dict):
                 content_type = resp.headers.get("content-type", "")
                 logger.info(f"Saved ({len(file_bytes)} bytes, {content_type}): {dest}")
 
-                osUtils.sleep(0.3)
+                osUtils.sleep(0.5)
 
             # All URLs for this topic succeeded (downloaded or already on disk) — clean up DB row
             if row_failed == 0:
@@ -280,16 +321,34 @@ def download_all(db_path: str, config_json: dict):
                     f"{row_failed} URL(s) failed — will retry on next run"
                 )
 
+            resolved = already_in_disk + downloaded
+            left = max(total_urls - resolved, 0)
+            progress_msg = (
+                f"Progress {row_num}/{len(rows)} | "
+                f"resolved={resolved}/{total_urls} | "
+                f"already in disk={already_in_disk} | "
+                f"Failed: {failed_total}\n"
+                f"downloaded={downloaded} | "
+                f"left={left}"
+            )
+            logger.info(progress_msg)
+            print(progress_msg)
+
     except KeyboardInterrupt:
         conn.commit()
         logger.info("Interrupted by user.")
     finally:
         conn.close()
 
+    left = max(total_urls - (already_in_disk + downloaded), 0)
     summary = (
-        f"\nDone. Downloaded: {downloaded} | "
-        f"Skipped (already on disk / dup): {skipped} | "
-        f"Failed: {failed_total} | "
+        "\nDone.\n"
+        f"Total: {total_urls}\n"
+        f"Already in disk: {already_in_disk}\n"
+        f"Total downloaded: {downloaded}\n"
+        f"Left: {left}\n"
+        f"Failed: {failed_total}\n"
+        f"Skipped duplicate URL(s): {skipped_dup}\n"
         f"DB rows deleted: {deleted_rows}"
     )
     logger.info(summary)

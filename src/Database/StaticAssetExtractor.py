@@ -1,7 +1,7 @@
 """
 StaticAssetExtractor.py
 
-Scans all stored component JSON in the database, extracts any /api/ URLs,
+Scans all stored component JSON in the database, extracts static /api/ URLs,
 and stores them in the static_assets table keyed by (course_id, topic_index).
 
 URL extraction rules
@@ -14,9 +14,14 @@ URL extraction rules
           page_id                    – read from the topics.page_id column
           image_id / file_name       – from content_json
 
+  type == "ButtonLink"
+      URL is read from content.url and normalized. Relative paths such as
+          /api/cheatsheet/.../download
+      are converted to absolute https://www.educative.io/... URLs.
+
   all other types
-      The raw content_json string is scanned with a regex for any /api/... path
-      fragments.  All unique matches are collected for that component.
+      The raw content_json string is scanned with a regex for static /api/
+      path fragments. All unique matches are collected for that component.
 
 Output table: static_assets
 -----------------------------
@@ -41,9 +46,10 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-# Captures /api/collection/... stopping at ?, quote, whitespace, brace, or backslash.
+# Captures static /api/collection/... or /api/cheatsheet/... paths, stopping at
+# ?, quote, whitespace, brace, or backslash.
 # Stopping at ? means query parameters are never included in the match.
-_API_RE = re.compile(r'/api/collection/[^\s"\' <>{}\\?\]]+')
+_API_RE = re.compile(r'/api/(?:collection|cheatsheet)/[^\s"\' <>{}\\?\]]+')
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────── #
@@ -62,7 +68,7 @@ def _urls_for_file(content: dict, author_id: str, collection_id: str, page_id: s
     file_name = content.get("file_name") or ""
     if not image_id:
         return []
-    return [f"https://www.educative.io/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}/{file_name}"]
+    return [f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}/{file_name}"]
 
 
 def _urls_for_image(content: dict, author_id: str, collection_id: str, page_id: str) -> list:
@@ -70,7 +76,7 @@ def _urls_for_image(content: dict, author_id: str, collection_id: str, page_id: 
     image_id = content.get("image_id")
     if not image_id:
         return []
-    return [f"https://www.educative.io/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}"]
+    return [f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}"]
 
 
 def _urls_from_scan(content_json_str: str) -> list:
@@ -78,7 +84,7 @@ def _urls_from_scan(content_json_str: str) -> list:
     matches = _API_RE.findall(content_json_str)
     seen, result = set(), []
     for path in matches:
-        url = "https://www.educative.io" + path
+        url = path
         if url not in seen:
             seen.add(url)
             result.append(url)

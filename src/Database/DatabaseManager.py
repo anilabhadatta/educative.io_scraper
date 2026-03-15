@@ -22,7 +22,7 @@ from src.Logging.Logger import Logger
 
 # ── Static-asset URL extraction (mirrors StaticAssetExtractor logic) ──────── #
 
-_API_RE = re.compile(r'/api/collection/[^\s"\'<>{}\\?\]]+')
+_API_RE = re.compile(r'/api/(?:collection|cheatsheet)/[^\s"\' <>{}\\?\]]+')
 
 
 def _page_id_from_api_url(api_url: str) -> str:
@@ -37,21 +37,21 @@ def _urls_for_file(content: dict, author_id: str, collection_id: str, page_id: s
     file_name = content.get("file_name") or ""
     if not image_id:
         return []
-    return [f"https://www.educative.io/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}/{file_name}"]
+    return [f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}/{file_name}"]
 
 
 def _urls_for_image(content: dict, author_id: str, collection_id: str, page_id: str) -> list:
     image_id = content.get("image_id")
     if not image_id:
         return []
-    return [f"https://www.educative.io/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}"]
+    return [f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}"]
 
 
 def _urls_from_scan(content_json_str: str) -> list:
     matches = _API_RE.findall(content_json_str)
     seen, result = set(), []
     for path in matches:
-        url = "https://www.educative.io" + path
+        url = path
         if url not in seen:
             seen.add(url)
             result.append(url)
