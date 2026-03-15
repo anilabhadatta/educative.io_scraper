@@ -25,8 +25,8 @@ Deduplication
 
 Usage
 -----
-  python -m src.Database.StaticAssetDownloader <path/to/educative_scraper.db>
-  python -m src.Database.StaticAssetDownloader          # auto-discover db
+    python -m src.Utility.StaticAssetDownloader <path/to/educative_scraper.db>
+    python -m src.Utility.StaticAssetDownloader          # auto-discover db
 """
 
 import asyncio
@@ -76,6 +76,33 @@ def _load_config_json() -> dict:
         "overwrite":          _bool("overwrite"),
         "useExtension":       _bool("useExtension"),
     }
+
+
+def resolve_db_path(config_json: dict = None, db_path: str = None) -> str:
+    if db_path:
+        p = Path(db_path)
+        if not p.exists():
+            raise FileNotFoundError(f"Error: database not found at '{p}'")
+        return str(p)
+
+    cfg = config_json or _load_config_json()
+    save_dir = Path(cfg.get("saveDirectory", "."))
+    from_save_dir = save_dir / "educative_scraper.db"
+    if from_save_dir.exists():
+        return str(from_save_dir)
+
+    default = Path(constants.defaultConfigPath).parent.parent / "downloaded_files" / "educative_scraper.db"
+    if default.exists():
+        return str(default)
+
+    fallback = Path(__file__).resolve().parent.parent.parent / "downloaded_files" / "educative_scraper.db"
+    if fallback.exists():
+        return str(fallback)
+
+    raise FileNotFoundError(
+        "Usage: python -m src.Utility.StaticAssetDownloader <path/to/educative_scraper.db>\n"
+        f"Could not find DB in saveDirectory ('{from_save_dir}'), default ('{default}'), or fallback ('{fallback}')."
+    )
 
 
 def _connect(db_path: str) -> sqlite3.Connection:
@@ -156,7 +183,7 @@ def _normalize_educative_api_url(raw_url) -> str:
 
 # ── Core download logic ───────────────────────────────────────────────────── #
 
-def download_all(db_path: str, config_json: dict):
+def download_all(db_path: str, config_json: dict, progress_queue=None):
     logger   = Logger(config_json, "StaticAssetDownloader").logger
     save_dir = Path(config_json["saveDirectory"])
 
@@ -191,6 +218,13 @@ def download_all(db_path: str, config_json: dict):
     total_urls = len(unique_urls)
     logger.info(f"Total unique URL(s) to resolve: {total_urls}")
     print(f"Total unique URL(s) to resolve: {total_urls}")
+
+    if progress_queue:
+        progress_queue.put(("color", "green"))
+        progress_queue.put(("max-topic", len(rows)))
+        progress_queue.put(("progress-topic", 0))
+        progress_queue.put(("max-course", total_urls))
+        progress_queue.put(("progress-course", 0))
 
     # ── Start browser, log in, extract cookies, then close browser ── #
     browserUtils = BrowserUtility(config_json)
@@ -230,6 +264,7 @@ def download_all(db_path: str, config_json: dict):
     failed_total  = 0
     deleted_rows  = 0
     stopped_for_auth = False
+    processed_urls = 0
 
     try:
         for row_num, row in enumerate(rows, start=1):
@@ -271,6 +306,9 @@ def download_all(db_path: str, config_json: dict):
                     downloaded_set.add(url)
                     skipped += 1
                     already_in_disk += 1
+                    processed_urls += 1
+                    if progress_queue:
+                        progress_queue.put(("progress-course", processed_urls))
                     continue
 
                 logger.info(f"Downloading: {url}")
@@ -280,6 +318,9 @@ def download_all(db_path: str, config_json: dict):
                     logger.warning(f"Request error for {url}: {e}")
                     row_failed   += 1
                     failed_total += 1
+                    processed_urls += 1
+                    if progress_queue:
+                        progress_queue.put(("progress-course", processed_urls))
                     continue
 
                 status_code = resp.status_code
@@ -288,6 +329,9 @@ def download_all(db_path: str, config_json: dict):
                     downloaded_set.add(url)
                     skipped += 1
                     skipped_404 += 1
+                    processed_urls += 1
+                    if progress_queue:
+                        progress_queue.put(("progress-course", processed_urls))
                     continue
 
                 if status_code in (401, 403):
@@ -297,13 +341,19 @@ def download_all(db_path: str, config_json: dict):
                     )
                     row_failed   += 1
                     failed_total += 1
-                    stopped_for_auth = True
-                    break
+                    processed_urls += 1
+                    if progress_queue:
+                        progress_queue.put(("progress-course", processed_urls))
+                    # stopped_for_auth = True
+                    # break
 
                 if status_code != 200:
                     logger.warning(f"Failed (HTTP {status_code}): {url}")
                     row_failed   += 1
                     failed_total += 1
+                    processed_urls += 1
+                    if progress_queue:
+                        progress_queue.put(("progress-course", processed_urls))
                     continue
 
                 file_bytes = resp.content
@@ -311,6 +361,9 @@ def download_all(db_path: str, config_json: dict):
                     logger.warning(f"Empty response body for: {url}")
                     row_failed   += 1
                     failed_total += 1
+                    processed_urls += 1
+                    if progress_queue:
+                        progress_queue.put(("progress-course", processed_urls))
                     continue
 
                 dest = _file_path_for_url(url, save_dir)
@@ -319,6 +372,9 @@ def download_all(db_path: str, config_json: dict):
 
                 downloaded_set.add(url)
                 downloaded += 1
+                processed_urls += 1
+                if progress_queue:
+                    progress_queue.put(("progress-course", processed_urls))
                 content_type = resp.headers.get("content-type", "")
                 logger.info(f"Saved ({len(file_bytes)} bytes, {content_type}): {dest}")
 
@@ -327,6 +383,9 @@ def download_all(db_path: str, config_json: dict):
             if stopped_for_auth:
                 logger.error("Stopping downloader due to authentication/authorization failure.")
                 print("Stopping downloader due to authentication/authorization failure.")
+                if progress_queue:
+                    progress_queue.put(("progress-topic", row_num))
+                    progress_queue.put(("color", "red"))
                 break
 
             # All URLs for this topic succeeded (downloaded or already on disk) — clean up DB row
@@ -358,10 +417,14 @@ def download_all(db_path: str, config_json: dict):
             )
             logger.info(progress_msg)
             print(progress_msg)
+            if progress_queue:
+                progress_queue.put(("progress-topic", row_num))
 
     except KeyboardInterrupt:
         conn.commit()
         logger.info("Interrupted by user.")
+        if progress_queue:
+            progress_queue.put(("color", "red"))
     finally:
         conn.close()
 
@@ -382,70 +445,30 @@ def download_all(db_path: str, config_json: dict):
     print(summary)
 
 
+def run_from_config(config_json: dict = None, db_path: str = None, progress_queue=None):
+    cfg = config_json or _load_config_json()
+    resolved_db = resolve_db_path(config_json=cfg, db_path=db_path)
+    print(f"Database : {resolved_db}")
+    print(f"Save dir : {cfg['saveDirectory']}")
+    download_all(resolved_db, cfg, progress_queue=progress_queue)
+
+
 # ── Entry point ───────────────────────────────────────────────────────────── #
 
-def _resolve_db_path() -> str:
-    if len(sys.argv) > 1:
-        p = Path(sys.argv[1])
-        if not p.exists():
-            raise SystemExit(f"Error: database not found at '{p}'")
-        return str(p)
-
-    default = Path(constants.defaultConfigPath).parent.parent / "downloaded_files" / "educative_scraper.db"
-    if default.exists():
-        return str(default)
-
-    fallback = Path(__file__).resolve().parent.parent.parent / "downloaded_files" / "educative_scraper.db"
-    if fallback.exists():
-        return str(fallback)
-
-    raise SystemExit(
-        "Usage: python -m src.Database.StaticAssetDownloader <path/to/educative_scraper.db>\n"
-        f"Auto-discover path '{default}' also not found."
-    )
+def _resolve_db_path(config_json: dict = None) -> str:
+    db_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    try:
+        return resolve_db_path(config_json=config_json or _load_config_json(), db_path=db_arg)
+    except FileNotFoundError as e:
+        raise SystemExit(str(e))
 
 
 if __name__ == "__main__":
-    db  = _resolve_db_path()
     cfg = _load_config_json()
+    db  = _resolve_db_path(cfg)
     print(f"Database : {db}")
     print(f"Save dir : {cfg['saveDirectory']}")
     download_all(db, cfg)
-
-
-
-# ── Helpers ───────────────────────────────────────────────────────────────── #
-
-def _load_config_json() -> dict:
-    """Build a configJson dict from the user's config.ini (same keys as GUI)."""
-    cfg = configparser.ConfigParser()
-    cfg.read(constants.defaultConfigPath)
-    s = cfg["ScraperConfig"]
-
-    def _bool(key):
-        return s.get(key, "false").strip().lower() == "true"
-
-    return {
-        "userDataDir":      s.get("userdatadir", "UserData0"),
-        "headless":         _bool("headless"),
-        "courseUrlsFilePath": s.get("courseurlsfilepath", ""),
-        "saveDirectory":    s.get("savedirectory", "."),
-        "logger":           s.get("logger", "INFO"),
-        "moduleType":       s.get("moduletype", "COURSE-PATH"),
-        "isProxy":          _bool("isproxy"),
-        "proxy":            s.get("proxy", ""),
-        "scraperType":      s.get("scrapertype", "API-JSON-Scraper"),
-        "scrapingMethod":   s.get("scrapingmethod", "SingleFile-HTML"),
-        "fileType":         s.get("filetype", "html"),
-        "ucdriver":         _bool("ucdriver"),
-        "binaryversion":    s.get("binaryversion", "116"),
-        "autoresume":       _bool("autoresume"),
-        "autofixtextfile":  _bool("autofixtextfile"),
-        "blockscraper":     _bool("blockscraper"),
-        "autonext":         _bool("autonext"),
-        "overwrite":        _bool("overwrite"),
-        "useExtension":     _bool("useExtension"),
-    }
 
 
 

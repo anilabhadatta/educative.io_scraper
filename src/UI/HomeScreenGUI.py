@@ -5,6 +5,7 @@ import shutil
 import threading
 import tkinter as tk
 import tkinter.filedialog
+import tkinter.messagebox
 from tkinter import ttk
 import queue 
 import psutil
@@ -20,6 +21,8 @@ from src.Utility.BrowserUtility import BrowserUtility
 from src.Utility.ConfigUtility import ConfigUtility
 from src.Utility.DownloadUtility import DownloadUtility
 from src.Utility.FileUtility import FileUtility
+from src.Utility.StaticAssetExtractor import run_from_config as run_static_asset_extractor
+from src.Utility.StaticAssetDownloader import run_from_config as run_static_asset_downloader
 
 
 class HomeScreen:
@@ -38,10 +41,11 @@ class HomeScreen:
         # Define styles with different colors
         style.configure("green.Horizontal.TProgressbar", troughcolor='white', background='#28a745')
         style.configure("red.Horizontal.TProgressbar", troughcolor='white', background='#dc3545')
+        style.configure("TNotebook.Tab", padding=(12, 6))
         imagePath = os.path.join(constants.commonFolderPath, "icon.gif")
         pilImage = Image.open(imagePath)
         self.app.iconphoto(True, ImageTk.PhotoImage(pilImage))
-        self.app.geometry("400x400")
+        self.app.geometry("980x720")
         self.app.title("Educative Scraper")
 
         self.configFilePath = tk.StringVar()
@@ -101,18 +105,61 @@ class HomeScreen:
 
 
     def updateComboboxStates(self, *args):
-        if self.scraperTypeVar.get() in ("All-Course-Urls-Text-File-Generator", "API-JSON-Scraper"):
+        if not hasattr(self, "scrapingMethodCombobox"):
+            return
+
+        scraper_type = self.scraperTypeVar.get()
+        is_api_scraper = scraper_type == "API-JSON-Scraper"
+        hide_scraping_output_controls = scraper_type in (
+            "All-Course-Urls-Text-File-Generator",
+            "API-JSON-Scraper",
+        )
+
+        if hide_scraping_output_controls:
             self.scrapingMethodCombobox.config(state="disabled")
             self.fileTypeCombobox.config(state="disabled")
-        elif self.scraperTypeVar.get() == "Course-Topic-Scraper":
-            self.scrapingMethodCombobox.config(state="enabled")
-            self.fileTypeCombobox.config(state="enabled")
+        elif scraper_type == "Course-Topic-Scraper":
+            self.scrapingMethodCombobox.config(state="readonly")
+            self.fileTypeCombobox.config(state="readonly")
             if self.scrapingMethodVar.get() == "SingleFile-HTML":
                 if self.fileTypeVar.get() == "png" or self.fileTypeVar.get() == "png2pdf":
                     self.fileTypeVar.set("html")
                 self.fileTypeCombobox['values'] = self.fileTypes[:2]
             else:
                 self.fileTypeCombobox['values'] = self.fileTypes[1:]
+
+        # API and URL-generator modes do not need scraping method/file type controls.
+        if hide_scraping_output_controls:
+            self.scrapingMethodLabel.grid_remove()
+            self.scrapingMethodCombobox.grid_remove()
+            self.fileTypeLabel.grid_remove()
+            self.fileTypeCombobox.grid_remove()
+        else:
+            self.scrapingMethodLabel.grid(row=1, column=0, sticky="w", padx=2, pady=0)
+            self.scrapingMethodCombobox.grid(row=1, column=1, sticky="w", padx=0, pady=5)
+            self.fileTypeLabel.grid(row=2, column=0, sticky="w", padx=2, pady=0)
+            self.fileTypeCombobox.grid(row=2, column=1, sticky="w", padx=0, pady=5)
+
+        # Manual scraper remains visible but is disabled only in API mode.
+        if is_api_scraper:
+            self.startChromeDriverButton.config(state="disabled")
+        elif not self.processes:
+            self.startChromeDriverButton.config(state="normal")
+
+        # Overwrite option should be visible only for API scraper.
+        if hasattr(self, "overwriteCheckbox"):
+            if is_api_scraper:
+                self.overwriteCheckbox.grid(row=1, column=2, sticky="w", padx=(10, 0), pady=2)
+            else:
+                self.overwriteCheckbox.grid_remove()
+
+        if hasattr(self, "extractAssetsButton") and hasattr(self, "downloadAssetsButton"):
+            button_state = "normal" if is_api_scraper else "disabled"
+            self.extractAssetsButton.config(state=button_state)
+            self.downloadAssetsButton.config(state=button_state)
+
+        # Keep window height tightly fit to visible controls when mode changes.
+        self.app.after_idle(self.fixGeometry)
     
 
     def trackUserClick(self, event):
@@ -140,7 +187,14 @@ class HomeScreen:
         self.autoResumeScraper.trace("w", self.onConfigChange)
         self.logger.info("Creating Home Screen...")
 
-        configFilePathFrame = tk.Frame(self.app)
+        mainNotebook = ttk.Notebook(self.app)
+        scraperTab = ttk.Frame(mainNotebook)
+        aboutTab = ttk.Frame(mainNotebook)
+        mainNotebook.add(scraperTab, text="Scraper")
+        mainNotebook.add(aboutTab, text="About")
+        mainNotebook.pack(fill="both", expand=True, padx=10, pady=8)
+
+        configFilePathFrame = tk.Frame(scraperTab)
         configFilePathLabel = tk.Label(configFilePathFrame, text="Config File Path:")
         configFileTextBox = tk.Entry(configFilePathFrame, textvariable=self.configFilePath, width=70)
         browseConfigFileButton = tk.Button(configFilePathFrame, text="...", command=self.browseConfigFile)
@@ -149,20 +203,22 @@ class HomeScreen:
         browseConfigFileButton.grid(row=0, column=2, padx=2)
         configFilePathFrame.pack(pady=3, padx=10, anchor="w")
 
-        optionsContainerFrame = tk.Frame(self.app)
+        optionsContainerFrame = tk.Frame(scraperTab)
+        optionsContainerFrame.grid_columnconfigure(0, weight=1)
+        optionsContainerFrame.grid_columnconfigure(1, weight=1)
         scraperOptionFrame = tk.Frame(optionsContainerFrame)
         scraperTypeLabel = tk.Label(scraperOptionFrame, text="Scraper Type:")
         scraperTypeLabel.grid(row=0, column=0, sticky="w", padx=2, pady=0)
         self.scraperTypeCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.scraperTypeVar,
                                            values=self.scraperTypes, state="readonly", width=30)
         self.scraperTypeCombobox.grid(row=0, column=1, sticky="w", padx=0, pady=5)
-        scrapingMethodLabel = tk.Label(scraperOptionFrame, text="Scraping Method:")
-        scrapingMethodLabel.grid(row=1, column=0, sticky="w", padx=2, pady=0)
+        self.scrapingMethodLabel = tk.Label(scraperOptionFrame, text="Scraping Method:")
+        self.scrapingMethodLabel.grid(row=1, column=0, sticky="w", padx=2, pady=0)
         self.scrapingMethodCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.scrapingMethodVar,
                                            values=self.scrapingMethods, state="readonly", width=30)
         self.scrapingMethodCombobox.grid(row=1, column=1, sticky="w", padx=0, pady=5)
-        fileTypeLabel = tk.Label(scraperOptionFrame, text="File Type:")
-        fileTypeLabel.grid(row=2, column=0, sticky="w", padx=2, pady=0)
+        self.fileTypeLabel = tk.Label(scraperOptionFrame, text="File Type:")
+        self.fileTypeLabel.grid(row=2, column=0, sticky="w", padx=2, pady=0)
         self.fileTypeCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.fileTypeVar,
                                            values=self.fileTypes, state="readonly", width=30)
         self.fileTypeCombobox.grid(row=2, column=1, sticky="w", padx=0, pady=5)
@@ -171,54 +227,60 @@ class HomeScreen:
         loggingLevelCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.loggingLevelVar,
                                             values=self.loggingLevels, state="readonly", width=30)
         loggingLevelCombobox.grid(row=3, column=1, sticky="w", padx=0, pady=5)
-        self.logDescriptionLabel = tk.Label(scraperOptionFrame, text=self.logLevelDesc[self.logLevelDescVar.get()])
-        self.logDescriptionLabel.grid(row=3, column=2, sticky="w", padx=2, pady=2)
+
+        self.logDescriptionLabel = tk.Label(
+            scraperOptionFrame,
+            text=self.logLevelDesc[self.logLevelDescVar.get()],
+            anchor="w",
+        )
+        self.logDescriptionLabel.grid(row=4, column=1, columnspan=2, sticky="w", padx=0, pady=(0, 2))
 
         moduleTypeLabel = tk.Label(scraperOptionFrame, text="Module Type:")
-        moduleTypeLabel.grid(row=4, column=0, sticky="w", padx=2, pady=0)
+        moduleTypeLabel.grid(row=5, column=0, sticky="w", padx=2, pady=0)
         moduleTypeCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.moduleTypeVar,
                                             values=self.moduleTypes, state="readonly", width=30)
-        moduleTypeCombobox.grid(row=4, column=1, sticky="w", padx=0, pady=5)
+        moduleTypeCombobox.grid(row=5, column=1, sticky="w", padx=0, pady=5)
 
-        ToolDescriptionLabel0 = tk.Label(scraperOptionFrame, text="About: Educative Scraper")
-        ToolDescriptionLabel1 = tk.Label(scraperOptionFrame, text=version)
-        ToolDescriptionLabel2 = tk.Label(scraperOptionFrame, text="Developed by Anilabha Datta")
-        ToolDescriptionLabel0.grid(row=0, column=2, sticky="w", padx=2, pady=2)
-        ToolDescriptionLabel1.grid(row=1, column=2, sticky="w", padx=2, pady=2)
-        ToolDescriptionLabel2.grid(row=2, column=2, sticky="w", padx=2, pady=2)
+        self.proxyCheckboxOption = tk.Checkbutton(scraperOptionFrame, text="Proxy", variable=self.isProxyVar, anchor="w")
+        self.proxyCheckboxOption.grid(row=6, column=0, sticky="w", padx=2, pady=2)
+        self.proxyEntryOption = tk.Entry(scraperOptionFrame, textvariable=self.proxyVar, width=30)
+        self.proxyEntryOption.grid(row=6, column=1, sticky="w", padx=0, pady=2)
+        self.proxyFormatLabel = tk.Label(scraperOptionFrame, text="Host:Port")
+        self.proxyFormatLabel.grid(row=6, column=2, sticky="w", padx=2, pady=2)
 
-        checkboxesFrame = tk.Frame(optionsContainerFrame)
-        optionCheckboxes = [
-            ("Headless", self.headlessVar),
-            ("Proxy", self.isProxyVar)
-        ]
-        for i, (optionText, optionVar) in enumerate(optionCheckboxes):
-            checkbox = tk.Checkbutton(checkboxesFrame, text=optionText, variable=optionVar, wraplength=400, anchor="w")
-            checkbox.grid(row=int(i), column=0, sticky="w", padx=0, pady=2)
-            self.checkboxes.append(checkbox)
-        proxyEntry = tk.Entry(checkboxesFrame, textvariable=self.proxyVar, width=33)
-        proxyEntry.grid(row=len(optionCheckboxes)-1, column=1, sticky="w", padx=(30, 2), pady=2)
-        proxyLabel = tk.Label(checkboxesFrame, text="Format: Host:Port")
-        proxyLabel.grid(row=len(optionCheckboxes)-1, column=2, sticky="w", padx=2, pady=0)
+        checkboxesFrame = tk.LabelFrame(optionsContainerFrame, text="Runtime Options", padx=8, pady=6)
+        for col in range(3):
+            checkboxesFrame.grid_columnconfigure(col, weight=1)
 
-        checkbox = tk.Checkbutton(checkboxesFrame, text="AutoNext", variable=self.autoNextVar, wraplength=400, anchor="w")
-        checkbox.grid(row=len(optionCheckboxes)-1, column=3, sticky="w", padx=0, pady=2)
-        self.checkboxes.append(checkbox)
+        self.headlessCheckbox = tk.Checkbutton(checkboxesFrame, text="Headless", variable=self.headlessVar, anchor="w")
+        self.headlessCheckbox.grid(row=0, column=0, sticky="w", padx=0, pady=2)
+        self.checkboxes.append(self.headlessCheckbox)
 
-        ucdriverCheckbox = tk.Checkbutton(checkboxesFrame, text="SeleniumBase(uc mode)", variable=self.ucdriverVar, wraplength=400, anchor="w")
-        ucdriverCheckbox.grid(row=len(optionCheckboxes)-2, column=1, sticky="w", padx=(25,0), pady=2)
-        self.autoResumeScraperCheckbox = tk.Checkbutton(checkboxesFrame, text="Auto Resume Scraper", variable=self.autoResumeScraper, wraplength=400, anchor="w")
-        self.autoResumeScraperCheckbox.grid(row=len(optionCheckboxes)-2, column=2, sticky="w", padx=(0,0), pady=2)
-        self.autoFixTextFileCheckbox = tk.Checkbutton(checkboxesFrame, text="Auto Fix Url File", variable=self.autoFixTextFile, wraplength=400, anchor="w")
-        self.autoFixTextFileCheckbox.grid(row=len(optionCheckboxes)-2, column=3, sticky="w", padx=(15,0), pady=2)
-        self.overwriteCheckbox = tk.Checkbutton(checkboxesFrame, text="Overwrite (API Scraper)", variable=self.overwriteVar, wraplength=400, anchor="w")
-        self.overwriteCheckbox.grid(row=len(optionCheckboxes)-1, column=2, sticky="w", padx=(0,0), pady=2)
+        self.ucdriverCheckbox = tk.Checkbutton(checkboxesFrame, text="SeleniumBase(uc mode)", variable=self.ucdriverVar, anchor="w")
+        self.ucdriverCheckbox.grid(row=0, column=1, sticky="w", padx=(10, 0), pady=2)
+        self.checkboxes.append(self.ucdriverCheckbox)
+
+        self.autoResumeScraperCheckbox = tk.Checkbutton(checkboxesFrame, text="Auto Resume Scraper", variable=self.autoResumeScraper, anchor="w")
+        self.autoResumeScraperCheckbox.grid(row=0, column=2, sticky="w", padx=(10, 0), pady=2)
+        self.checkboxes.append(self.autoResumeScraperCheckbox)
+
+        self.autoFixTextFileCheckbox = tk.Checkbutton(checkboxesFrame, text="Auto Fix Url File", variable=self.autoFixTextFile, anchor="w")
+        self.autoFixTextFileCheckbox.grid(row=1, column=0, sticky="w", padx=0, pady=2)
+        self.checkboxes.append(self.autoFixTextFileCheckbox)
+
+        self.autoNextCheckbox = tk.Checkbutton(checkboxesFrame, text="AutoNext", variable=self.autoNextVar, anchor="w")
+        self.autoNextCheckbox.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
+        self.checkboxes.append(self.autoNextCheckbox)
+
+        self.overwriteCheckbox = tk.Checkbutton(checkboxesFrame, text="Overwrite (API Scraper)", variable=self.overwriteVar, anchor="w")
+        self.overwriteCheckbox.grid(row=1, column=2, sticky="w", padx=(10, 0), pady=2)
+        self.overwriteCheckbox.grid_remove()
 
         scraperOptionFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
-        checkboxesFrame.grid(row=1, column=0, padx=0, pady=3, sticky="nw")
+        checkboxesFrame.grid(row=0, column=1, padx=(12, 0), pady=3, sticky="new")
         optionsContainerFrame.pack(pady=3, padx=10, anchor="w")
 
-        entriesFrame = tk.Frame(self.app)
+        entriesFrame = tk.Frame(scraperTab)
         userDataDirLabel = tk.Label(entriesFrame, text="User Data Directory:")
         userDataDirEntry = tk.Entry(entriesFrame, textvariable=self.userDataDirVar, width=65)
         courseUrlsFilePathLabel = tk.Label(entriesFrame, text="Course URLs File Path:")
@@ -240,58 +302,99 @@ class HomeScreen:
         logPathLabel.grid(row=3, column=1, sticky="w", padx=2, pady=2)
         entriesFrame.pack(pady=3, padx=10, anchor="w")
 
-        buttonConfigFrame = tk.Frame(self.app)
-        loadDefaultConfigButton = tk.Button(buttonConfigFrame, text="Default Config",
-                                            command=self.loadDefaultConfig)
-        updateConfigButton = tk.Button(buttonConfigFrame, text="Update Config", command=self.updateConfig)
-        exportConfigButton = tk.Button(buttonConfigFrame, text="Export Config", command=self.exportConfig)
-        deleteUserDataButton = tk.Button(buttonConfigFrame, text="Delete User Data", command=self.deleteUserData)
-        loadDefaultConfigButton.grid(row=0, column=0, sticky="w", padx=2, pady=2)
-        updateConfigButton.grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        exportConfigButton.grid(row=0, column=2, sticky="w", padx=2, pady=2)
-        deleteUserDataButton.grid(row=0, column=3, sticky="w", padx=2, pady=2)
-        buttonConfigFrame.pack(pady=3, padx=100, anchor="center")
+        buttonActionFrame = tk.Frame(scraperTab)
+        for col in range(4):
+            buttonActionFrame.grid_columnconfigure(col, weight=1)
 
-        buttonScraperFrame = tk.Frame(self.app)
-        self.downloadChromeDriverButton = tk.Button(buttonScraperFrame, text="Download Chrome Driver", width=19,
+        loadDefaultConfigButton = tk.Button(buttonActionFrame, text="Default Config", width=18,
+                                            command=self.loadDefaultConfig)
+        updateConfigButton = tk.Button(buttonActionFrame, text="Update Config", width=18, command=self.updateConfig)
+        exportConfigButton = tk.Button(buttonActionFrame, text="Export Config", width=18, command=self.exportConfig)
+        deleteUserDataButton = tk.Button(buttonActionFrame, text="Delete User Data", width=18, command=self.deleteUserData)
+
+        self.downloadChromeDriverButton = tk.Button(buttonActionFrame, text="Download Chrome Driver", width=18,
                                                     command=self.downloadChromeDriver)
-        self.downloadChromeBinaryButton = tk.Button(buttonScraperFrame, text="Download Chrome Binary", width=20,
+        self.downloadChromeBinaryButton = tk.Button(buttonActionFrame, text="Download Chrome Binary", width=18,
                                                     command=self.downloadChromeBinary)
-        # self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Chrome Driver",
-        #                                          command=self.startChromeDriver, width=19, state="disabled")
-        self.startChromeDriverButton = tk.Button(buttonScraperFrame, text="Start Manual Scraper",
-                                                 command=self.startManualScraper, width=19)
-        self.loginAccountButton = tk.Button(buttonScraperFrame, text="Login/Open Browser", command=self.loginAccount,
-                                            width=20)
-        self.startScraperButton = tk.Button(buttonScraperFrame, text="Start Auto Scraper", command=self.startScraper,
-                                            width=19)
+        self.startChromeDriverButton = tk.Button(buttonActionFrame, text="Start Manual Scraper",
+                                                 command=self.startManualScraper, width=18)
+        self.loginAccountButton = tk.Button(buttonActionFrame, text="Login/Open Browser", command=self.loginAccount,
+                                            width=18)
+        self.startScraperButton = tk.Button(buttonActionFrame, text="Start Auto Scraper", command=self.startScraper,
+                                            width=18)
         self.checkButtonStateVar.set(self.startScraperButton['state'])
         self.checkButtonStateVar.trace("w", lambda *args: self.autoStartScraperOnConditions())
         self.startScraperButton.bind("<Button-1>", self.trackUserClick)
-        self.terminateProcessButton = tk.Button(buttonScraperFrame, text="Stop Scraper/Close Browser",
+        self.terminateProcessButton = tk.Button(buttonActionFrame, text="Stop Scraper/Close Browser",
                                                 command=self.terminateProcess,
-                                                width=20, state="disabled")
-        self.downloadChromeDriverButton.grid(row=0, column=0, sticky="w", padx=2, pady=3)
-        self.downloadChromeBinaryButton.grid(row=0, column=1, sticky="w", padx=2, pady=3)
-        self.startChromeDriverButton.grid(row=1, column=0, sticky="w", padx=2, pady=3)
-        self.loginAccountButton.grid(row=1, column=1, sticky="w", padx=2, pady=3)
-        self.startScraperButton.grid(row=2, column=0, sticky="w", padx=2, pady=3)
-        self.terminateProcessButton.grid(row=2, column=1, sticky="w", padx=2, pady=3)
-        buttonScraperFrame.pack(pady=4, padx=100, anchor="center")
+                                                width=18, state="disabled")
+        self.extractAssetsButton = tk.Button(
+            buttonActionFrame,
+            text="Extract Assets",
+            width=18,
+            command=self.extractStaticAssets,
+        )
+        self.downloadAssetsButton = tk.Button(
+            buttonActionFrame,
+            text="Download Assets",
+            width=18,
+            command=self.downloadStaticAssets,
+        )
 
-        topicProgressBarFrame = tk.Frame(self.app)
+        # Row 1: config buttons
+        loadDefaultConfigButton.grid(row=0, column=0, sticky="ew", padx=2, pady=2)
+        updateConfigButton.grid(row=0, column=1, sticky="ew", padx=2, pady=2)
+        exportConfigButton.grid(row=0, column=2, sticky="ew", padx=2, pady=2)
+        deleteUserDataButton.grid(row=0, column=3, sticky="ew", padx=2, pady=2)
+
+        # Row 2: setup/browser actions
+        self.downloadChromeDriverButton.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
+        self.downloadChromeBinaryButton.grid(row=1, column=1, sticky="ew", padx=2, pady=2)
+        self.startChromeDriverButton.grid(row=1, column=2, sticky="ew", padx=2, pady=2)
+        self.loginAccountButton.grid(row=1, column=3, sticky="ew", padx=2, pady=2)
+
+        # Row 3: scraper + assets actions
+        self.startScraperButton.grid(row=2, column=0, sticky="ew", padx=2, pady=2)
+        self.terminateProcessButton.grid(row=2, column=1, sticky="ew", padx=2, pady=2)
+        self.extractAssetsButton.grid(row=2, column=2, sticky="ew", padx=2, pady=2)
+        self.downloadAssetsButton.grid(row=2, column=3, sticky="ew", padx=2, pady=2)
+
+        buttonActionFrame.pack(fill="x", pady=4, padx=10, anchor="w")
+
+        topicProgressBarFrame = tk.Frame(scraperTab)
+        topicProgressBarFrame.grid_columnconfigure(1, weight=1)
         downloadProgressLabel = tk.Label(topicProgressBarFrame, text="Topic Progress:")
-        self.topicProgressBar = ttk.Progressbar(topicProgressBarFrame, length=380, mode="determinate", variable=self.topicProgressVar, style="green.Horizontal.TProgressbar")
+        self.topicProgressBar = ttk.Progressbar(topicProgressBarFrame, length=720, mode="determinate", variable=self.topicProgressVar, style="green.Horizontal.TProgressbar")
         downloadProgressLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
-        self.topicProgressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        topicProgressBarFrame.pack(pady=3)
+        self.topicProgressBar.grid(row=0, column=1, sticky="ew", padx=2, pady=2)
+        topicProgressBarFrame.pack(fill="x", pady=3, padx=10)
 
-        courseProgressBarFrame = tk.Frame(self.app)
+        courseProgressBarFrame = tk.Frame(scraperTab)
+        courseProgressBarFrame.grid_columnconfigure(1, weight=1)
         downloadProgressLabel = tk.Label(courseProgressBarFrame, text="Course Progress:")
-        self.courseProgressBar = ttk.Progressbar(courseProgressBarFrame, length=380, mode="determinate", variable=self.courseProgressVar, style="green.Horizontal.TProgressbar")
+        self.courseProgressBar = ttk.Progressbar(courseProgressBarFrame, length=720, mode="determinate", variable=self.courseProgressVar, style="green.Horizontal.TProgressbar")
         downloadProgressLabel.grid(row=0, column=0, sticky="w", padx=2, pady=2)
-        self.courseProgressBar.grid(row=0, column=1, sticky="w", padx=2, pady=2)
-        courseProgressBarFrame.pack(pady=3)
+        self.courseProgressBar.grid(row=0, column=1, sticky="ew", padx=2, pady=2)
+        courseProgressBarFrame.pack(fill="x", pady=3, padx=10)
+
+        aboutFrame = tk.Frame(aboutTab, padx=18, pady=18)
+        aboutTitle = tk.Label(aboutFrame, text="Educative Scraper", font=("Segoe UI", 16, "bold"))
+        aboutVersion = tk.Label(aboutFrame, text=version, font=("Segoe UI", 11, "bold"))
+        aboutAuthor = tk.Label(aboutFrame, text="Developed by Anilabha Datta", font=("Segoe UI", 11))
+        aboutDescription = tk.Label(
+            aboutFrame,
+            text=(
+                "This tab keeps project info separate from scraping controls.\n"
+                "Use the Scraper tab for scraping and static asset utilities."
+            ),
+            justify="left",
+            anchor="w",
+        )
+        aboutTitle.pack(anchor="w", pady=(0, 4))
+        aboutVersion.pack(anchor="w", pady=(0, 4))
+        aboutAuthor.pack(anchor="w", pady=(0, 12))
+        aboutDescription.pack(anchor="w")
+        aboutFrame.pack(fill="both", expand=True)
 
         self.progressQueue = multiprocessing.Queue()
         self.updateProgress()
@@ -336,13 +439,17 @@ class HomeScreen:
     def fixGeometry(self):
         self.logger.debug("fixGeometry called")
         self.app.update_idletasks()
-        width = self.app.winfo_reqwidth()
-        height = self.app.winfo_reqheight()
+        req_width = self.app.winfo_reqwidth()
+        req_height = self.app.winfo_reqheight()
 
         screen_width = self.app.winfo_screenwidth()
         screen_height = self.app.winfo_screenheight()
-        x = (screen_width - width) // 2
-        y = (screen_height - height) // 2
+        max_width = max(screen_width - 40, 800)
+        max_height = max(screen_height - 80, 600)
+        width = min(req_width, max_width)
+        height = min(req_height, max_height)
+        x = max((screen_width - width) // 2, 0)
+        y = max((screen_height - height) // 2, 0)
         self.app.geometry(f"{width}x{height}+{x}+{y}")
         self.app.resizable(False, False)
         self.logger.debug("fixGeometry completed")
@@ -426,9 +533,59 @@ class HomeScreen:
         }
 
 
+    def resetProgressBars(self):
+        self.topicProgressVar.set(0)
+        self.courseProgressVar.set(0)
+        self.topicProgressBar.config(style="green.Horizontal.TProgressbar")
+        self.courseProgressBar.config(style="green.Horizontal.TProgressbar")
+
+
+    def extractStaticAssets(self):
+        self.logger.debug("extractStaticAssets called")
+        self.createConfigJson()
+        if self.scraperTypeVar.get() != "API-JSON-Scraper":
+            tk.messagebox.showinfo("Asset Tools", "Switch to API-JSON-Scraper to use asset tools.")
+            return
+
+        self.resetProgressBars()
+        self.updateTextFromLog.setConfigExt(self.configJson)
+        self.updateTextFromLog.setBlockScraper(True)
+        self.process = multiprocessing.Process(
+            name="AssetExtractor",
+            target=run_static_asset_extractor,
+            args=(self.configJson, None, self.progressQueue),
+        )
+        self.process.start()
+        self.processes.append(self.process)
+        self.updateButtonState()
+        self.logger.debug("extractStaticAssets completed")
+
+
+    def downloadStaticAssets(self):
+        self.logger.debug("downloadStaticAssets called")
+        self.createConfigJson()
+        if self.scraperTypeVar.get() != "API-JSON-Scraper":
+            tk.messagebox.showinfo("Asset Tools", "Switch to API-JSON-Scraper to use asset tools.")
+            return
+
+        self.resetProgressBars()
+        self.updateTextFromLog.setConfigExt(self.configJson)
+        self.updateTextFromLog.setBlockScraper(True)
+        self.process = multiprocessing.Process(
+            name="AssetDownloader",
+            target=run_static_asset_downloader,
+            args=(self.configJson, None, self.progressQueue),
+        )
+        self.process.start()
+        self.processes.append(self.process)
+        self.updateButtonState()
+        self.logger.debug("downloadStaticAssets completed")
+
+
     def startScraper(self):
         self.logger.debug("startScraper called")
         self.createConfigJson()
+        self.resetProgressBars()
         if self.clickedByUser:
             self.updateTextFromLog.setConfigExt(self.configJson)
             self.updateTextFromLog.setBlockScraper(False)
@@ -446,6 +603,9 @@ class HomeScreen:
     def startManualScraper(self):
         self.logger.debug("startManualScraper called")
         self.createConfigJson()
+        if self.scraperTypeVar.get() == "API-JSON-Scraper":
+            tk.messagebox.showinfo("Manual Scraper", "Manual scraper is disabled for API-JSON-Scraper.")
+            return
         startScraper = StartScraper()
         self.process = multiprocessing.Process(name="ManualScraper", target=startScraper.startManual, args=(self.configJson, ))
         self.process.start()
@@ -501,20 +661,33 @@ class HomeScreen:
 
 
     def updateManualScraperButtonState(self):
-        if self.process and self.process.name == "ManualScraper":
+        if self.scraperTypeVar.get() == "API-JSON-Scraper":
+            self.startChromeDriverButton.config(state="disabled")
+        elif self.process and self.process.name == "ManualScraper":
             if self.process.is_alive():
                 self.startChromeDriverButton.config(state="disabled")
             else:
                 self.startChromeDriverButton.config(state="normal")
+        elif not self.processes:
+            self.startChromeDriverButton.config(state="normal")
         self.app.after(1000, self.updateManualScraperButtonState)
 
 
     def EnableDisableButtons(self, state):
         self.downloadChromeDriverButton.config(state=state)
         self.downloadChromeBinaryButton.config(state=state)
-        # self.startChromeDriverButton.config(state=state)
+        manual_state = "disabled" if self.scraperTypeVar.get() == "API-JSON-Scraper" else state
+        self.startChromeDriverButton.config(state=manual_state)
         self.startScraperButton.config(state=state)
         self.loginAccountButton.config(state=state)
+        if hasattr(self, "extractAssetsButton") and hasattr(self, "downloadAssetsButton"):
+            if state == "disabled":
+                self.extractAssetsButton.config(state="disabled")
+                self.downloadAssetsButton.config(state="disabled")
+            else:
+                button_state = "normal" if self.scraperTypeVar.get() == "API-JSON-Scraper" else "disabled"
+                self.extractAssetsButton.config(state=button_state)
+                self.downloadAssetsButton.config(state=button_state)
 
 
     def startChromeDriver(self):

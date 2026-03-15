@@ -33,18 +33,21 @@ Output table: static_assets
 Usage
 -----
   # explicit db path
-  python -m src.Database.StaticAssetExtractor path/to/educative_scraper.db
+    python -m src.Utility.StaticAssetExtractor path/to/educative_scraper.db
 
   # auto-discover (looks beside downloaded_files/ in the project root)
-  python -m src.Database.StaticAssetExtractor
+    python -m src.Utility.StaticAssetExtractor
 """
 
 import json
 import re
 import sqlite3
 import sys
+import configparser
 from datetime import datetime
 from pathlib import Path
+
+from src.Common.Constants import constants
 
 # Captures static /api/collection/... or /api/cheatsheet/... paths, stopping at
 # ?, quote, whitespace, brace, or backslash.
@@ -60,6 +63,34 @@ def _connect(db_path: str) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA foreign_keys=ON;")
     return conn
+
+
+def _load_config_json() -> dict:
+    cfg = configparser.ConfigParser()
+    cfg.read(constants.defaultConfigPath)
+    s = cfg["ScraperConfig"] if "ScraperConfig" in cfg else {}
+    return {
+        "saveDirectory": s.get("savedirectory", ".") if hasattr(s, "get") else ".",
+    }
+
+
+def _normalize_educative_api_url(raw_url) -> str:
+    if not isinstance(raw_url, str):
+        return ""
+
+    url = raw_url.strip()
+    if not url:
+        return ""
+
+    if url.startswith("/api/"):
+        return "https://www.educative.io" + url
+    if url.startswith("api/"):
+        return "https://www.educative.io/" + url
+    if url.startswith("https://www.educative.io/api/"):
+        return url
+    if url.startswith("http://www.educative.io/api/"):
+        return "https://" + url[len("http://"):]
+    return ""
 
 
 def _urls_for_file(content: dict, author_id: str, collection_id: str, page_id: str) -> list:
@@ -79,21 +110,55 @@ def _urls_for_image(content: dict, author_id: str, collection_id: str, page_id: 
     return [f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}"]
 
 
-def _urls_from_scan(content_json_str: str) -> list:
-    """Return all unique https://educative.io/api/collection/... URLs found in the raw JSON string."""
-    matches = _API_RE.findall(content_json_str)
+def _urls_for_button_link(content: dict) -> list:
     seen, result = set(), []
-    for path in matches:
-        url = path
-        if url not in seen:
+    for candidate in (content.get("url"),):
+        url = _normalize_educative_api_url(candidate)
+        if url and url not in seen:
             seen.add(url)
             result.append(url)
     return result
 
 
+def _urls_from_scan(content_json_str: str) -> list:
+    """Return all unique https://educative.io/api/collection/... URLs found in the raw JSON string."""
+    matches = _API_RE.findall(content_json_str)
+    seen, result = set(), []
+    for path in matches:
+        url = _normalize_educative_api_url(path)
+        if url and url not in seen:
+            seen.add(url)
+            result.append(url)
+    return result
+
+
+def resolve_db_path(config_json: dict = None, db_path: str = None) -> str:
+    """Resolve database path from explicit path first, then config.ini saveDirectory."""
+    if db_path:
+        p = Path(db_path)
+        if not p.exists():
+            raise FileNotFoundError(f"Error: database not found at '{p}'")
+        return str(p)
+
+    cfg = config_json or _load_config_json()
+    save_dir = Path(cfg.get("saveDirectory", "."))
+    from_save_dir = save_dir / "educative_scraper.db"
+    if from_save_dir.exists():
+        return str(from_save_dir)
+
+    fallback = Path(__file__).resolve().parent.parent.parent / "downloaded_files" / "educative_scraper.db"
+    if fallback.exists():
+        return str(fallback)
+
+    raise FileNotFoundError(
+        "Usage: python -m src.Utility.StaticAssetExtractor <path/to/educative_scraper.db>\n"
+        f"Could not find DB in saveDirectory ('{from_save_dir}') or fallback ('{fallback}')."
+    )
+
+
 # ── Main extraction logic ─────────────────────────────────────────────────── #
 
-def extract_and_store(db_path: str):
+def extract_and_store(db_path: str, progress_queue=None):
     conn = _connect(db_path)
     try:
         # Ensure the static_assets table exists (idempotent)
@@ -134,11 +199,18 @@ def extract_and_store(db_path: str):
             "SELECT DISTINCT course_id, topic_index FROM components ORDER BY course_id, topic_index"
         ).fetchall()
 
+        if progress_queue:
+            progress_queue.put(("color", "green"))
+            progress_queue.put(("max-topic", len(pairs)))
+            progress_queue.put(("progress-topic", 0))
+            progress_queue.put(("max-course", len(pairs)))
+            progress_queue.put(("progress-course", 0))
+
         now = datetime.utcnow().isoformat()
         stored = 0
         skipped = 0
 
-        for pair in pairs:
+        for pair_num, pair in enumerate(pairs, start=1):
             course_id   = pair["course_id"]
             topic_index = pair["topic_index"]
 
@@ -172,6 +244,10 @@ def extract_and_store(db_path: str):
                     urls = _urls_for_file(content, author_id, collection_id, page_id)
                 elif comp_type == "Image":
                     urls = _urls_for_image(content, author_id, collection_id, page_id)
+                elif comp_type == "ButtonLink":
+                    urls = _urls_for_button_link(content)
+                    if not urls:
+                        urls = _urls_from_scan(content_str)
                 else:
                     urls = _urls_from_scan(content_str)
 
@@ -194,31 +270,36 @@ def extract_and_store(db_path: str):
             )
             stored += 1
 
+            if progress_queue:
+                progress_queue.put(("progress-topic", pair_num))
+                progress_queue.put(("progress-course", stored + skipped))
+
         conn.commit()
         print(f"Done. Stored: {stored} topic row(s), skipped: {skipped} (no /api/ URLs found).")
+
+    except Exception:
+        if progress_queue:
+            progress_queue.put(("color", "red"))
+        raise
 
     finally:
         conn.close()
 
 
+def run_from_config(config_json: dict = None, db_path: str = None, progress_queue=None):
+    resolved_db = resolve_db_path(config_json=config_json, db_path=db_path)
+    print(f"Database: {resolved_db}")
+    extract_and_store(resolved_db, progress_queue=progress_queue)
+
+
 # ── Entry point ───────────────────────────────────────────────────────────── #
 
 def _resolve_db_path() -> str:
-    if len(sys.argv) > 1:
-        p = Path(sys.argv[1])
-        if not p.exists():
-            raise SystemExit(f"Error: database not found at '{p}'")
-        return str(p)
-
-    # Auto-discover: look in project_root/downloaded_files/
-    default = Path(__file__).resolve().parent.parent.parent / "downloaded_files" / "educative_scraper.db"
-    if default.exists():
-        return str(default)
-
-    raise SystemExit(
-        "Usage: python -m src.Database.StaticAssetExtractor <path/to/educative_scraper.db>\n"
-        f"Auto-discover path '{default}' also not found."
-    )
+    db_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    try:
+        return resolve_db_path(config_json=_load_config_json(), db_path=db_arg)
+    except FileNotFoundError as e:
+        raise SystemExit(str(e))
 
 
 if __name__ == "__main__":

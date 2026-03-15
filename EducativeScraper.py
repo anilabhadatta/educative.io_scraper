@@ -47,8 +47,15 @@ class EducativeScraper:
             HomeScreen().createHomeScreen(version)
         else:
             self.loadDefaultConfig()
-            if self.cmdArgs.terminal:
-                StartTerminalScraper(self.configJson).startScraper()
+            terminalRunner = StartTerminalScraper(self.configJson)
+            if self.cmdArgs.terminal or self.cmdArgs.autoscraper:
+                terminalRunner.startAutoScraper()
+            elif self.cmdArgs.extractanddownloadassets:
+                terminalRunner.extractAndDownloadAssets()
+            elif self.cmdArgs.extractassets:
+                terminalRunner.extractAssets()
+            elif self.cmdArgs.downloadassets:
+                terminalRunner.downloadAssets()
             elif self.cmdArgs.convertmulticourses:
                 config = PDFConverterConfig(self.configJson)
                 converter = Html2PdfConverter(config)
@@ -110,6 +117,18 @@ if __name__ == '__main__':
 
                         - Run Scraper in terminal mode: Use --terminal
                             > python EducativeScraper.py --terminal
+
+                        - Run Auto Scraper in terminal mode: Use --autoscraper
+                            > python EducativeScraper.py --autoscraper
+
+                        - Extract static assets metadata (terminal): Use --extractassets
+                            > python EducativeScraper.py --extractassets
+
+                        - Download static assets from DB (terminal): Use --downloadassets
+                            > python EducativeScraper.py --downloadassets
+
+                        - Run extract + download static assets (terminal): Use --extractanddownloadassets
+                            > python EducativeScraper.py --extractanddownloadassets
                         
                         - Download chromedriver in terminal mode: Use --dwldchromedriver
                             > python EducativeScraper.py --dwldchromedriver
@@ -129,7 +148,7 @@ if __name__ == '__main__':
                         - courseurlsfilepath  [IMP]: Path to text file containing course URLs eg: C:/Users/<Username>/Desktop/urls.txt
                         - savedirectory       [IMP]: Folder to save scraped data eg: C:/Users/<Username>/Desktop
                         - scrapertype         [IMP]: Type of scraper to use
-                                                     Options: Course-Topic-Scraper, All-Course-Urls-Text-File-Generator
+                                                     Options: Course-Topic-Scraper, All-Course-Urls-Text-File-Generator, API-JSON-Scraper
                         - scrapingmethod      [IMP]: Method for scraping the course data
                                                      Options: SingleFile-HTML, Full-Page-Screenshot
                         - filetype            [IMP]: Format of output files
@@ -151,6 +170,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser = argparse.ArgumentParser(description=helpDescription, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--terminal', action='store_true', help='Run the scraper in terminal mode instead of UI.')
+    parser.add_argument('--autoscraper', action='store_true', help='Run the auto scraper in terminal mode (alias of --terminal).')
+    parser.add_argument('--extractassets', action='store_true', help='Extract static assets into static_assets table from terminal.')
+    parser.add_argument('--downloadassets', action='store_true', help='Download static assets listed in static_assets from terminal.')
+    parser.add_argument('--extractanddownloadassets', action='store_true', help='Extract and then download static assets from terminal.')
     parser.add_argument('--convertmulticourses', action='store_true', help='Convert multiple HTML Courses to PDF in terminal mode.')
     parser.add_argument('--convertsinglefiles', action='store_true', help='Convert a single HTML file to PDF in terminal mode.')
     parser.add_argument('--dwldchromedriver', action='store_true', help='Download chromedriver in terminal mode instead of UI.')
