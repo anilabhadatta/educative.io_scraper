@@ -83,9 +83,6 @@ class CourseTopicScraper:
             self.browserUtils.devToolUrl = f"{parsed_url.hostname}:{parsed_url.port}"
             self.browser = self.browserUtils.loadBrowser()
             self.browser.set_window_size(1920, 1080)
-            # self.networkMonitor.browser = self.browser
-            # self.apiUrls = self.networkMonitor.getAPIUrls()
-            # self.logger.info(f"Api urls: {self.apiUrls}")
             self.scrapeTopicManual()
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
@@ -96,7 +93,14 @@ class CourseTopicScraper:
     def scrapeCourseOrPath(self, textFileUrl):
         try:
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
+
+            self.networkMonitor.browser = self.browser
+            self.apiUrls = self.networkMonitor.getAPIUrls()
+            courseApiUrlV2 = self.apiUtils.getCourseApiUrlFromNetworkUrls(self.apiUrls, courseUrl)
+            self.logger.info(f"Derived Course API URL from network capture: {courseApiUrlV2}")
             courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
+            self.logger.info(f"Derived Course API URL from author/collection logic: {courseApiUrl}")
+
             topicUrlsList, pathFolderName = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
             # Remove duplicates while preserving order
             originalLen = len(topicUrlsList)
@@ -107,7 +111,7 @@ class CourseTopicScraper:
                 self.logger.warning(f"Removed {duplicatesRemoved} duplicate URL(s) from topicUrlsList")
             startIndex = topicUrlsList.index(textFileUrl) if textFileUrl in topicUrlsList else 0
             self.loginUtils.checkIfLoggedIn()
-            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
+            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrlV2, courseUrl)
             topicApiUrlList = courseCollectionsJson['topicApiUrlList']
             topicApiNameList = courseCollectionsJson["topicNameList"]
             topicApiUrlListLen = len(topicApiUrlList)
@@ -116,16 +120,26 @@ class CourseTopicScraper:
             self.logger.debug(f"Course Topic URLs: {topicUrlsList}")
             self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
             self.logger.debug(f"Course Collections JSON: {courseCollectionsJson}")
-            self.logger.info(
-                f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
+            self.logger.info(f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
             if topicApiUrlListLen != topicUrlsListLen:
-                topicUrlsSet = set(topicUrlsList)
-                apiUrlsSet = set(topicApiUrlList)
-                api_extra = apiUrlsSet - topicUrlsSet
-                topic_extra = topicUrlsSet - apiUrlsSet
-                self.logger.info(f"Extra in API URLs (not in topic URLs): {api_extra}")
-                self.logger.info(f"Extra in Topic URLs (not in API URLs): {topic_extra}")
-                raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
+                self.logger.warning(
+                    f"Primary collection API count mismatch ({topicApiUrlListLen} != {topicUrlsListLen}). "
+                    f"Trying fallback endpoint for topic API URLs."
+                )
+                courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
+                topicApiUrlList  = courseCollectionsJson["topicApiUrlList"]
+                topicApiNameList = courseCollectionsJson["topicNameList"]
+                topicApiUrlListLen = len(topicApiUrlList)
+
+                self.logger.info( f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
+                self.logger.debug(f"Course Topic URLs: {topicUrlsList}")
+                self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
+                if topicApiUrlListLen != topicUrlsListLen:
+                    apiUrlsSet = set(topicApiUrlList)
+                    topicUrlsSet = set(topicUrlsList)
+                    self.logger.debug(f"Extra API URLs (not in topic URLs): {apiUrlsSet - topicUrlsSet}")
+                    self.logger.debug(f"Extra in Topic URLs (not API URLs): {topicUrlsSet - apiUrlsSet}")
+                    raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
 
             courseTitle = self.fileUtils.filenameSlugify(courseCollectionsJson["courseTitle"])
             if pathFolderName:

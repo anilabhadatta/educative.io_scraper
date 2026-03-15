@@ -151,8 +151,8 @@ class ApiScraperMain:
                 topicApiUrlList  = courseCollectionsJson["topicApiUrlList"]
                 topicApiNameList = courseCollectionsJson["topicNameList"]
                 topicApiUrlListLen = len(topicApiUrlList)
-                topicUrlsListLen   = len(topicUrlsList)
 
+                self.logger.info( f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
                 self.logger.debug(f"Course Topic URLs: {topicUrlsList}")
                 self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
                 if topicApiUrlListLen != topicUrlsListLen:
