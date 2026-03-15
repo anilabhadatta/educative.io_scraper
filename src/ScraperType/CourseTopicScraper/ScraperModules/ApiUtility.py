@@ -30,33 +30,35 @@ class ApiUtility:
     def getCourseApiUrlFromNetworkUrls(self, apiUrls, courseUrl):
         try:
             if not apiUrls:
+                self.logger.warning("No API URLs found in network capture")
                 return None
 
             workType = "module" if "/module/" in courseUrl or "/pal/" in courseUrl else "collection"
-            collectionPattern = re.compile(
-                r"^https:\/\/(?:www\.)?educative\.io\/api\/collection\/(\d+)\/(\d+)(?:\?.*)?$"
-            )
-            palPattern = re.compile(
-                r"^https:\/\/(?:www\.)?educative\.io\/api\/pal\/(\d+)\/(\d+)(?:\?.*)?$"
-            )
+            palPattern = re.compile(r"^https:\/\/www\.educative\.io\/api\/pal\/(\d+)\/(\d+)(?:\/.*)?(?:\?.*)?$")
+            collectionPattern = re.compile(r"^https:\/\/www\.educative\.io\/api\/collection\/(\d+)\/(\d+)(?:\/.*)?(?:\?.*)?$")
 
-            # Prefer direct collection API URLs from captured traffic.
+            # Priority 1: PAL endpoint in network capture.
             for url in reversed(apiUrls):
-                match = collectionPattern.match(url)
-                if not match:
+                if not isinstance(url, str):
                     continue
-                authorId, collectionId = match.group(1), match.group(2)
-                if "work_type=" in url:
-                    return url
-                return f"https://www.educative.io/api/collection/{authorId}/{collectionId}?work_type={workType}"
+                match = palPattern.match(url.strip())
+                if match:
+                    authorId, collectionId = match.group(1), match.group(2)
+                    return f"https://www.educative.io/api/pal/{authorId}/{collectionId}?work_type={workType}"
 
-            # If only PAL was captured, convert to collection endpoint format.
+            # Priority 2: collection endpoint in network capture.
             for url in reversed(apiUrls):
-                match = palPattern.match(url)
-                if not match:
+                if not isinstance(url, str):
                     continue
-                authorId, collectionId = match.group(1), match.group(2)
-                return f"https://www.educative.io/api/pal/{authorId}/{collectionId}?work_type={workType}"
+                match = collectionPattern.match(url.strip())
+                if match:
+                    authorId, collectionId = match.group(1), match.group(2)
+                    return f"https://www.educative.io/api/collection/{authorId}/{collectionId}?work_type={workType}"
+
+            self.logger.warning(
+                f"No matching /api/pal/<author>/<collection> or /api/collection/<author>/<collection> ID URL found (count={len(apiUrls)})"
+            )
+            self.logger.debug(f"Captured API URLs: {apiUrls}")
 
             return None
         except Exception as e:
@@ -124,7 +126,7 @@ class ApiUtility:
 
     def getCourseApiContentJson(self, courseApiUrl):
         try:
-            self.logger.info(f"Getting Course API Content JSON from URL: {courseApiUrl}")
+            self.logger.info(f"Getting Course API Content JSON from Course API URL: {courseApiUrl}")
             retry = 1
             while retry < 3:
                 try:
@@ -245,7 +247,7 @@ class ApiUtility:
 
     def getCourseCollectionsJson(self, courseApiUrl, courseUrl):
         try:
-            self.logger.info(f"Getting Course Collections JSON from URL: {courseApiUrl}")
+            self.logger.info(f"Getting Course Collections JSON from Course API URL: {courseApiUrl}")
             courseType = courseUrl.split('/')[3]
             if "module" in courseType:
                 courseType = "module"

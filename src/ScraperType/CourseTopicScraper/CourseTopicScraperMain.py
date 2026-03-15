@@ -99,6 +99,13 @@ class CourseTopicScraper:
             courseApiUrlV2 = self.apiUtils.getCourseApiUrlFromNetworkUrls(self.apiUrls, courseUrl)
             self.logger.info(f"Derived Course API URL from network capture: {courseApiUrlV2}")
             courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
+            if not courseApiUrlV2:
+                self.logger.warning(
+                    "Network capture did not yield a course API URL; "
+                    "falling back to author/collection extraction."
+                )
+                self.logger.debug(f"Captured API URLs ({len(self.apiUrls)}): {self.apiUrls}")
+                courseApiUrlV2 = courseApiUrl
             self.logger.info(f"Derived Course API URL from author/collection logic: {courseApiUrl}")
 
             topicUrlsList, pathFolderName = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)

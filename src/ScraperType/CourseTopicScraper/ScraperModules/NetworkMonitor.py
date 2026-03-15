@@ -8,7 +8,9 @@ class NetworkMonitor:
     def __init__(self, configJson):
         self.browser = None
         self.logger = Logger(configJson, "NetworkMonitor").logger
-        self.apiUrlPattern = re.compile(r"^https:\/\/(?:www\.)?educative\.io\/api\/[A-Za-z0-9_\/-]+(?:\?.*)?$")
+        # Accept any same-origin /api/ URL path so we do not miss course endpoints
+        # that include extra segments or punctuation in the path.
+        self.apiUrlPattern = re.compile(r"^https:\/\/(?:www\.)?educative\.io\/api\/.+$")
         self.matchedUrls = []
         self.performanceResourceScript = """
             const entries = performance.getEntriesByType('resource') || [];
