@@ -226,8 +226,10 @@ def download_all(db_path: str, config_json: dict):
     downloaded    = 0
     skipped       = 0
     skipped_dup   = 0
+    skipped_404   = 0
     failed_total  = 0
     deleted_rows  = 0
+    stopped_for_auth = False
 
     try:
         for row_num, row in enumerate(rows, start=1):
@@ -280,8 +282,26 @@ def download_all(db_path: str, config_json: dict):
                     failed_total += 1
                     continue
 
-                if not resp.ok:
-                    logger.warning(f"Failed (HTTP {resp.status_code}): {url}")
+                status_code = resp.status_code
+                if status_code == 404:
+                    logger.warning(f"Not found (HTTP 404), skipping: {url}")
+                    downloaded_set.add(url)
+                    skipped += 1
+                    skipped_404 += 1
+                    continue
+
+                if status_code in (401, 403):
+                    logger.error(
+                        f"Auth failed (HTTP {status_code}) for {url}. "
+                        "Stopping downloader."
+                    )
+                    row_failed   += 1
+                    failed_total += 1
+                    stopped_for_auth = True
+                    break
+
+                if status_code != 200:
+                    logger.warning(f"Failed (HTTP {status_code}): {url}")
                     row_failed   += 1
                     failed_total += 1
                     continue
@@ -304,6 +324,11 @@ def download_all(db_path: str, config_json: dict):
 
                 osUtils.sleep(0.5)
 
+            if stopped_for_auth:
+                logger.error("Stopping downloader due to authentication/authorization failure.")
+                print("Stopping downloader due to authentication/authorization failure.")
+                break
+
             # All URLs for this topic succeeded (downloaded or already on disk) — clean up DB row
             if row_failed == 0:
                 conn.execute(
@@ -321,7 +346,7 @@ def download_all(db_path: str, config_json: dict):
                     f"{row_failed} URL(s) failed — will retry on next run"
                 )
 
-            resolved = already_in_disk + downloaded
+            resolved = already_in_disk + downloaded + skipped_404
             left = max(total_urls - resolved, 0)
             progress_msg = (
                 f"Progress {row_num}/{len(rows)} | "
@@ -340,7 +365,7 @@ def download_all(db_path: str, config_json: dict):
     finally:
         conn.close()
 
-    left = max(total_urls - (already_in_disk + downloaded), 0)
+    left = max(total_urls - (already_in_disk + downloaded + skipped_404), 0)
     summary = (
         "\nDone.\n"
         f"Total: {total_urls}\n"
@@ -348,8 +373,10 @@ def download_all(db_path: str, config_json: dict):
         f"Total downloaded: {downloaded}\n"
         f"Left: {left}\n"
         f"Failed: {failed_total}\n"
+        f"Skipped not found (404): {skipped_404}\n"
         f"Skipped duplicate URL(s): {skipped_dup}\n"
-        f"DB rows deleted: {deleted_rows}"
+        f"DB rows deleted: {deleted_rows}\n"
+        f"Stopped early (401/403): {'yes' if stopped_for_auth else 'no'}"
     )
     logger.info(summary)
     print(summary)
