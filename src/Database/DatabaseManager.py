@@ -63,12 +63,13 @@ class DatabaseManager:
 
     _DDL = """
     CREATE TABLE IF NOT EXISTS paths (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        url         TEXT    NOT NULL UNIQUE,
-        slug        TEXT    NOT NULL,
-        title       TEXT,
-        toc_json    TEXT,
-        scraped_at  TEXT    NOT NULL
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        path_author_id      TEXT    NOT NULL,
+        path_collection_id  TEXT    NOT NULL,
+        path_url_slug       TEXT,
+        path_title          TEXT,
+        scraped_at          TEXT    NOT NULL,
+        UNIQUE(path_author_id, path_collection_id)
     );
 
     -- type: "Course" | "Cloudlab" | "Project"
@@ -129,6 +130,7 @@ class DatabaseManager:
     );
 
     CREATE INDEX IF NOT EXISTS idx_courses_path       ON courses(path_id);
+    CREATE INDEX IF NOT EXISTS idx_paths_author_collection ON paths(path_author_id, path_collection_id);
     CREATE INDEX IF NOT EXISTS idx_topics_course      ON topics(course_id);
     CREATE INDEX IF NOT EXISTS idx_components_topic   ON components(course_id, topic_index);
     CREATE INDEX IF NOT EXISTS idx_components_type    ON components(type);
@@ -170,28 +172,34 @@ class DatabaseManager:
     #  Path
     # ------------------------------------------------------------------ #
 
-    def upsert_path(self, url: str, slug: str, title: str, toc: list) -> int:
-        toc_json = json.dumps(toc, ensure_ascii=False)
+    def upsert_path(self, path_author_id: str, path_collection_id: str,
+                    path_url_slug: str, path_title: str) -> int:
         now = datetime.utcnow().isoformat()
         with self._lock:
             conn = self._connect()
             try:
                 conn.execute(
                     """
-                    INSERT INTO paths (url, slug, title, toc_json, scraped_at)
+                    INSERT INTO paths
+                        (path_author_id, path_collection_id, path_url_slug, path_title, scraped_at)
                     VALUES (?, ?, ?, ?, ?)
-                    ON CONFLICT(url) DO UPDATE SET
-                        slug       = excluded.slug,
-                        title      = excluded.title,
-                        toc_json   = excluded.toc_json,
-                        scraped_at = excluded.scraped_at
+                    ON CONFLICT(path_author_id, path_collection_id) DO UPDATE SET
+                        path_url_slug  = excluded.path_url_slug,
+                        path_title     = excluded.path_title,
+                        scraped_at     = excluded.scraped_at
                     """,
-                    (url, slug, title, toc_json, now),
+                    (path_author_id, path_collection_id, path_url_slug, path_title, now),
                 )
                 conn.commit()
-                row = conn.execute("SELECT id FROM paths WHERE url = ?", (url,)).fetchone()
+                row = conn.execute(
+                    "SELECT id FROM paths WHERE path_author_id = ? AND path_collection_id = ?",
+                    (path_author_id, path_collection_id),
+                ).fetchone()
                 path_id = row["id"]
-                self.logger.info(f"Upserted Path '{title}' (id={path_id})")
+                self.logger.info(
+                    f"Upserted Path '{path_title}' (id={path_id}, "
+                    f"path_author_id={path_author_id}, path_collection_id={path_collection_id})"
+                )
                 return path_id
             finally:
                 conn.close()

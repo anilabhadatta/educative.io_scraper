@@ -151,6 +151,12 @@ class ApiUtility:
             self.logger.info(f"Getting Course Collections JSON (PAL) from URL: {courseApiUrl}")
             categories = jsonData["toc"]["categories"]
             courseTitle = jsonData["title"]
+            pathMeta = {
+                "path_author_id": str(jsonData.get("path_author_id", "") or ""),
+                "path_collection_id": str(jsonData.get("path_id", "") or ""),
+                "path_url_slug": str(jsonData.get("path_url_slug", "") or ""),
+                "path_title": str(jsonData.get("path_title", "") or ""),
+            }
 
             topicApiUrlList = []
             topicNameList = []
@@ -239,24 +245,36 @@ class ApiUtility:
                 "topicNameList": topicNameList,
                 "topicSlugList": topicSlugList,
                 "toc": toc,
+                "pathMeta": pathMeta,
             }
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseCollectionsJsonPal: {lineNumber}: {e}")
 
 
-    def getCourseCollectionsJson(self, courseApiUrl, courseUrl):
+    def getCourseCollectionsJson(self, courseApiUrlV2, courseApiUrl, courseUrl):
         try:
-            self.logger.info(f"Getting Course Collections JSON from Course API URL: {courseApiUrl}")
+            self.logger.info(f"Getting Course Collections JSON from Course API URL: {courseApiUrlV2}")
+            self.logger.info(f"Getting Course Collections JSON from Course API Fallback URL: {courseApiUrl}")
             courseType = courseUrl.split('/')[3]
-            if "module" in courseType or "/pal/" in courseApiUrl:
+            if "module" in courseType or "/pal/" in courseApiUrlV2:
                 courseType = "module"
             else:
                 courseType = "collection"
-            jsonData = self.getCourseApiContentJson(courseApiUrl)
+            try:
+                jsonData = self.getCourseApiContentJson(courseApiUrlV2)
+            except Exception as e:
+                self.logger.warning(f"Error fetching from Course API URL v2, falling back to original Course API URL: {courseApiUrl}")
+                jsonData = self.getCourseApiContentJson(courseApiUrl)
             jsonData = jsonData["details"]
             authorId = str(jsonData["author_id"])
             collectionId = str(jsonData["collection_id"])
+            pathMeta = {
+                "path_author_id": str(jsonData.get("path_author_id", "") or ""),
+                "path_collection_id": str(jsonData.get("path_id", "") or ""),
+                "path_url_slug": str(jsonData.get("path_url_slug", "") or ""),
+                "path_title": str(jsonData.get("path_title", "") or ""),
+            }
             categories = jsonData["toc"]["categories"]
             courseTitle = jsonData["title"]
             topicApiUrlList = []
@@ -296,11 +314,12 @@ class ApiUtility:
                 "topicApiUrlList": topicApiUrlList,
                 "topicNameList": topicNameList,
                 "topicSlugList": topicSlugList,
-                "toc": toc
+                "toc": toc,
+                "pathMeta": pathMeta,
             }
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
-            raise Exception(f"ApiUtility:getCourseCollectionsJson: {lineNumber}: {e}")
+            # raise Exception(f"ApiUtility:getCourseCollectionsJson: {lineNumber}: {e}")
 
 
     def getCourseTopicUrlsList(self, topicUrl, courseUrl):
@@ -396,7 +415,7 @@ class ApiUtility:
             if not nextData:
                 raise Exception("__NEXT_DATA__ script element not found on page")
             nextData = nextData["query"]
-            self.logger.info(f"Found Next Data")
+            self.logger.info(f"Found Next Data authorid {nextData.get('authorId')}, collectionid {nextData.get('collectionId')}")
             courseApiUrl = self.urlUtils.getCourseApiCollectionListUrl(nextData)
             return courseApiUrl
         except Exception as e:

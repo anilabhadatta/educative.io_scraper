@@ -129,6 +129,7 @@ class ApiScraperMain:
             courseApiUrlV2 = self.apiUtils.getCourseApiUrlFromNetworkUrls(self.apiUrls, courseUrl)
             self.logger.info(f"Derived Course API URL from network capture: {courseApiUrlV2}")
             courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
+            self.logger.info(f"Derived Course API URL from author/collection logic: {courseApiUrl}")
             if not courseApiUrlV2:
                 self.logger.warning(
                     "Network capture did not yield a course API URL; "
@@ -136,7 +137,6 @@ class ApiScraperMain:
                 )
                 self.logger.debug(f"Captured API URLs ({len(self.apiUrls)}): {self.apiUrls}")
                 courseApiUrlV2 = courseApiUrl
-            self.logger.info(f"Derived Course API URL from author/collection logic: {courseApiUrl}")
 
             # getCourseTopicUrlsList independently navigates to courseUrl again, expands
             # all sidebar sections, then collects the topic hrefs — this double-load is
@@ -151,7 +151,7 @@ class ApiScraperMain:
                 self.logger.warning(f"Removed {originalLen - len(topicUrlsList)} duplicate URL(s)")
 
             self.loginUtils.checkIfLoggedIn()
-            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrlV2, courseUrl)
+            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrlV2, courseApiUrl, courseUrl)
             topicApiUrlList  = courseCollectionsJson["topicApiUrlList"]
             topicApiNameList = courseCollectionsJson["topicNameList"]
             topicApiUrlListLen = len(topicApiUrlList)
@@ -161,24 +161,11 @@ class ApiScraperMain:
             self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
             self.logger.info(f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
             if topicApiUrlListLen != topicUrlsListLen and not overrideTopicUrlCheck:
-                self.logger.warning(
-                    f"Primary collection API count mismatch ({topicApiUrlListLen} != {topicUrlsListLen}). "
-                    f"Trying fallback endpoint for topic API URLs."
-                )
-                courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrl, courseUrl)
-                topicApiUrlList  = courseCollectionsJson["topicApiUrlList"]
-                topicApiNameList = courseCollectionsJson["topicNameList"]
-                topicApiUrlListLen = len(topicApiUrlList)
-
-                self.logger.info( f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
-                self.logger.debug(f"Course Topic URLs: {topicUrlsList}")
-                self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
-                if topicApiUrlListLen != topicUrlsListLen and not overrideTopicUrlCheck:
-                    apiUrlsSet = set(topicApiUrlList)
-                    topicUrlsSet = set(topicUrlsList)
-                    self.logger.debug(f"Extra API URLs (not in topic URLs): {apiUrlsSet - topicUrlsSet}")
-                    self.logger.debug(f"Extra in Topic URLs (not API URLs): {topicUrlsSet - apiUrlsSet}")
-                    raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
+                apiUrlsSet = set(topicApiUrlList)
+                topicUrlsSet = set(topicUrlsList)
+                self.logger.debug(f"Extra API URLs (not in topic URLs): {apiUrlsSet - topicUrlsSet}")
+                self.logger.debug(f"Extra in Topic URLs (not API URLs): {topicUrlsSet - apiUrlsSet}")
+                raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")   
 
             if topicApiUrlListLen != topicUrlsListLen and overrideTopicUrlCheck:
                 if topicUrlsListLen < topicApiUrlListLen:
@@ -232,14 +219,27 @@ class ApiScraperMain:
             work_type = "module" if course_type == "Path" else "collection"
 
             course_slug = slugify(courseTitle)
+            pathMeta = courseCollectionsJson.get("pathMeta", {})
+            pathAuthorId = str(pathMeta.get("path_author_id", "") or "")
+            pathCollectionId = str(pathMeta.get("path_collection_id", "") or "")
+            pathUrlSlug = str(pathMeta.get("path_url_slug", "") or "")
+            pathTitle = str(pathMeta.get("path_title", "") or "")
 
             path_id = None
             if course_type == "Path":
+                if not pathAuthorId:
+                    pathAuthorId = str(author_id)
+                if not pathCollectionId:
+                    pathCollectionId = str(collection_id)
+                if not pathTitle:
+                    pathTitle = courseTitle
+                if not pathUrlSlug:
+                    pathUrlSlug = slugify(pathTitle)
                 path_id = self.db.upsert_path(
-                    url   = courseUrl,
-                    slug  = course_slug,
-                    title = courseTitle,
-                    toc   = toc,
+                    path_author_id = pathAuthorId,
+                    path_collection_id = pathCollectionId,
+                    path_url_slug = pathUrlSlug,
+                    path_title = pathTitle
                 )
 
             course_id = self.db.upsert_course(
