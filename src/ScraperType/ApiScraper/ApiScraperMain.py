@@ -39,6 +39,14 @@ class ApiScraperMain:
         self.db = DatabaseManager(configJson)
         self.networkMonitor = NetworkMonitor(self.configJson)
 
+    def _getConfigBool(self, key: str, default: bool = False) -> bool:
+        value = self.configJson.get(key, self.configJson.get(key.lower(), default))
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in ("1", "true", "yes", "on")
+        return bool(value)
+
     # ------------------------------------------------------------------ #
     #  Entry points (mirrors CourseTopicScraper.start / startManual)
     # ------------------------------------------------------------------ #
@@ -105,6 +113,8 @@ class ApiScraperMain:
 
     def scrapeCourseOrPath(self, textFileUrl):
         try:
+            overrideTopicUrlCheck = self._getConfigBool("overrideTopicUrlCheck", False)
+
             # ── Resolve course & topic URL lists (identical to CourseTopicScraper) ──
             courseUrl = self.apiUtils.getCourseUrl(textFileUrl)
 
@@ -150,7 +160,7 @@ class ApiScraperMain:
             self.logger.debug(f"Course Topic URLs: {topicUrlsList}")
             self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
             self.logger.info(f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
-            if topicApiUrlListLen != topicUrlsListLen:
+            if topicApiUrlListLen != topicUrlsListLen and not overrideTopicUrlCheck:
                 self.logger.warning(
                     f"Primary collection API count mismatch ({topicApiUrlListLen} != {topicUrlsListLen}). "
                     f"Trying fallback endpoint for topic API URLs."
@@ -163,12 +173,34 @@ class ApiScraperMain:
                 self.logger.info( f"API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
                 self.logger.debug(f"Course Topic URLs: {topicUrlsList}")
                 self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
-                if topicApiUrlListLen != topicUrlsListLen:
+                if topicApiUrlListLen != topicUrlsListLen and not overrideTopicUrlCheck:
                     apiUrlsSet = set(topicApiUrlList)
                     topicUrlsSet = set(topicUrlsList)
                     self.logger.debug(f"Extra API URLs (not in topic URLs): {apiUrlsSet - topicUrlsSet}")
                     self.logger.debug(f"Extra in Topic URLs (not API URLs): {topicUrlsSet - apiUrlsSet}")
                     raise Exception("CourseCollectionsJson and CourseTopicUrlsList Urls are not equal")
+
+            if topicApiUrlListLen != topicUrlsListLen and overrideTopicUrlCheck:
+                if topicUrlsListLen < topicApiUrlListLen:
+                    missingCount = topicApiUrlListLen - topicUrlsListLen
+                    self.logger.warning(
+                        f"Override(Topic URL Check) enabled: adding {missingCount} placeholder topic URL(s) to match API URL count."
+                    )
+                    for missingIdx in range(missingCount):
+                        placeholderIndex = topicUrlsListLen + missingIdx + 1
+                        placeholderUrl = (
+                            f"https://topic-url-mismatch.invalid/"
+                            f"gibberish-topic-{placeholderIndex:04}?showContent=true"
+                        )
+                        topicUrlsList.append(placeholderUrl)
+                else:
+                    self.logger.warning(
+                        f"Override(Topic URL Check) enabled: trimming {topicUrlsListLen - topicApiUrlListLen} extra topic URL(s) to prioritize API URL list."
+                    )
+                    topicUrlsList = topicUrlsList[:topicApiUrlListLen]
+
+                topicUrlsListLen = len(topicUrlsList)
+                self.logger.info(f"Override aligned counts: API Urls: {topicApiUrlListLen} == {topicUrlsListLen} :Topic Urls")
 
             # ── Persist course + all topic stubs to DB ─────────────────────────
             courseTitle = courseCollectionsJson["courseTitle"]
@@ -230,7 +262,7 @@ class ApiScraperMain:
             # Enrich toc_json with DB-sourced course_id + topic_index now that topics exist
             self.db.finalize_course_toc(course_id)
 
-            self.progressQueue.put(("max-topic", topicUrlsListLen))
+            self.progressQueue.put(("max-topic", topicApiUrlListLen))
             overwrite = self.configJson.get("overwrite", False)
 
             # ── Determine start index ──────────────────────────────────────────
@@ -252,11 +284,12 @@ class ApiScraperMain:
                     )
 
             # ── Fetch & store each topic JSON ──────────────────────────────────
-            for topicIndex in range(startIndex, topicUrlsListLen):
+            for topicIndex in range(startIndex, topicApiUrlListLen):
                 self.progressQueue.put(("progress-topic", topicIndex + 1))
                 topicUrl    = topicUrlsList[topicIndex]
                 topicApiUrl = topicApiUrlList[topicIndex]
-                topicName   = f"{topicIndex:03}-{self.fileUtils.filenameSlugify(topicApiNameList[topicIndex])}"
+                topicNameRaw = topicApiNameList[topicIndex] if topicIndex < len(topicApiNameList) else f"topic-{topicIndex + 1}"
+                topicName   = f"{topicIndex:03}-{self.fileUtils.filenameSlugify(topicNameRaw)}"
 
                 self.logger.info(
                     f"----------------------------------------------------------------------------------\n"

@@ -308,13 +308,16 @@ class DatabaseManager:
         """Insert or update topic stubs. Keeps status=done for already-completed topics."""
         now = datetime.utcnow().isoformat()
         if topic_slugs is None:
-            topic_slugs = [""] * len(topic_names)
+            topic_slugs = []
+        api_count = len(api_urls)
         with self._lock:
             conn = self._connect()
             try:
-                for idx, (name, slug, url, api_url) in enumerate(
-                    zip(topic_names, topic_slugs, topic_urls, api_urls)
-                ):
+                for idx in range(api_count):
+                    api_url = api_urls[idx]
+                    name = topic_names[idx] if idx < len(topic_names) else f"Topic {idx + 1}"
+                    slug = topic_slugs[idx] if idx < len(topic_slugs) else f"topic-{idx + 1}"
+                    url = topic_urls[idx] if idx < len(topic_urls) else api_url
                     page_id = _page_id_from_api_url(api_url)
                     conn.execute(
                         """
@@ -335,8 +338,18 @@ class DatabaseManager:
                         """,
                         (course_id, idx, name, slug, url, api_url, page_id, now),
                     )
+
+                # Keep topics and derived static assets aligned with current API URL count.
+                conn.execute(
+                    "DELETE FROM topics WHERE course_id = ? AND topic_index >= ?",
+                    (course_id, api_count),
+                )
+                conn.execute(
+                    "DELETE FROM static_assets WHERE course_id = ? AND topic_index >= ?",
+                    (course_id, api_count),
+                )
                 conn.commit()
-                self.logger.info(f"Upserted {len(topic_names)} topics for course_id={course_id}")
+                self.logger.info(f"Upserted {api_count} topics for course_id={course_id}")
             finally:
                 conn.close()
 

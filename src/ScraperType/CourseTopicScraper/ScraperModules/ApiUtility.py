@@ -249,7 +249,7 @@ class ApiUtility:
         try:
             self.logger.info(f"Getting Course Collections JSON from Course API URL: {courseApiUrl}")
             courseType = courseUrl.split('/')[3]
-            if "module" in courseType:
+            if "module" in courseType or "/pal/" in courseApiUrl:
                 courseType = "module"
             else:
                 courseType = "collection"
@@ -355,10 +355,17 @@ class ApiUtility:
                 WebDriverWait(self.browser, self.timeout).until(
                     EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
             except:
-                courseTypeSelector = "//nav//a[contains(@href, '/collection/')]/span/.."
-                self.logger.info(f"New Course Type Selector: {courseTypeSelector}")
-                WebDriverWait(self.browser, self.timeout).until(
-                    EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
+                try:
+                    courseTypeSelector = "//nav//a[contains(@href, '/collection/')]/span/.."
+                    self.logger.info(f"New Course Type Selector: {courseTypeSelector}")
+                    WebDriverWait(self.browser, self.timeout).until(
+                        EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
+                except:
+                    courseTypeSelector = "(//*[starts-with(@id,'problemPage_breadcrumbsContainer')]//a)[last()]"
+                    self.logger.info(f"New Course Type Selector: {courseTypeSelector}")
+                    WebDriverWait(self.browser, self.timeout).until(
+                        EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
+
             courseUrlJsScript = f"""
             var anchorElement = document.evaluate(
                                 "{courseTypeSelector}", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null

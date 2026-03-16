@@ -56,6 +56,7 @@ class HomeScreen:
         self.autoResumeScraper = tk.BooleanVar(value=False)
         self.autoFixTextFile = tk.BooleanVar(value=False)
         self.overwriteVar = tk.BooleanVar(value=False)
+        self.overrideTopicUrlCheckVar = tk.BooleanVar(value=False)
         self.courseUrlsFilePathVar = tk.StringVar()
         self.saveDirectoryVar = tk.StringVar()
         self.isProxyVar = tk.BooleanVar(value=True)
@@ -152,6 +153,12 @@ class HomeScreen:
                 self.overwriteCheckbox.grid(row=1, column=2, sticky="w", padx=(10, 0), pady=2)
             else:
                 self.overwriteCheckbox.grid_remove()
+
+        if hasattr(self, "overrideTopicUrlCheckCheckbox"):
+            if is_api_scraper:
+                self.overrideTopicUrlCheckCheckbox.grid(row=2, column=0, sticky="w", padx=0, pady=2)
+            else:
+                self.overrideTopicUrlCheckCheckbox.grid_remove()
 
         if hasattr(self, "extractAssetsButton") and hasattr(self, "downloadAssetsButton"):
             button_state = "normal" if is_api_scraper else "disabled"
@@ -275,6 +282,15 @@ class HomeScreen:
         self.overwriteCheckbox = tk.Checkbutton(checkboxesFrame, text="Overwrite (API Scraper)", variable=self.overwriteVar, anchor="w")
         self.overwriteCheckbox.grid(row=1, column=2, sticky="w", padx=(10, 0), pady=2)
         self.overwriteCheckbox.grid_remove()
+
+        self.overrideTopicUrlCheckCheckbox = tk.Checkbutton(
+            checkboxesFrame,
+            text="Override (Topic URL Check)",
+            variable=self.overrideTopicUrlCheckVar,
+            anchor="w"
+        )
+        self.overrideTopicUrlCheckCheckbox.grid(row=2, column=0, sticky="w", padx=0, pady=2)
+        self.overrideTopicUrlCheckCheckbox.grid_remove()
 
         scraperOptionFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
         checkboxesFrame.grid(row=0, column=1, padx=(12, 0), pady=3, sticky="new")
@@ -507,6 +523,7 @@ class HomeScreen:
         self.autoFixTextFile.set(self.config["autofixtextfile"])
         self.autoNextVar.set(self.config["autonext"])
         self.overwriteVar.set(self.config["overwrite"])
+        self.overrideTopicUrlCheckVar.set(self.config.get("overrideTopicUrlCheck", False))
 
 
     def createConfigJson(self):
@@ -529,6 +546,7 @@ class HomeScreen:
             'blockscraper': self.config["blockscraper"],
             'autonext': self.autoNextVar.get(),
             'overwrite': self.overwriteVar.get(),
+            'overrideTopicUrlCheck': self.overrideTopicUrlCheckVar.get(),
             'useExtension': self.config["useExtension"]
         }
 
