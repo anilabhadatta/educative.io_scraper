@@ -69,6 +69,7 @@ class DatabaseManager:
         path_collection_id  TEXT    NOT NULL,
         path_url_slug       TEXT,
         path_title          TEXT,
+        is_active           INTEGER NOT NULL DEFAULT 1,
         scraped_at          TEXT    NOT NULL,
         UNIQUE(path_author_id, path_collection_id)
     );
@@ -88,7 +89,7 @@ class DatabaseManager:
         toc_json        TEXT,
         cloudlab_id     TEXT,
         project_id      TEXT,
-        state           TEXT    NOT NULL DEFAULT 'Active',
+        is_active       INTEGER NOT NULL DEFAULT 1,
         scraped_at      TEXT    NOT NULL
     );
 
@@ -101,6 +102,7 @@ class DatabaseManager:
         project_title         TEXT,
         project_url_slug      TEXT,
         toc_json              TEXT,
+        is_active             INTEGER NOT NULL DEFAULT 1,
         scraped_at            TEXT    NOT NULL,
         UNIQUE(project_author_id, project_collection_id, project_work_id)
     );
