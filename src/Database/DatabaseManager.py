@@ -7,6 +7,7 @@ Schema
 ------
 paths       – one row per scraped Path
 courses     – one row per scraped Course / Cloudlab / Project, optionally linked to a path
+projects    – project metadata linked to a course row (one project per course)
 topics      – leaf pages inside a course, keyed by (course_id, topic_index)
 components  – one row per widget, linked by (course_id, topic_index)
 """
@@ -90,6 +91,19 @@ class DatabaseManager:
         scraped_at      TEXT    NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS projects (
+        id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+        course_id             INTEGER NOT NULL UNIQUE REFERENCES courses(id) ON DELETE CASCADE,
+        project_author_id     TEXT    NOT NULL,
+        project_collection_id TEXT    NOT NULL,
+        project_work_id       TEXT    NOT NULL,
+        project_title         TEXT,
+        project_url_slug      TEXT,
+        toc_json              TEXT,
+        scraped_at            TEXT    NOT NULL,
+        UNIQUE(project_author_id, project_collection_id, project_work_id)
+    );
+
     CREATE TABLE IF NOT EXISTS topics (
         id              INTEGER PRIMARY KEY AUTOINCREMENT,
         course_id       INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
@@ -131,6 +145,8 @@ class DatabaseManager:
 
     CREATE INDEX IF NOT EXISTS idx_courses_path       ON courses(path_id);
     CREATE INDEX IF NOT EXISTS idx_paths_author_collection ON paths(path_author_id, path_collection_id);
+    CREATE INDEX IF NOT EXISTS idx_projects_course    ON projects(course_id);
+    CREATE INDEX IF NOT EXISTS idx_projects_triplet   ON projects(project_author_id, project_collection_id, project_work_id);
     CREATE INDEX IF NOT EXISTS idx_topics_course      ON topics(course_id);
     CREATE INDEX IF NOT EXISTS idx_components_topic   ON components(course_id, topic_index);
     CREATE INDEX IF NOT EXISTS idx_components_type    ON components(type);
@@ -210,7 +226,7 @@ class DatabaseManager:
 
     def upsert_course(self, url: str, slug: str, author_id: str, collection_id: str,
                       title: str, toc: list, course_type: str = "Course",
-                      path_id: int = None) -> int:
+                      path_id: int = None, project_id: str = None) -> int:
         """Persist the course row. toc_json is stored raw here;
         call finalize_course_toc() after upsert_topics_for_course() to
         enrich it with DB-sourced course_id / topic_index values.
@@ -223,8 +239,8 @@ class DatabaseManager:
                 conn.execute(
                     """
                     INSERT INTO courses
-                        (type, path_id, url, slug, author_id, collection_id, title, toc_json, scraped_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (type, path_id, url, slug, author_id, collection_id, title, toc_json, project_id, scraped_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(url) DO UPDATE SET
                         type          = excluded.type,
                         path_id       = excluded.path_id,
@@ -233,15 +249,60 @@ class DatabaseManager:
                         collection_id = excluded.collection_id,
                         title         = excluded.title,
                         toc_json      = excluded.toc_json,
+                        project_id    = excluded.project_id,
                         scraped_at    = excluded.scraped_at
                     """,
-                    (course_type, path_id, url, slug, author_id, collection_id, title, toc_json, now),
+                    (course_type, path_id, url, slug, author_id, collection_id, title, toc_json, project_id, now),
                 )
                 conn.commit()
                 row = conn.execute("SELECT id FROM courses WHERE url = ?", (url,)).fetchone()
                 course_id = row["id"]
                 self.logger.info(f"Upserted {course_type} '{title}' (id={course_id})")
                 return course_id
+            finally:
+                conn.close()
+
+    def upsert_project(self, course_id: int, project_author_id: str,
+                       project_collection_id: str, project_work_id: str,
+                       project_title: str, project_url_slug: str = "", toc: list = None) -> int:
+        toc_json = json.dumps(toc or [], ensure_ascii=False)
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            conn = self._connect()
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO projects
+                        (course_id, project_author_id, project_collection_id, project_work_id, project_title, project_url_slug, toc_json, scraped_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(course_id) DO UPDATE SET
+                        project_author_id     = excluded.project_author_id,
+                        project_collection_id = excluded.project_collection_id,
+                        project_work_id       = excluded.project_work_id,
+                        project_title         = excluded.project_title,
+                        project_url_slug      = excluded.project_url_slug,
+                        toc_json              = excluded.toc_json,
+                        scraped_at            = excluded.scraped_at
+                    """,
+                    (
+                        course_id,
+                        project_author_id,
+                        project_collection_id,
+                        project_work_id,
+                        project_title,
+                        project_url_slug,
+                        toc_json,
+                        now,
+                    ),
+                )
+                conn.commit()
+                row = conn.execute("SELECT id FROM projects WHERE course_id = ?", (course_id,)).fetchone()
+                project_row_id = row["id"]
+                self.logger.info(
+                    f"Upserted Project row (id={project_row_id}, course_id={course_id}, "
+                    f"project_work_id={project_work_id})"
+                )
+                return project_row_id
             finally:
                 conn.close()
 

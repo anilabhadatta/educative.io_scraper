@@ -47,6 +47,122 @@ class ApiScraperMain:
             return value.strip().lower() in ("1", "true", "yes", "on")
         return bool(value)
 
+    def _resolveTopicUrls(self, textFileUrl: str, courseUrl: str,
+                          topicApiUrlList: list, isProjectCourse: bool) -> list:
+        if isProjectCourse:
+            return self._resolveProjectTopicUrls(topicApiUrlList)
+        return self._resolveStandardTopicUrls(textFileUrl, courseUrl)
+
+    def _resolveProjectTopicUrls(self, topicApiUrlList: list) -> list:
+        topicUrlsList = list(topicApiUrlList)
+        self.logger.info(
+            f"Project flow detected: using {len(topicUrlsList)} topic API URL(s) as topic URL values."
+        )
+        return topicUrlsList
+
+    def _resolveStandardTopicUrls(self, textFileUrl: str, courseUrl: str) -> list:
+        # getCourseTopicUrlsList independently navigates to courseUrl again,
+        # expands all sidebar sections, then collects topic hrefs.
+        topicUrlsList, _ = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
+
+        # Remove duplicates while preserving order.
+        originalLen = len(topicUrlsList)
+        seen = set()
+        topicUrlsList = [url for url in topicUrlsList if not (url in seen or seen.add(url))]
+        if len(topicUrlsList) < originalLen:
+            self.logger.warning(f"Removed {originalLen - len(topicUrlsList)} duplicate URL(s)")
+
+        return topicUrlsList
+
+    def _parseResolvedApiIdentity(self, resolvedApiUrl: str, projectMeta: dict):
+        resolvedApiPath = str(resolvedApiUrl or "").split("?")[0]
+        apiParts = resolvedApiPath.split("/")
+
+        projectWorkId = str(projectMeta.get("project_id", "") or "")
+        projectAuthorId = str(projectMeta.get("project_author_id", "") or "")
+        projectCollectionId = str(projectMeta.get("project_collection_id", "") or "")
+
+        author_id = ""
+        collection_id = ""
+        if "/api/project/" in resolvedApiPath and len(apiParts) >= 8:
+            author_id = apiParts[-3]
+            collection_id = apiParts[-2]
+            if not projectWorkId:
+                projectWorkId = apiParts[-1]
+        else:
+            author_id = apiParts[-2] if len(apiParts) >= 2 else ""
+            collection_id = apiParts[-1] if len(apiParts) >= 1 else ""
+
+        if projectAuthorId:
+            author_id = projectAuthorId
+        if projectCollectionId:
+            collection_id = projectCollectionId
+
+        return author_id, collection_id, projectWorkId, resolvedApiPath
+
+    def _extractTopicComponentsForPersistence(self, topicRawJson: dict,
+                                              isProjectCourse: bool) -> list:
+        if not isinstance(topicRawJson, dict):
+            return []
+
+        if isProjectCourse:
+            projectComponents = self._extractProjectTopicComponents(topicRawJson)
+            if projectComponents:
+                return projectComponents
+
+        components = topicRawJson.get("components", [])
+        return components if isinstance(components, list) else []
+
+    def _extractProjectTopicComponents(self, topicRawJson: dict) -> list:
+        content = topicRawJson.get("content", {})
+        if not isinstance(content, dict):
+            return []
+
+        projectComponents = []
+        for groupName in ("descriptionWidgets", "hintWidgets", "solutionWidgets"):
+            widgets = content.get(groupName, [])
+            if not isinstance(widgets, list):
+                continue
+            for widgetIndex, widget in enumerate(widgets):
+                if not isinstance(widget, dict):
+                    continue
+
+                component = {
+                    "type": str(widget.get("type") or "ProjectWidget"),
+                    "content": widget.get("content", {}),
+                    "project_widget_group": groupName,
+                    "project_widget_index": widgetIndex,
+                }
+                extraWidgetData = {
+                    key: value for key, value in widget.items()
+                    if key not in ("type", "content")
+                }
+                if extraWidgetData:
+                    component["project_widget_meta"] = extraWidgetData
+                projectComponents.append(component)
+
+        codeContent = content.get("codeContent")
+        if isinstance(codeContent, dict):
+            projectComponents.append({
+                "type": "ProjectCodeContent",
+                "content": codeContent,
+                "project_widget_group": "codeContent",
+                "project_widget_index": 0,
+            })
+
+        if projectComponents:
+            return projectComponents
+
+        if content:
+            return [{
+                "type": "ProjectContent",
+                "content": content,
+                "project_widget_group": "content",
+                "project_widget_index": 0,
+            }]
+
+        return []
+
     # ------------------------------------------------------------------ #
     #  Entry points (mirrors CourseTopicScraper.start / startManual)
     # ------------------------------------------------------------------ #
@@ -128,34 +244,45 @@ class ApiScraperMain:
             self.logger.debug(f"Captured API URLs from browser: {self.apiUrls}")
             courseApiUrlV2 = self.apiUtils.getCourseApiUrlFromNetworkUrls(self.apiUrls, courseUrl)
             self.logger.info(f"Derived Course API URL from network capture: {courseApiUrlV2}")
-            courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
-            self.logger.info(f"Derived Course API URL from author/collection logic: {courseApiUrl}")
+            courseApiUrl = None
+            try:
+                courseApiUrl = self.apiUtils.getAuthorAndCollectionId()
+                self.logger.info(f"Derived Course API URL from author/collection logic: {courseApiUrl}")
+            except Exception as e:
+                self.logger.warning(f"Could not derive fallback course API URL from author/collection logic: {e}")
             if not courseApiUrlV2:
                 self.logger.warning(
                     "Network capture did not yield a course API URL; "
                     "falling back to author/collection extraction."
                 )
                 self.logger.debug(f"Captured API URLs ({len(self.apiUrls)}): {self.apiUrls}")
+                if not courseApiUrl:
+                    raise Exception("Could not derive course API URL from both network capture and author/collection extraction")
                 courseApiUrlV2 = courseApiUrl
 
-            # getCourseTopicUrlsList independently navigates to courseUrl again, expands
-            # all sidebar sections, then collects the topic hrefs — this double-load is
-            # intentional and necessary for reliability.
-            topicUrlsList, pathFolderName = self.apiUtils.getCourseTopicUrlsList(textFileUrl, courseUrl)
-
-            # Remove duplicates while preserving order
-            originalLen = len(topicUrlsList)
-            seen = set()
-            topicUrlsList = [url for url in topicUrlsList if not (url in seen or seen.add(url))]
-            if len(topicUrlsList) < originalLen:
-                self.logger.warning(f"Removed {originalLen - len(topicUrlsList)} duplicate URL(s)")
-
             self.loginUtils.checkIfLoggedIn()
-            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(courseApiUrlV2, courseApiUrl, courseUrl)
+            courseCollectionsJson = self.apiUtils.getCourseCollectionsJson(
+                courseApiUrlV2,
+                courseApiUrl,
+                courseUrl,
+                self.apiUrls,
+            )
             topicApiUrlList  = courseCollectionsJson["topicApiUrlList"]
             topicApiNameList = courseCollectionsJson["topicNameList"]
             topicApiUrlListLen = len(topicApiUrlList)
-            topicUrlsListLen   = len(topicUrlsList)
+
+            projectMeta = courseCollectionsJson.get("projectMeta", {})
+            resolvedApiUrl = str((courseApiUrlV2 or courseApiUrl) or "")
+            isProjectCourse = bool(projectMeta.get("project_id")) or "/api/project/" in resolvedApiUrl
+
+            topicUrlsList = self._resolveTopicUrls(
+                textFileUrl=textFileUrl,
+                courseUrl=courseUrl,
+                topicApiUrlList=topicApiUrlList,
+                isProjectCourse=isProjectCourse,
+            )
+
+            topicUrlsListLen = len(topicUrlsList)
 
             self.logger.debug(f"Course Topic URLs: {topicUrlsList}")
             self.logger.debug(f"Course Api Topic Urls: {topicApiUrlList}")
@@ -194,11 +321,13 @@ class ApiScraperMain:
             toc         = courseCollectionsJson["toc"]
             topicSlugs  = courseCollectionsJson["topicSlugList"]
 
-            # Parse authorId / collectionId from the collection API URL
-            # e.g. https://www.educative.io/api/collection/123/456?work_type=collection
-            apiParts      = courseApiUrl.split("?")[0].split("/")
-            author_id     = apiParts[-2] if len(apiParts) >= 2 else ""
-            collection_id = apiParts[-1] if len(apiParts) >= 1 else ""
+            # Parse IDs from the resolved API endpoint.
+            # collection/pal: /api/{collection|pal}/{author}/{collection}
+            # project:        /api/project/{author}/{collection}/{project}
+            author_id, collection_id, projectWorkId, resolvedApiPath = self._parseResolvedApiIdentity(
+                resolvedApiUrl=resolvedApiUrl,
+                projectMeta=projectMeta,
+            )
 
             # Detect type using the same two-level logic as CourseTopicScraper:
             #   Level 1 – moduleType: COURSE-PATH | CLOUDLAB | PROJECT
@@ -214,6 +343,9 @@ class ApiScraperMain:
             else:
                 course_type = "Course"
 
+            if projectWorkId or "/api/project/" in resolvedApiPath:
+                course_type = "Project"
+
             # work_type mirrors ApiUtility.getCourseCollectionsJson:
             # "module" for paths, "collection" for everything else.
             work_type = "module" if course_type == "Path" else "collection"
@@ -224,6 +356,16 @@ class ApiScraperMain:
             pathCollectionId = str(pathMeta.get("path_collection_id", "") or "")
             pathUrlSlug = str(pathMeta.get("path_url_slug", "") or "")
             pathTitle = str(pathMeta.get("path_title", "") or "")
+            projectTitle = str(projectMeta.get("project_title", "") or "")
+            projectUrlSlug = str(projectMeta.get("project_url_slug", "") or "")
+
+            if course_type == "Project":
+                if not projectWorkId:
+                    projectWorkId = str(collection_id)
+                if not projectTitle:
+                    projectTitle = courseTitle
+                if not projectUrlSlug:
+                    projectUrlSlug = slugify(projectTitle)
 
             path_id = None
             if course_type == "Path":
@@ -251,7 +393,18 @@ class ApiScraperMain:
                 toc           = toc,
                 course_type   = course_type,
                 path_id       = path_id,
+                project_id    = projectWorkId if course_type == "Project" else None,
             )
+            if course_type == "Project":
+                self.db.upsert_project(
+                    course_id=course_id,
+                    project_author_id=str(author_id),
+                    project_collection_id=str(collection_id),
+                    project_work_id=str(projectWorkId),
+                    project_title=projectTitle,
+                    project_url_slug=projectUrlSlug,
+                    toc=toc,
+                )
             self.db.upsert_topics_for_course(
                 course_id    = course_id,
                 topic_names  = topicApiNameList,
@@ -286,8 +439,8 @@ class ApiScraperMain:
             # ── Fetch & store each topic JSON ──────────────────────────────────
             for topicIndex in range(startIndex, topicApiUrlListLen):
                 self.progressQueue.put(("progress-topic", topicIndex + 1))
-                topicUrl    = topicUrlsList[topicIndex]
                 topicApiUrl = topicApiUrlList[topicIndex]
+                topicUrl    = topicUrlsList[topicIndex] if topicIndex < len(topicUrlsList) else topicApiUrl
                 topicNameRaw = topicApiNameList[topicIndex] if topicIndex < len(topicApiNameList) else f"topic-{topicIndex + 1}"
                 topicName   = f"{topicIndex:03}-{self.fileUtils.filenameSlugify(topicNameRaw)}"
 
@@ -334,15 +487,6 @@ class ApiScraperMain:
                         raise Exception(f"HTTP {httpCode} fetching topic API URL: {topicApiUrl}")
 
                 if topicRawJson:
-                    # Normal topics must have components data — empty components indicates a problem.
-                    if not isSpecialTopic and not topicRawJson.get("components"):
-                        if topicRow:
-                            self.db.mark_topic_error(
-                                course_id   = course_id,
-                                topic_index = topicRow["topic_index"],
-                                error_msg   = "API returned JSON with no components",
-                            )
-                        raise Exception(f"Topic JSON missing 'components' data: {topicApiUrl}")
                     topicRawJson = self.resolveLazyLoadPlaceholders(
                         topicRawJson, author_id, collection_id, work_type
                     )
@@ -350,11 +494,26 @@ class ApiScraperMain:
                     topicRawJson = self.resolveDrawIOSlides(
                         topicRawJson, author_id, collection_id, page_id
                     )
+                    topicComponents = self._extractTopicComponentsForPersistence(
+                        topicRawJson=topicRawJson,
+                        isProjectCourse=isProjectCourse,
+                    )
+
+                    # Normal topics must have persistable content.
+                    if not isSpecialTopic and not topicComponents:
+                        if topicRow:
+                            self.db.mark_topic_error(
+                                course_id   = course_id,
+                                topic_index = topicRow["topic_index"],
+                                error_msg   = "API returned JSON with no components/widgets",
+                            )
+                        raise Exception(f"Topic JSON missing persistable content: {topicApiUrl}")
+
                     if topicRow:
                         self.db.save_topic_content(
                             course_id     = course_id,
                             topic_index   = topicRow["topic_index"],
-                            components    = topicRawJson.get("components", []),
+                            components    = topicComponents,
                             author_id     = author_id,
                             collection_id = collection_id,
                             topic_api_url = topicApiUrl,

@@ -34,8 +34,18 @@ class ApiUtility:
                 return None
 
             workType = "module" if "/module/" in courseUrl or "/pal/" in courseUrl else "collection"
+            projectPattern = re.compile(r"^https:\/\/www\.educative\.io\/api\/project\/(\d+)\/(\d+)\/(\d+)(?:\/.*)?(?:\?.*)?$")
             palPattern = re.compile(r"^https:\/\/www\.educative\.io\/api\/pal\/(\d+)\/(\d+)(?:\/.*)?(?:\?.*)?$")
             collectionPattern = re.compile(r"^https:\/\/www\.educative\.io\/api\/collection\/(\d+)\/(\d+)(?:\/.*)?(?:\?.*)?$")
+
+            # Priority 1: Project endpoint in network capture.
+            for url in reversed(apiUrls):
+                if not isinstance(url, str):
+                    continue
+                match = projectPattern.match(url.strip())
+                if match:
+                    authorId, collectionId, projectId = match.group(1), match.group(2), match.group(3)
+                    return f"https://www.educative.io/api/project/{authorId}/{collectionId}/{projectId}"
 
             # Priority 1: PAL endpoint in network capture.
             for url in reversed(apiUrls):
@@ -56,7 +66,8 @@ class ApiUtility:
                     return f"https://www.educative.io/api/collection/{authorId}/{collectionId}?work_type={workType}"
 
             self.logger.warning(
-                f"No matching /api/pal/<author>/<collection> or /api/collection/<author>/<collection> ID URL found (count={len(apiUrls)})"
+                f"No matching /api/project/<author>/<collection>/<project>, /api/pal/<author>/<collection> "
+                f"or /api/collection/<author>/<collection> ID URL found (count={len(apiUrls)})"
             )
             self.logger.debug(f"Captured API URLs: {apiUrls}")
 
@@ -134,6 +145,12 @@ class ApiUtility:
                     if "instance" in jsonData:
                         self.logger.info("Successfully fetched JSON API data")
                         return jsonData["instance"]
+                    if isinstance(jsonData, dict) and "details" in jsonData and isinstance(jsonData["details"], dict):
+                        self.logger.info("Successfully fetched JSON API details payload")
+                        return {"details": jsonData["details"]}
+                    if isinstance(jsonData, dict) and "toc" in jsonData:
+                        self.logger.info("Successfully fetched direct JSON payload")
+                        return {"details": jsonData}
                 except Exception:
                     pass
                 retry += 1
@@ -144,6 +161,158 @@ class ApiUtility:
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCourseApiContentJson: {lineNumber}: {e}")
+
+
+    def _normalizeProjectApiPayload(self, projectPayload):
+        if not isinstance(projectPayload, dict):
+            return {}
+        if "instance" in projectPayload and isinstance(projectPayload.get("instance"), dict):
+            instance = projectPayload.get("instance", {})
+            if isinstance(instance.get("details"), dict):
+                return instance["details"]
+            return instance
+        if isinstance(projectPayload.get("details"), dict):
+            return projectPayload["details"]
+        return projectPayload
+
+
+    def _inferProjectTopicApiTemplate(self, apiUrls, authorId, collectionId, projectId, topicIds):
+        baseProjectApiUrl = f"https://www.educative.io/api/project/{authorId}/{collectionId}/{projectId}"
+        topicIdSet = {str(topicId) for topicId in topicIds if topicId is not None}
+        if apiUrls:
+            for url in reversed(apiUrls):
+                if not isinstance(url, str):
+                    continue
+                cleanUrl = url.strip().split("?")[0]
+                if not cleanUrl.startswith(baseProjectApiUrl + "/"):
+                    continue
+                suffix = cleanUrl[len(baseProjectApiUrl) + 1:]
+                suffixParts = [part for part in suffix.split("/") if part]
+                if not suffixParts:
+                    continue
+                suffixId = suffixParts[-1]
+                if suffixId not in topicIdSet:
+                    continue
+                if len(suffixParts) == 1:
+                    return baseProjectApiUrl + "/{topic_id}"
+                prefix = "/".join(suffixParts[:-1])
+                return f"{baseProjectApiUrl}/{prefix}/{{topic_id}}"
+
+        # Fallback for project task APIs when no per-topic call was captured yet.
+        return baseProjectApiUrl + "/{topic_id}"
+
+
+    def getCourseCollectionsJsonProject(self, projectApiUrl, jsonData, apiUrls=None):
+        try:
+            self.logger.info(f"Getting Course Collections JSON (Project) from URL: {projectApiUrl}")
+            authorId = str(jsonData.get("author_id", "") or "")
+            collectionId = str(jsonData.get("collection_id", "") or "")
+            projectId = str(jsonData.get("project_id", "") or "")
+            courseTitle = jsonData.get("title", "")
+            courseType = str(jsonData.get("work_type", "collection") or "collection")
+
+            # Some project payloads omit IDs in details; recover from the API URL.
+            if not (authorId and collectionId and projectId):
+                projectMatch = re.search(r"/api/project/([^/]+)/([^/]+)/([^/?]+)", str(projectApiUrl))
+                if projectMatch:
+                    if not authorId:
+                        authorId = projectMatch.group(1)
+                    if not collectionId:
+                        collectionId = projectMatch.group(2)
+                    if not projectId:
+                        projectId = projectMatch.group(3)
+
+            projectMeta = {
+                "project_author_id": authorId,
+                "project_collection_id": collectionId,
+                "project_id": projectId,
+                "project_title": courseTitle,
+                "project_url_slug": str(jsonData.get("url_slug", "") or ""),
+            }
+            pathMeta = {
+                "path_author_id": str(jsonData.get("path_author_id", "") or ""),
+                "path_collection_id": str(jsonData.get("path_id", "") or ""),
+                "path_url_slug": str(jsonData.get("path_url_slug", "") or ""),
+                "path_title": str(jsonData.get("path_title", "") or ""),
+            }
+
+            categories = jsonData.get("toc", {}).get("categories", [])
+            topicApiUrlList = []
+            topicNameList = []
+            topicSlugList = []
+            topicIdx = 0
+            toc = []
+
+            allTopicIds = []
+            for category in categories:
+                if not isinstance(category, dict):
+                    continue
+                pages = category.get("pages")
+                if not isinstance(pages, list):
+                    continue
+                for page in pages:
+                    if not isinstance(page, dict):
+                        continue
+                    topicId = page.get("id", page.get("page_id"))
+                    if topicId is not None:
+                        allTopicIds.append(topicId)
+
+            topicApiTemplate = self._inferProjectTopicApiTemplate(apiUrls or [], authorId, collectionId, projectId, allTopicIds)
+
+            def appendTopic(topicId, topicTitle, topicSlugValue, topicBucket):
+                nonlocal topicIdx
+                if topicId is None or not topicTitle:
+                    return
+                topicSlug = topicSlugValue if isinstance(topicSlugValue, str) and topicSlugValue else slugify(topicTitle)
+                topicApiUrl = topicApiTemplate.replace("{topic_id}", str(topicId))
+
+                topicApiUrlList.append(topicApiUrl)
+                topicNameList.append(topicTitle)
+                topicSlugList.append(topicSlug)
+
+                topicData = {
+                    "index": topicIdx,
+                    "title": topicTitle,
+                    "slug": topicSlug,
+                    "api_url": topicApiUrl,
+                }
+                topicBucket.append(topicData)
+                topicIdx += 1
+
+            for category in categories:
+                if not isinstance(category, dict):
+                    continue
+                moduleTitle = category.get("title", "")
+                pages = category.get("pages")
+                if not isinstance(pages, list) or not pages:
+                    continue
+
+                moduleTopics = []
+                for page in pages:
+                    if not isinstance(page, dict):
+                        continue
+                    topicId = page.get("id", page.get("page_id"))
+                    topicTitle = page.get("title", moduleTitle)
+                    topicSlugValue = page.get("slug", "")
+                    appendTopic(topicId, topicTitle, topicSlugValue, moduleTopics)
+
+                if moduleTopics:
+                    toc.append({"category": moduleTitle, "topics": moduleTopics})
+
+            return {
+                "courseTitle": courseTitle,
+                "topicApiUrlList": topicApiUrlList,
+                "topicNameList": topicNameList,
+                "topicSlugList": topicSlugList,
+                "toc": toc,
+                "pathMeta": pathMeta,
+                "projectMeta": projectMeta,
+                "courseType": "Project",
+                "workType": courseType,
+            }
+        except Exception as e:
+            lineNumber = e.__traceback__.tb_lineno
+            raise Exception(f"ApiUtility:getCourseCollectionsJsonProject: {lineNumber}: {e}")
 
 
     def getCourseCollectionsJsonPal(self, courseApiUrl, categoryType, courseType, jsonData):
@@ -252,21 +421,76 @@ class ApiUtility:
             raise Exception(f"ApiUtility:getCourseCollectionsJsonPal: {lineNumber}: {e}")
 
 
-    def getCourseCollectionsJson(self, courseApiUrlV2, courseApiUrl, courseUrl):
+    def getCourseCollectionsJson(self, courseApiUrlV2, courseApiUrl=None, courseUrl=None, apiUrls=None):
         try:
+            # Backward compatibility: legacy call shape was (courseApiUrl, courseUrl).
+            if courseUrl is None:
+                courseUrl = courseApiUrl
+                courseApiUrl = courseApiUrlV2
+            if courseApiUrl is None:
+                courseApiUrl = courseApiUrlV2
+
             self.logger.info(f"Getting Course Collections JSON from Course API URL: {courseApiUrlV2}")
             self.logger.info(f"Getting Course Collections JSON from Course API Fallback URL: {courseApiUrl}")
-            courseType = courseUrl.split('/')[3]
-            if "module" in courseType or "/pal/" in courseApiUrlV2:
+
+            projectApiUrl = None
+            for candidate in (courseApiUrlV2, courseApiUrl):
+                if isinstance(candidate, str) and "/api/project/" in candidate:
+                    projectApiUrl = candidate
+                    break
+            if not projectApiUrl and apiUrls:
+                inferredApiUrl = self.getCourseApiUrlFromNetworkUrls(apiUrls, courseUrl or "")
+                if isinstance(inferredApiUrl, str) and "/api/project/" in inferredApiUrl:
+                    projectApiUrl = inferredApiUrl
+
+            if projectApiUrl:
+                try:
+                    projectPayload = self.executeJsToGetJson(projectApiUrl)
+                except Exception:
+                    if courseApiUrl and courseApiUrl != projectApiUrl:
+                        self.logger.warning(
+                            f"Error fetching from Project API URL, falling back to original Course API URL: {courseApiUrl}"
+                        )
+                        projectPayload = self.executeJsToGetJson(courseApiUrl)
+                    else:
+                        raise
+                projectJson = self._normalizeProjectApiPayload(projectPayload)
+                return self.getCourseCollectionsJsonProject(projectApiUrl, projectJson, apiUrls)
+
+            primaryApiUrl = None
+            if isinstance(courseApiUrlV2, str) and courseApiUrlV2:
+                primaryApiUrl = courseApiUrlV2
+            elif isinstance(courseApiUrl, str) and courseApiUrl:
+                primaryApiUrl = courseApiUrl
+
+            fallbackApiUrl = None
+            if primaryApiUrl == courseApiUrlV2 and isinstance(courseApiUrl, str) and courseApiUrl and courseApiUrl != primaryApiUrl:
+                fallbackApiUrl = courseApiUrl
+            elif primaryApiUrl == courseApiUrl and isinstance(courseApiUrlV2, str) and courseApiUrlV2 and courseApiUrlV2 != primaryApiUrl:
+                fallbackApiUrl = courseApiUrlV2
+
+            if not primaryApiUrl:
+                raise Exception("No collection API URL resolved from network capture or fallback extraction")
+
+            courseUrl = str(courseUrl or "")
+            courseUrlParts = courseUrl.split('/')
+            courseType = courseUrlParts[3] if len(courseUrlParts) > 3 else ""
+            isPalUrl = "/pal/" in primaryApiUrl
+            if "module" in courseType or isPalUrl:
                 courseType = "module"
             else:
                 courseType = "collection"
             try:
-                jsonData = self.getCourseApiContentJson(courseApiUrlV2)
-            except Exception as e:
-                self.logger.warning(f"Error fetching from Course API URL v2, falling back to original Course API URL: {courseApiUrl}")
-                jsonData = self.getCourseApiContentJson(courseApiUrl)
-            jsonData = jsonData["details"]
+                jsonData = self.getCourseApiContentJson(primaryApiUrl)
+            except Exception:
+                if fallbackApiUrl:
+                    self.logger.warning(
+                        f"Error fetching from primary Course API URL, falling back to alternate URL: {fallbackApiUrl}"
+                    )
+                    jsonData = self.getCourseApiContentJson(fallbackApiUrl)
+                else:
+                    raise
+            jsonData = jsonData.get("details", jsonData)
             authorId = str(jsonData["author_id"])
             collectionId = str(jsonData["collection_id"])
             pathMeta = {
@@ -281,8 +505,8 @@ class ApiUtility:
             topicNameList = []
             topicSlugList = []
             categoryType = ["COLLECTION_PROJECT", "COLLECTION_CATEGORY", "COLLECTION_ASSESSMENT", "PATH_EXTERNAL_PROJECT", "PATH_EXTERNAL_ASSESSMENT", "CLOUD_LAB", "LINKED_MOCK_INTERVIEW", "PATH_INTERNAL_MODULE"]
-            if "/pal/" in courseApiUrl:
-                return self.getCourseCollectionsJsonPal(courseApiUrl, categoryType, courseType, jsonData)
+            if isPalUrl:
+                return self.getCourseCollectionsJsonPal(primaryApiUrl, categoryType, courseType, jsonData)
             baseApiUrl = f"https://www.educative.io/api/collection/{authorId}/{collectionId}/page/"
             topicIdx = 0
             toc = []
@@ -319,7 +543,7 @@ class ApiUtility:
             }
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
-            # raise Exception(f"ApiUtility:getCourseCollectionsJson: {lineNumber}: {e}")
+            raise Exception(f"ApiUtility:getCourseCollectionsJson: {lineNumber}: {e}")
 
 
     def getCourseTopicUrlsList(self, topicUrl, courseUrl):
