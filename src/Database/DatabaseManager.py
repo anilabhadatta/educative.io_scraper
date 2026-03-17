@@ -88,6 +88,7 @@ class DatabaseManager:
         toc_json        TEXT,
         cloudlab_id     TEXT,
         project_id      TEXT,
+        state           TEXT    NOT NULL DEFAULT 'Active',
         scraped_at      TEXT    NOT NULL
     );
 
