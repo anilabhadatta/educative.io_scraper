@@ -12,33 +12,20 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v4.0.2 (Recommended)
-Master Branch: v3-master</code></pre>
+Repository Version: v4.0.19 (Recommended)
+Master Branch: v4-dev</code></pre>
 ```
-1. Updates Information
--  Added Html2PdfConverter (v4.0.0+)
--  Add terminal mode feature - Run `python EducativeScraper.py --help` for details (v3.9.5)
--  Single file implementation changed - uses extension to get page data. (v3.9.1)
--  Cloudlabs, Projects can now be scraped using Auto/Manual Scraper (v3.9.0) 
--  SandPack code container support added
--  SingleFile injection script now uses single-file-cli logic instead of custom (v3.7.4) 
--  Injectes SingleFile through Local. Script faster by 10 seconds per topic, fixes Iframe (v3.7.3)
--  AutoFixUrl and AutoResume were added (v3.6.5+)
-      * AutoFixUrl: The urls text file will be automatically updated based on the last topic URL from the Log File.
-        If a manual edit was done on the text file then consider unchecking this option.
-      * AutoResume (Recommended): Retries 3/4 times if there is any error occurs for a specific URL.
-        If it still fails, then consider checking the log for more details. 
--  Undetected driver replaced by SeleniumBase (Bypass Cloudflare Turnstile) (v3.5.7+)
--  Run with --install arg again OR manually clean install (v3.5.7+)
--  Delete the old UserDataDir (v3.5.5+)
--  No existing Chrome browser should be running in the background (v3.4.2+)     
--  Redownload Chrome Binary and Chrome driver. (v3.4.2+)
--  If Undetected/SeleniumBase does not work then UNCHECK and use default webdriver. (v3.4.2+)
-2. Send a mail notification status, Setup here: /src/Main/MailNotify.py
+Updates Information
+1. New architecture introduced:
+   - Topic content is now stored in the database and can be rendered in Educative Viewer v5.
+   - The viewer renders each topic dynamically by component type, delivering an experience close to Educative.io.
+2. V4 will maintain and provide fixes only for the API Scraper.
+3. V3 will maintain and provide fixes for the Single File HTML-based Scraper.
 ```
 ###                                
 
-## To view the downloaded courses, you can use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
+## To view the downloaded courses, you can use the [Educative-Viewer V5](https://github.com/Biraj2004/EducativeViewer) repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
+
 
 ## Steps to use the scraper:
 
@@ -103,7 +90,7 @@ cd educative.io_scraper
 
       <div align="center">
          <figure>
-            <img src="https://github.com/user-attachments/assets/52e81b18-356e-4d9a-bd75-24bd032f4280" style="width: 50%; height:50%;">
+            <img src="https://github.com/user-attachments/assets/c3c3168f-88c4-432d-94c5-2f9b9c919466" style="width: 50%; height:50%;">
             <br>
             <figcaption>Recommeded GUI Settings</figcaption>
          </figure>
@@ -122,44 +109,31 @@ cd educative.io_scraper
          </figure>
       </div>
 
+
     - Select a configuration if you prefer not to use the default configuration.
     - If you prefer not to display the browser window, choose the `headless` option.
-    - Please provide a unique `User Data Directory` name that the browser will use to store your current session. Ensure
-      that `each instance` of the scraper has a `distinct` User Data Directory name.
+    - Please provide a unique `User Data Directory` name that the browser will use to store your current session. 
     - Please select the file path of the text file containing the course URLs, as well as the directory where you would
-      like to save the downloaded content.
+      like to save the database.
     - You can choose to save/export the current configuration for later use, or you can opt for the default
       configuration.
     - For the initial setup or updates, click on `Download Chromedriver` and `Download Chrome Binary` to automatically
       Download them into the project directory.
-    - If you intend to utilize proxies, simply enable the proxy option and enter the proxy in proxies box.
+    - If you intend to utilize proxies, simply enable the proxy option and enter the proxy in the proxies box.
       <ul>
       <br>
-        <li> For IP authorized proxy, you can directly enter IP:PORT of the proxy.</li>
+        <li> For an IP authorized proxy, you can directly enter IP:PORT of the proxy.</li>
         <li> For USER:PASS authorized proxy, you'll need to create a localhost tunnel using the <a href="https://github.com/anilabhadatta/proxy-login-automator">Proxy-Login-Automator</a> repository.</li>
         <li> After setting up the tunnel, enter the IP:PORT of the localhost proxy that you configured in the Proxy Login Automator.</li>
         <br>
       </ul>
-    - Click on `Login Account` to log in to your Educative.io account and click on `Close Browser Button` to close the
-      browser after the login is completed.
+    - Click on `Login Account` to log in to your Educative.io account, and click on `Close Browser Button` to close the
+      browser after the authentication is completed.
     - Click on `Start Scraper` to begin scraping the courses.
     - The scraper will automatically stop after scraping all the URLs in the selected text file.
-    - If you decide to stop the scraper using the `Stop Scraper Button` before it finishes or face any errors, the most
-      recent URL will be saved in the `EducativeScraper.log` file. Simply copy the URL from the INFO logger and replace
-      the URL of the topic/lesson that has already been completed with the copied URL. This will allow you to resume the
-      scraper from where you left off.
-      <div align="center">
-      <br><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/48487849/264581350-dd669e5a-739c-4ff1-a7b3-6beb2eba5437.png" style="width: 80%; height:80%;">
-      </div>
-    - An index is `NOT` required in the URL's text file, Simply paste the URLs of the topic from which you
-      want to start/resume scraping.
-    - Added new function to auto scraper
-         - Can automatically scrape Cloudlabs and Projects links added in text file.
-         - Select ModuleType [CLOUDLABS/PROJECTS/COURSE-PATH]
-    - Added Manual Scraper Button (Used to scrap a specific topic opening in the browser)
-         - Important: Disable Seleniumbase checkbox for this. 
-         - Open the the browser using Login/Open Browser, Search for a topic in the opened tab. 
-         - AutoNext checkbox will work only with Manual Scraper. This will automatically scrape consecutive topics and will finish at the end of the topic of that specific course.
-         - To stop, click on close browser.
-         - Cloudlabs/Projects can be scraped using this.
-         - Change configuration as per topic type in UI field: ModuleType
+    - For Projects, add the project link in the text file. Do not add the first topic link of the project.
+    - Auto Resume Function will try to resume URL 3 times in case of any error before failing.
+    - Auto Fix URL will automatically update the text file to remove any completed URLs to stop unnecessary rescraping.
+    - DB stores each topic's scraping status to resume from leftovers. If Overwrite is needed, enable the Overwrite option.
+    - Extract Assets - Run only if you want to extract the assets again. By default, the assets are already stored while scraping the topic.
+    - Download Assets - The extracted Assets will be downloaded in the save directory. Contains Images/SVGs/Files.
