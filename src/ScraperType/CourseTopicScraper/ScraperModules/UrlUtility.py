@@ -13,9 +13,9 @@ class UrlUtility:
 
 
     @staticmethod
-    def getCourseApiCollectionListUrl(resMap):
+    def getCourseApiCollectionListUrl(resMap, workType="collection"):
         try:
-            return f"https://www.educative.io/api/collection/{resMap['authorId']}/{resMap['collectionId']}?work_type=collection"
+            return f"https://www.educative.io/api/collection/{resMap['authorId']}/{resMap['collectionId']}?work_type={workType}"
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"UrlUtility:getCourseApiCollectionListUrl: {lineNumber}: {e}")

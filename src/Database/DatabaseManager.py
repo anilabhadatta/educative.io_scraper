@@ -13,6 +13,7 @@ components  – one row per widget, linked by (course_id, topic_index)
 """
 
 import json
+import hashlib
 import re
 import sqlite3
 import threading
@@ -74,34 +75,31 @@ class DatabaseManager:
         UNIQUE(path_author_id, path_collection_id)
     );
 
-    -- type: "Course" | "Cloudlab" | "Project"
-    -- path_id: set when this course belongs to a Path
-    -- cloudlab_id / project_id: provision for future linking
     CREATE TABLE IF NOT EXISTS courses (
         id              INTEGER PRIMARY KEY AUTOINCREMENT,
         type            TEXT    NOT NULL DEFAULT 'Course',
         path_id         INTEGER REFERENCES paths(id),
-        url             TEXT    NOT NULL UNIQUE,
+        url             TEXT    NOT NULL,
+        structure_hash  TEXT    NOT NULL,
         slug            TEXT    NOT NULL,
         author_id       TEXT,
         collection_id   TEXT,
         title           TEXT,
         toc_json        TEXT,
         cloudlab_id     TEXT,
-        project_id      TEXT,
+        project_id      INTEGER REFERENCES projects(id),
         is_active       INTEGER NOT NULL DEFAULT 1,
-        scraped_at      TEXT    NOT NULL
+        scraped_at      TEXT    NOT NULL,
+        UNIQUE(url, structure_hash)
     );
 
     CREATE TABLE IF NOT EXISTS projects (
         id                    INTEGER PRIMARY KEY AUTOINCREMENT,
-        course_id             INTEGER NOT NULL UNIQUE REFERENCES courses(id) ON DELETE CASCADE,
         project_author_id     TEXT    NOT NULL,
         project_collection_id TEXT    NOT NULL,
         project_work_id       TEXT    NOT NULL,
         project_title         TEXT,
         project_url_slug      TEXT,
-        toc_json              TEXT,
         is_active             INTEGER NOT NULL DEFAULT 1,
         scraped_at            TEXT    NOT NULL,
         UNIQUE(project_author_id, project_collection_id, project_work_id)
@@ -148,7 +146,6 @@ class DatabaseManager:
 
     CREATE INDEX IF NOT EXISTS idx_courses_path       ON courses(path_id);
     CREATE INDEX IF NOT EXISTS idx_paths_author_collection ON paths(path_author_id, path_collection_id);
-    CREATE INDEX IF NOT EXISTS idx_projects_course    ON projects(course_id);
     CREATE INDEX IF NOT EXISTS idx_projects_triplet   ON projects(project_author_id, project_collection_id, project_work_id);
     CREATE INDEX IF NOT EXISTS idx_topics_course      ON topics(course_id);
     CREATE INDEX IF NOT EXISTS idx_components_topic   ON components(course_id, topic_index);
@@ -229,46 +226,62 @@ class DatabaseManager:
 
     def upsert_course(self, url: str, slug: str, author_id: str, collection_id: str,
                       title: str, toc: list, course_type: str = "Course",
-                      path_id: int = None, project_id: str = None) -> int:
+                      path_id: int = None, project_id: str = None,
+                      topic_slugs: list = None) -> int:
         """Persist the course row. toc_json is stored raw here;
         call finalize_course_toc() after upsert_topics_for_course() to
         enrich it with DB-sourced course_id / topic_index values.
         """
         toc_json = json.dumps(toc, ensure_ascii=False)
         now = datetime.utcnow().isoformat()
+        topic_slugs = topic_slugs or []
+        structure_hash = hashlib.sha256(
+            json.dumps([str(slug or "") for slug in topic_slugs], ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
         with self._lock:
             conn = self._connect()
             try:
+                row = conn.execute(
+                    "SELECT id FROM courses WHERE url = ? AND structure_hash = ? ORDER BY id DESC LIMIT 1",
+                    (url, structure_hash),
+                ).fetchone()
+                if row:
+                    course_id = row["id"]
+                    conn.execute(
+                        """
+                        UPDATE courses
+                        SET type = ?, path_id = ?, slug = ?, author_id = ?, collection_id = ?,
+                            title = ?, toc_json = ?, project_id = ?, scraped_at = ?
+                        WHERE id = ?
+                        """,
+                        (course_type, path_id, slug, author_id, collection_id, title, toc_json, project_id, now, course_id),
+                    )
+                    conn.commit()
+                    self.logger.info(f"Reused {course_type} '{title}' (id={course_id})")
+                    return course_id
+
                 conn.execute(
                     """
                     INSERT INTO courses
-                        (type, path_id, url, slug, author_id, collection_id, title, toc_json, project_id, scraped_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(url) DO UPDATE SET
-                        type          = excluded.type,
-                        path_id       = excluded.path_id,
-                        slug          = excluded.slug,
-                        author_id     = excluded.author_id,
-                        collection_id = excluded.collection_id,
-                        title         = excluded.title,
-                        toc_json      = excluded.toc_json,
-                        project_id    = excluded.project_id,
-                        scraped_at    = excluded.scraped_at
+                        (type, path_id, url, structure_hash, slug, author_id, collection_id, title, toc_json, project_id, scraped_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (course_type, path_id, url, slug, author_id, collection_id, title, toc_json, project_id, now),
+                    (course_type, path_id, url, structure_hash, slug, author_id, collection_id, title, toc_json, project_id, now),
                 )
                 conn.commit()
-                row = conn.execute("SELECT id FROM courses WHERE url = ?", (url,)).fetchone()
+                row = conn.execute(
+                    "SELECT id FROM courses WHERE url = ? AND structure_hash = ? ORDER BY id DESC LIMIT 1",
+                    (url, structure_hash),
+                ).fetchone()
                 course_id = row["id"]
-                self.logger.info(f"Upserted {course_type} '{title}' (id={course_id})")
+                self.logger.info(f"Inserted new {course_type} '{title}' version (id={course_id})")
                 return course_id
             finally:
                 conn.close()
 
-    def upsert_project(self, course_id: int, project_author_id: str,
+    def upsert_project(self, project_author_id: str,
                        project_collection_id: str, project_work_id: str,
-                       project_title: str, project_url_slug: str = "", toc: list = None) -> int:
-        toc_json = json.dumps(toc or [], ensure_ascii=False)
+                       project_title: str, project_url_slug: str = "") -> int:
         now = datetime.utcnow().isoformat()
         with self._lock:
             conn = self._connect()
@@ -276,34 +289,25 @@ class DatabaseManager:
                 conn.execute(
                     """
                     INSERT INTO projects
-                        (course_id, project_author_id, project_collection_id, project_work_id, project_title, project_url_slug, toc_json, scraped_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(course_id) DO UPDATE SET
-                        project_author_id     = excluded.project_author_id,
-                        project_collection_id = excluded.project_collection_id,
-                        project_work_id       = excluded.project_work_id,
+                        (project_author_id, project_collection_id, project_work_id, project_title, project_url_slug, scraped_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(project_author_id, project_collection_id, project_work_id) DO UPDATE SET
                         project_title         = excluded.project_title,
                         project_url_slug      = excluded.project_url_slug,
-                        toc_json              = excluded.toc_json,
                         scraped_at            = excluded.scraped_at
                     """,
-                    (
-                        course_id,
-                        project_author_id,
-                        project_collection_id,
-                        project_work_id,
-                        project_title,
-                        project_url_slug,
-                        toc_json,
-                        now,
-                    ),
+                    (project_author_id, project_collection_id, project_work_id, project_title, project_url_slug, now),
                 )
                 conn.commit()
-                row = conn.execute("SELECT id FROM projects WHERE course_id = ?", (course_id,)).fetchone()
+                row = conn.execute(
+                    "SELECT id FROM projects WHERE project_author_id = ? AND project_collection_id = ? AND project_work_id = ?",
+                    (project_author_id, project_collection_id, project_work_id),
+                ).fetchone()
                 project_row_id = row["id"]
                 self.logger.info(
-                    f"Upserted Project row (id={project_row_id}, course_id={course_id}, "
-                    f"project_work_id={project_work_id})"
+                    f"Upserted Project '{project_title}' (id={project_row_id}, "
+                    f"project_author_id={project_author_id}, project_collection_id={project_collection_id})"
+                    f" with work_id={project_work_id}"
                 )
                 return project_row_id
             finally:
@@ -387,9 +391,9 @@ class DatabaseManager:
             try:
                 for idx in range(api_count):
                     api_url = api_urls[idx]
-                    name = topic_names[idx] if idx < len(topic_names) else f"Topic {idx + 1}"
-                    slug = topic_slugs[idx] if idx < len(topic_slugs) else f"topic-{idx + 1}"
-                    url = topic_urls[idx] if idx < len(topic_urls) else api_url
+                    name = topic_names[idx]
+                    slug = topic_slugs[idx]
+                    url = topic_urls[idx]
                     page_id = _page_id_from_api_url(api_url)
                     conn.execute(
                         """

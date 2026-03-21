@@ -5,73 +5,38 @@ from src.Logging.Logger import Logger
 
 
 class NetworkMonitor:
+    _API_PATTERN = re.compile(r"^https://(?:www\.)?educative\.io/api/.+$")
+
+    _PERFORMANCE_SCRIPT = """
+        const entries = performance.getEntriesByType('resource') || [];
+        return entries.map(e => ({ name: e.name ? String(e.name) : '' }));
+    """
+
     def __init__(self, configJson):
         self.browser = None
         self.logger = Logger(configJson, "NetworkMonitor").logger
-        # Accept any same-origin /api/ URL path so we do not miss course endpoints
-        # that include extra segments or punctuation in the path.
-        self.apiUrlPattern = re.compile(r"^https:\/\/(?:www\.)?educative\.io\/api\/.+$")
-        self.matchedUrls = []
-        self.performanceResourceScript = """
-            const entries = performance.getEntriesByType('resource') || [];
-            return entries.map((entry) => ({
-                name: entry && entry.name ? String(entry.name) : '',
-                initiatorType: entry && entry.initiatorType ? String(entry.initiatorType) : ''
-            }));
-        """
 
-    def _dedupeAndFilterApiUrls(self, urls):
-        filtered = []
-        for url in urls:
-            if url and self.apiUrlPattern.match(url):
-                filtered.append(url)
-        # Keep order stable but avoid repeated URLs.
-        return list(dict.fromkeys(filtered))
-
-
-    def _getApiUrlsFromPerformanceEntries(self, timeout):
-        if not hasattr(self.browser, "execute_script"):
-            return []
-
+    def _collectApiUrls(self, timeout: int) -> list:
         deadline = time.time() + timeout
         while time.time() < deadline:
-            try:
-                resources = self.browser.execute_script(self.performanceResourceScript) or []
-            except Exception as e:
-                self.logger.debug(f"Unable to read performance entries: {e}")
-                return []
-
-            resourceUrls = [
-                item.get("name")
-                for item in resources
+            resources = self.browser.execute_script(self._PERFORMANCE_SCRIPT) or []
+            urls = [
+                item["name"] for item in resources
                 if isinstance(item, dict) and item.get("name")
+                and self._API_PATTERN.match(item["name"])
             ]
-            matchedUrls = self._dedupeAndFilterApiUrls(resourceUrls)
-            if matchedUrls:
-                return matchedUrls
+            deduped = list(dict.fromkeys(urls))
+            if deduped:
+                return deduped
             time.sleep(0.5)
-
         return []
 
-    def getAPIUrls(self, timeout=30):
-        try:
-            self.logger.info("Getting APIUrl")
-            try:
-                self.matchedUrls = self._getApiUrlsFromPerformanceEntries(timeout)
-                if self.matchedUrls:
-                    self.logger.info("NetworkMonitor source: Browser Performance entries")
-                    self.logger.debug(f"NetworkMonitor API URls: {self.matchedUrls}")
-                    return self.matchedUrls
-
-                self.logger.warning("No matching educative API URLs captured from browser Performance entries")
-                self.logger.debug(f"NetworkMonitor API URls: {self.matchedUrls}")
-                return self.matchedUrls
-            except TimeoutError:
-                self.logger.warning(f"Timeout after {timeout} seconds: API Url not found")
-                return []
-            # finally:
-            #     self.browser.remove_listener("Network.requestWillBeSent", capture_request)
-        except Exception as e:
-            line_number = e.__traceback__.tb_lineno
-            self.logger.error(f"Error in get_bearer_token at line {line_number}: {str(e)}")
-            raise Exception(f"NetworkMonitor:getAPIUrl: {line_number}: {e}")
+    def getAPIUrls(self, timeout: int = 30) -> list:
+        self.logger.info("Getting API URLs from browser performance entries")
+        urls = self._collectApiUrls(timeout)
+        if urls:
+            self.logger.info(f"NetworkMonitor: captured {len(urls)} API URL(s)")
+            self.logger.debug(f"NetworkMonitor API URLs: {urls}")
+        else:
+            self.logger.warning("NetworkMonitor: no educative API URLs found in performance entries")
+        return urls

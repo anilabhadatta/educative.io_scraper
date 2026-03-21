@@ -56,7 +56,8 @@ class HomeScreen:
         self.autoResumeScraper = tk.BooleanVar(value=False)
         self.autoFixTextFile = tk.BooleanVar(value=False)
         self.overwriteVar = tk.BooleanVar(value=False)
-        self.overrideTopicUrlCheckVar = tk.BooleanVar(value=False)
+        self.downloadTypeVar = tk.StringVar()
+        self.downloadTypes = ["PAL", "COLLECTION", "PAL+COLLECTION"]
         self.courseUrlsFilePathVar = tk.StringVar()
         self.saveDirectoryVar = tk.StringVar()
         self.isProxyVar = tk.BooleanVar(value=True)
@@ -94,10 +95,6 @@ class HomeScreen:
 
 
     def onConfigChange(self, *args):
-        # if self.moduleTypeVar.get() != "COURSE-PATH":
-        #     # AUTO RESUME AND AUTO FIX CURRENTLY DISABLED FOR CLOUDLAB AND PROJECTS
-        #     self.autoFixTextFile.set(value=False)
-        #     self.autoResumeScraper.set(value=False)
         self.createConfigJson()
         self.updateTextFromLog = UpdateTxtFileFromLog(self.configJson)
         self.logger = Logger(self.configJson, "HomeScreen").logger
@@ -154,11 +151,21 @@ class HomeScreen:
             else:
                 self.overwriteCheckbox.grid_remove()
 
-        if hasattr(self, "overrideTopicUrlCheckCheckbox"):
+        if hasattr(self, "moduleTypeLabel") and hasattr(self, "moduleTypeCombobox"):
             if is_api_scraper:
-                self.overrideTopicUrlCheckCheckbox.grid(row=2, column=0, sticky="w", padx=0, pady=2)
+                self.moduleTypeLabel.grid_remove()
+                self.moduleTypeCombobox.grid_remove()
             else:
-                self.overrideTopicUrlCheckCheckbox.grid_remove()
+                self.moduleTypeLabel.grid(row=5, column=0, sticky="w", padx=2, pady=0)
+                self.moduleTypeCombobox.grid(row=5, column=1, sticky="w", padx=0, pady=5)
+
+        if hasattr(self, "apiUrlTypeLabel") and hasattr(self, "apiUrlTypeCombobox"):
+            if is_api_scraper:
+                self.apiUrlTypeLabel.grid(row=6, column=0, sticky="w", padx=2, pady=0)
+                self.apiUrlTypeCombobox.grid(row=6, column=1, sticky="w", padx=0, pady=5)
+            else:
+                self.apiUrlTypeLabel.grid_remove()
+                self.apiUrlTypeCombobox.grid_remove()
 
         if hasattr(self, "extractAssetsButton") and hasattr(self, "downloadAssetsButton"):
             button_state = "normal" if is_api_scraper else "disabled"
@@ -186,6 +193,7 @@ class HomeScreen:
         self.logger = Logger(self.configJson, "HomeScreen").logger
         self.loggingLevelVar.trace("w", self.onConfigChange)
         self.moduleTypeVar.trace("w", self.onConfigChange)
+        self.downloadTypeVar.trace("w", self.onConfigChange)
         self.saveDirectoryVar.trace("w", self.onConfigChange)
         self.logLevelDescVar.trace("w", self.onConfigChange)
         self.scrapingMethodVar.trace("w", self.updateComboboxStates)
@@ -242,18 +250,36 @@ class HomeScreen:
         )
         self.logDescriptionLabel.grid(row=4, column=1, columnspan=2, sticky="w", padx=0, pady=(0, 2))
 
-        moduleTypeLabel = tk.Label(scraperOptionFrame, text="Module Type:")
-        moduleTypeLabel.grid(row=5, column=0, sticky="w", padx=2, pady=0)
-        moduleTypeCombobox = ttk.Combobox(scraperOptionFrame, textvariable=self.moduleTypeVar,
-                                            values=self.moduleTypes, state="readonly", width=30)
-        moduleTypeCombobox.grid(row=5, column=1, sticky="w", padx=0, pady=5)
+        self.moduleTypeLabel = tk.Label(scraperOptionFrame, text="Module Type:")
+        self.moduleTypeLabel.grid(row=5, column=0, sticky="w", padx=2, pady=0)
+        self.moduleTypeCombobox = ttk.Combobox(
+            scraperOptionFrame,
+            textvariable=self.moduleTypeVar,
+            values=self.moduleTypes,
+            state="readonly",
+            width=30,
+        )
+        self.moduleTypeCombobox.grid(row=5, column=1, sticky="w", padx=0, pady=5)
+
+        self.apiUrlTypeLabel = tk.Label(scraperOptionFrame, text="API URL TYPE:")
+        self.apiUrlTypeCombobox = ttk.Combobox(
+            scraperOptionFrame,
+            textvariable=self.downloadTypeVar,
+            values=self.downloadTypes,
+            state="readonly",
+            width=30,
+        )
+        self.apiUrlTypeLabel.grid(row=6, column=0, sticky="w", padx=2, pady=0)
+        self.apiUrlTypeCombobox.grid(row=6, column=1, sticky="w", padx=0, pady=5)
+        self.apiUrlTypeLabel.grid_remove()
+        self.apiUrlTypeCombobox.grid_remove()
 
         self.proxyCheckboxOption = tk.Checkbutton(scraperOptionFrame, text="Proxy", variable=self.isProxyVar, anchor="w")
-        self.proxyCheckboxOption.grid(row=6, column=0, sticky="w", padx=2, pady=2)
+        self.proxyCheckboxOption.grid(row=7, column=0, sticky="w", padx=2, pady=2)
         self.proxyEntryOption = tk.Entry(scraperOptionFrame, textvariable=self.proxyVar, width=30)
-        self.proxyEntryOption.grid(row=6, column=1, sticky="w", padx=0, pady=2)
+        self.proxyEntryOption.grid(row=7, column=1, sticky="w", padx=0, pady=2)
         self.proxyFormatLabel = tk.Label(scraperOptionFrame, text="Host:Port")
-        self.proxyFormatLabel.grid(row=6, column=2, sticky="w", padx=2, pady=2)
+        self.proxyFormatLabel.grid(row=7, column=2, sticky="w", padx=2, pady=2)
 
         checkboxesFrame = tk.LabelFrame(optionsContainerFrame, text="Runtime Options", padx=8, pady=6)
         for col in range(3):
@@ -282,15 +308,6 @@ class HomeScreen:
         self.overwriteCheckbox = tk.Checkbutton(checkboxesFrame, text="Overwrite (API Scraper)", variable=self.overwriteVar, anchor="w")
         self.overwriteCheckbox.grid(row=1, column=2, sticky="w", padx=(10, 0), pady=2)
         self.overwriteCheckbox.grid_remove()
-
-        self.overrideTopicUrlCheckCheckbox = tk.Checkbutton(
-            checkboxesFrame,
-            text="Override (Topic URL Check)",
-            variable=self.overrideTopicUrlCheckVar,
-            anchor="w"
-        )
-        self.overrideTopicUrlCheckCheckbox.grid(row=2, column=0, sticky="w", padx=0, pady=2)
-        self.overrideTopicUrlCheckCheckbox.grid_remove()
 
         scraperOptionFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
         checkboxesFrame.grid(row=0, column=1, padx=(12, 0), pady=3, sticky="new")
@@ -512,7 +529,7 @@ class HomeScreen:
         self.courseUrlsFilePathVar.set(self.config['courseUrlsFilePath'])
         self.saveDirectoryVar.set(self.config['saveDirectory'])
         self.loggingLevelVar.set(self.config['logger'])
-        self.moduleTypeVar.set(self.config['moduleType'])
+        self.moduleTypeVar.set(self.config.get('moduleType', 'COURSE-PATH'))
         self.isProxyVar.set(self.config['isProxy'])
         self.proxyVar.set(self.config['proxy'])
         self.fileTypeVar.set(self.config["fileType"])
@@ -523,7 +540,7 @@ class HomeScreen:
         self.autoFixTextFile.set(self.config["autofixtextfile"])
         self.autoNextVar.set(self.config["autonext"])
         self.overwriteVar.set(self.config["overwrite"])
-        self.overrideTopicUrlCheckVar.set(self.config.get("overrideTopicUrlCheck", False))
+        self.downloadTypeVar.set(self.config.get("downloadType", "PAL+COLLECTION"))
 
 
     def createConfigJson(self):
@@ -546,7 +563,7 @@ class HomeScreen:
             'blockscraper': self.config["blockscraper"],
             'autonext': self.autoNextVar.get(),
             'overwrite': self.overwriteVar.get(),
-            'overrideTopicUrlCheck': self.overrideTopicUrlCheckVar.get(),
+            'downloadType': self.downloadTypeVar.get(),
             'useExtension': self.config["useExtension"]
         }
 
