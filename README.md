@@ -16,29 +16,23 @@ Repository Version: v3.10.2 (Recommended)
 Master Branch: v3-master</code></pre>
 ```
 1. Updates Information
+-  Visit v4-dev branch - Try the new scraping architecture.
 -  Added Html2PdfConverter (v3.10.0+)
 -  Add terminal mode feature - Run `python EducativeScraper.py --help` for details (v3.9.5)
--  Single file implementation changed - uses extension to get page data. (v3.9.1)
 -  Cloudlabs, Projects can now be scraped using Auto/Manual Scraper (v3.9.0) 
--  SandPack code container support added
--  SingleFile injection script now uses single-file-cli logic instead of custom (v3.7.4) 
--  Injectes SingleFile through Local. Script faster by 10 seconds per topic, fixes Iframe (v3.7.3)
 -  AutoFixUrl and AutoResume were added (v3.6.5+)
       * AutoFixUrl: The urls text file will be automatically updated based on the last topic URL from the Log File.
         If a manual edit was done on the text file then consider unchecking this option.
       * AutoResume (Recommended): Retries 3/4 times if there is any error occurs for a specific URL.
         If it still fails, then consider checking the log for more details. 
--  Undetected driver replaced by SeleniumBase (Bypass Cloudflare Turnstile) (v3.5.7+)
--  Run with --install arg again OR manually clean install (v3.5.7+)
--  Delete the old UserDataDir (v3.5.5+)
--  No existing Chrome browser should be running in the background (v3.4.2+)     
--  Redownload Chrome Binary and Chrome driver. (v3.4.2+)
--  If Undetected/SeleniumBase does not work then UNCHECK and use default webdriver. (v3.4.2+)
 2. Send a mail notification status, Setup here: /src/Main/MailNotify.py
 ```
 ###                                
+## Visit [v4-dev branch](https://github.com/anilabhadatta/educative.io_scraper/tree/v4-dev) - Try the new scraping architecture
+## Visit [Biraj2004/EducativeViewer-V5](https://github.com/Biraj2004/EducativeViewer) - Try the new Educative Viewer designed for V4 based scraper.
+## Please read the Readme again for the above two links.
 
-## To view the downloaded courses, you can use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
+## To view the downloaded courses scraped using V2 or V3 based Educative Scraper, you can use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository, which provides better readability and a user-friendly interface for accessing the downloaded course content.
 
 ## Steps to use the scraper:
 
