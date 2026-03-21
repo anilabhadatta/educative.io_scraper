@@ -151,6 +151,13 @@ class HomeScreen:
             else:
                 self.overwriteCheckbox.grid_remove()
 
+        if hasattr(self, "autoNextCheckbox"):
+            if is_api_scraper:
+                self.autoNextCheckbox.grid_remove()
+                self.autoNextVar.set(False)
+            else:
+                self.autoNextCheckbox.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
+
         if hasattr(self, "moduleTypeLabel") and hasattr(self, "moduleTypeCombobox"):
             if is_api_scraper:
                 self.moduleTypeLabel.grid_remove()
@@ -544,6 +551,7 @@ class HomeScreen:
 
 
     def createConfigJson(self):
+        is_api_scraper = self.scraperTypeVar.get() == "API-JSON-Scraper"
         self.configJson = {
             'userDataDir': self.userDataDirVar.get(),
             'headless': self.headlessVar.get(),
@@ -561,7 +569,7 @@ class HomeScreen:
             'autoresume': self.autoResumeScraper.get(),
             'autofixtextfile': self.autoFixTextFile.get(),
             'blockscraper': self.config["blockscraper"],
-            'autonext': self.autoNextVar.get(),
+            'autonext': False if is_api_scraper else self.autoNextVar.get(),
             'overwrite': self.overwriteVar.get(),
             'downloadType': self.downloadTypeVar.get(),
             'useExtension': self.config["useExtension"]

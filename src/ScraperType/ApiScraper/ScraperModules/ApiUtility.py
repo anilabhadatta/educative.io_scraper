@@ -64,6 +64,7 @@ class ApiUtility:
                     if match:
                         authorId, collectionId = match.group(1), match.group(2)
                         courseAPIUrls.append(f"https://www.educative.io/api/pal/{authorId}/{collectionId}?work_type={workType}")
+                        break
 
             # Priority 2: collection endpoint in network capture.
             if self.allowCollection:
@@ -74,6 +75,7 @@ class ApiUtility:
                     if match:
                         authorId, collectionId = match.group(1), match.group(2)
                         courseAPIUrls.append(f"https://www.educative.io/api/collection/{authorId}/{collectionId}?work_type={workType}")
+                        break
 
             self.logger.debug(f"Captured Course API URLs from network capture: {courseAPIUrls}")
             return courseAPIUrls

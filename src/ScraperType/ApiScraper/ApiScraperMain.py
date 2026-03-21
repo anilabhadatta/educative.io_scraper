@@ -29,6 +29,8 @@ class ApiScraperMain:
         self.browser = None
         self.configJson = configJson
         self.progressQueue = progressQueue
+        self.totalCourseUnits = 0
+        self.completedCourseUnits = 0
 
         self.logger = Logger(configJson, "ApiScraperMain").logger
         self.fileUtils = FileUtility()
@@ -150,13 +152,14 @@ class ApiScraperMain:
     def start(self):
         self.logger.info("ApiScraperMain initiated...")
         urlsTextFile = self.fileUtils.loadTextFile(self.configJson["courseUrlsFilePath"])
+        self.totalCourseUnits = len(urlsTextFile)
+        self.completedCourseUnits = 0
         self.progressQueue.put(("progress-topic", 0))
         self.progressQueue.put(("progress-course", 0))
-        self.progressQueue.put(("max-course", len(urlsTextFile)))
+        self.progressQueue.put(("max-course", self.totalCourseUnits))
 
         for textFileIdx, topicUrl in enumerate(urlsTextFile):
             try:
-                self.progressQueue.put(("progress-course", textFileIdx + 1))
                 if "?showContent=true" not in topicUrl:
                     topicUrl += "?showContent=true"
                 self.logger.info(f"Started Scraping from Text File URL: {topicUrl}")
@@ -191,13 +194,15 @@ class ApiScraperMain:
             courseApiUrls = self.apiUtils.getCourseApiUrlFromNetworkUrls(self.apiUrls, workType) or []
             try:
                 courseApiUrlFallback = self.apiUtils.getAuthorAndCollectionId(workType)
-                courseApiUrls = courseApiUrlFallback + [url for url in courseApiUrls if url != courseApiUrlFallback]
+                courseApiUrls += courseApiUrlFallback
             except Exception as e:
                 self.logger.warning(f"Could not derive fallback course API URL from author/collection logic: {e}")
-
+            
             if not courseApiUrls:
                 raise Exception("Could not derive course API URL from both network capture and author/collection extraction")
             
+            seenApiUrls = set()
+            courseApiUrls = [url for url in courseApiUrls if not (url in seenApiUrls or seenApiUrls.add(url))]
             courseType = (
                 "Project" if any("/api/project/" in url for url in courseApiUrls)
                 else "Path" if "/module/" in courseUrl
@@ -208,7 +213,17 @@ class ApiScraperMain:
 
             self.loginUtils.checkIfLoggedIn()
             courseCollectionsJsonList = self.apiUtils.getCollectionsJson(courseApiUrls, courseType, workType, topicUrl)
+
+            # One input URL can expand to multiple course units (e.g., PAL + COLLECTION).
+            extraCourseUnits = max(0, len(courseCollectionsJsonList) - 1)
+            if extraCourseUnits:
+                self.totalCourseUnits += extraCourseUnits
+                self.progressQueue.put(("max-course", self.totalCourseUnits))
+
             for courseCollectionsJson in courseCollectionsJsonList:
+                self.completedCourseUnits += 1
+                self.progressQueue.put(("progress-course", self.completedCourseUnits))
+
                 topicApiUrlList = courseCollectionsJson["topicApiUrlList"]
                 topicNameList = courseCollectionsJson["topicNameList"]
                 topicUrlList = courseCollectionsJson["topicUrlList"]
