@@ -1,5 +1,15 @@
 # Educative.io Scraper -- Educative.io Downloader
-
+## Visit [v4-dev branch](https://github.com/anilabhadatta/educative.io_scraper/tree/v4-dev) - Try the New API Scraper. <New Architecture v4>
+## Visit [Biraj2004/EducativeViewer-V5](https://github.com/Biraj2004/EducativeViewer) - Try the updated Viewer built for the v4 Scraper.
+<div align="center">
+    <figure>
+       <img width="2530" height="1197" alt="image" src="https://github.com/user-attachments/assets/80069c35-ac7f-4cdc-9dde-fc6df7b21eeb" />
+         <br>
+      <figcaption>Preview</figcaption>
+    </figure>
+ </div>
+ 
+## Please review the README in both repositories for setup instructions and usage details.
 <pre><code style="white-space : pre-wrap !important;">Description: 
 This tool effortlessly scrapes and saves Educative.io courses for offline use enabling you to
 learn at your own pace, even without an internet connection.
@@ -28,9 +38,6 @@ Master Branch: v3-master</code></pre>
 2. Send a mail notification status, Setup here: /src/Main/MailNotify.py
 ```
 ###                                
-## Visit [v4-dev branch](https://github.com/anilabhadatta/educative.io_scraper/tree/v4-dev) - Try the new scraping architecture
-## Visit [Biraj2004/EducativeViewer-V5](https://github.com/Biraj2004/EducativeViewer) - Try the new Educative Viewer designed for V4 based scraper.
-## Please read the Readme again for the above two links.
 
 ## To view the downloaded courses scraped using V2 or V3 based Educative Scraper, you can use the [Educative-Viewer](https://github.com/anilabhadatta/educative-viewer) repository, which provides better readability and a user-friendly interface for accessing the downloaded course content.
 
