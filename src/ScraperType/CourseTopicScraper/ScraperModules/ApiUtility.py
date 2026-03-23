@@ -9,7 +9,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from src.Logging.Logger import Logger
 from src.ScraperType.CourseTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
-from src.ScraperType.CourseTopicScraper.ScraperModules.UrlUtility import UrlUtility
+from src.Utility.UrlUtility import UrlUtility
 from src.Utility.FileUtility import FileUtility
 from src.Utility.OSUtility import OSUtility
 

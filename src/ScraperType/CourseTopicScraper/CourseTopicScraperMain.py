@@ -6,7 +6,7 @@ from src.Logging.Logger import Logger
 from src.Main.LoginAccount import LoginAccount
 from src.ScraperType.CourseTopicScraper.ScraperModules.ApiUtility import ApiUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.CodeUtility import CodeUtility
-from src.ScraperType.CourseTopicScraper.ScraperModules.NetworkMonitor import NetworkMonitor
+from src.Utility.NetworkMonitor import NetworkMonitor
 from src.ScraperType.CourseTopicScraper.ScraperModules.PrintFileUtility import PrintFileUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.QuizUtility import QuizUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.RemoveUtility import RemoveUtility
@@ -14,8 +14,8 @@ from src.ScraperType.CourseTopicScraper.ScraperModules.ScreenshotUtility import 
 from src.ScraperType.CourseTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.ShowUtility import ShowUtility
 from src.ScraperType.CourseTopicScraper.ScraperModules.SingleFileUtility import SingleFileUtility
-from src.ScraperType.CourseTopicScraper.ScraperModules.UrlUtility import UrlUtility
-from src.Utility.TOCUtility import TOCUtility
+from src.Utility.UrlUtility import UrlUtility
+from src.ScraperType.CourseTopicScraper.ScraperModules.TOCUtility import TOCUtility
 from src.Utility.BrowserUtility import BrowserUtility
 from src.Utility.FileUtility import FileUtility
 from src.Utility.OSUtility import OSUtility

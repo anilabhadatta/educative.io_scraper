@@ -1,16 +1,22 @@
-import os
-import re
-from unicodedata import category
-
-from slugify import slugify
-from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from src.Logging.Logger import Logger
-from src.ScraperType.CourseTopicScraper.ScraperModules.SeleniumBasicUtility import SeleniumBasicUtility
-from src.ScraperType.CourseTopicScraper.ScraperModules.UrlUtility import UrlUtility
+from src.ScraperType.ApiScraper.APIScraperConstants import (
+    COLLECTION_API_URL_PATTERN,
+    EDUCATIVE_BASE_URL,
+    HTTP_AUTH_ERRORS,
+    NEXT_DATA_SELECTOR,
+    PAL_API_URL_PATTERN,
+    PROJECT_API_URL_PATTERN,
+    RETRY_MAIN_API_MAX_ATTEMPTS,
+    RETRY_NEXT_F_MAX_ATTEMPTS,
+    SHOW_CONTENT_QUERY,
+)
+from src.ScraperType.ApiScraper.ScraperModules.CoursePathModule import CoursePathModule
+from src.ScraperType.ApiScraper.ScraperModules.ProjectModule import ProjectModule
+from src.Utility.UrlUtility import UrlUtility
 from src.Utility.FileUtility import FileUtility
 from src.Utility.OSUtility import OSUtility
 
@@ -27,12 +33,8 @@ class ApiUtility:
         apiType = configJson["downloadType"]
         self.allowCollection = apiType in ("PAL+COLLECTION", "COLLECTION")
         self.allowPal = apiType in ("PAL", "PAL+COLLECTION")
-
-    def _sanitize_topic_name(self, value) -> str:
-        text = str(value or "")
-        text = "".join(ch for ch in text if category(ch) not in ("Cf", "Cc", "Cs"))
-        text = re.sub(r"\s+", " ", text).strip()
-        return text or "untitled-topic"
+        self.projectModule = ProjectModule(configJson)
+        self.coursePathModule = CoursePathModule(configJson)
 
 
     def getCourseApiUrlFromNetworkUrls(self, apiUrls, workType):
@@ -41,18 +43,15 @@ class ApiUtility:
                 self.logger.warning("No API URLs found in network capture")
                 return None
 
-            projectPattern = re.compile(r"^https:\/\/www\.educative\.io\/api\/project\/(\d+)\/(\d+)\/(\d+)(?:\/.*)?(?:\?.*)?$")
-            palPattern = re.compile(r"^https:\/\/www\.educative\.io\/api\/pal\/(\d+)\/(\d+)(?:\/.*)?(?:\?.*)?$")
-            collectionPattern = re.compile(r"^https:\/\/www\.educative\.io\/api\/collection\/(\d+)\/(\d+)(?:\/.*)?(?:\?.*)?$")
             courseAPIUrls = []
             # Priority 1: Project endpoint in network capture.
             for url in reversed(apiUrls):
                 if not isinstance(url, str):
                     continue
-                match = projectPattern.match(url.strip())
+                match = PROJECT_API_URL_PATTERN.match(url.strip())
                 if match:
                     authorId, collectionId, projectId = match.group(1), match.group(2), match.group(3)
-                    courseAPIUrls.append(f"https://www.educative.io/api/project/{authorId}/{collectionId}/{projectId}?work_type={workType}")
+                    courseAPIUrls.append(self.urlUtils.getCourseApiProjectUrl(authorId, collectionId, projectId, workType))
                     return courseAPIUrls
 
             # Priority 1: PAL endpoint in network capture.
@@ -60,10 +59,10 @@ class ApiUtility:
                 for url in reversed(apiUrls):
                     if not isinstance(url, str):
                         continue
-                    match = palPattern.match(url.strip())
+                    match = PAL_API_URL_PATTERN.match(url.strip())
                     if match:
                         authorId, collectionId = match.group(1), match.group(2)
-                        courseAPIUrls.append(f"https://www.educative.io/api/pal/{authorId}/{collectionId}?work_type={workType}")
+                        courseAPIUrls.append(self.urlUtils.getCourseApiPalUrl(authorId, collectionId, workType))
                         break
 
             # Priority 2: collection endpoint in network capture.
@@ -71,10 +70,12 @@ class ApiUtility:
                 for url in reversed(apiUrls):
                     if not isinstance(url, str):
                         continue
-                    match = collectionPattern.match(url.strip())
+                    match = COLLECTION_API_URL_PATTERN.match(url.strip())
                     if match:
                         authorId, collectionId = match.group(1), match.group(2)
-                        courseAPIUrls.append(f"https://www.educative.io/api/collection/{authorId}/{collectionId}?work_type={workType}")
+                        courseAPIUrls.append(self.urlUtils.getCourseApiCollectionListUrl(
+                            {"authorId": authorId, "collectionId": collectionId}, workType
+                        ))
                         break
 
             self.logger.debug(f"Captured Course API URLs from network capture: {courseAPIUrls}")
@@ -115,7 +116,7 @@ class ApiUtility:
             }});
         """
         result = self.browser.execute_script(apiJsonScript)
-        if isinstance(result, str) and result in ("HTTP_401", "HTTP_403"):
+        if isinstance(result, str) and result in HTTP_AUTH_ERRORS:
             code = result.split("_")[1]
             raise Exception(f"HTTP {code} fetching API URL — topic inaccessible or session expired: {url}")
         return result
@@ -125,89 +126,20 @@ class ApiUtility:
         try:
             self.logger.info(f"Getting Main API Content JSON from URL: {apiUrl}")
             retry = 1
-            while retry < 3:
+            while retry <= RETRY_MAIN_API_MAX_ATTEMPTS:
                 try:
                     jsonData = self.executeJsToGetJson(apiUrl)
                     return jsonData if courseType == "Project" else jsonData["instance"]
                 except Exception:
                     pass
                 retry += 1
-                if retry == 3:
+                if retry > RETRY_MAIN_API_MAX_ATTEMPTS:
                     raise Exception("Could not Main fetch data from API")
                 self.osUtils.sleep(2)
-                self.logger.info(f"Found Error fetching Json, retrying {retry} out of 2: {apiUrl}")
+                self.logger.info(f"Found Error fetching Json, retrying {retry} out of {RETRY_MAIN_API_MAX_ATTEMPTS}: {apiUrl}")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getMainApiContentJson: {lineNumber}: {e}")
-
-
-    def getProjectCollectionsJson(self, jsonData, workType):
-        try:
-            authorId = str(jsonData["author_id"])
-            collectionId = str(jsonData["collection_id"])
-            projectId = str(jsonData["project_id"])
-            title = jsonData["title"]
-        
-            toc = []
-            topicApiUrlList = []
-            topicNameList = []
-            topicSlugList = []
-            topicUrlList = []
-            topicTypeList = []
-
-            def add_topic(authorId, collectionId, projectId, page, workType):
-                topicTitle = self._sanitize_topic_name(page.get("title", ""))
-                topicSlug = page.get("slug", slugify(topicTitle))
-                pageType = page["type"]
-                authorId = str(page.get("author_id", authorId))
-                collectionId = str(page.get("collection_id", collectionId))
-                pageId = str(page.get("page_id", page["id"]))
-
-                topicApiUrl = f"https://www.educative.io/api/project/{authorId}/{collectionId}/{projectId}/{pageId}?work_type={workType}"
-                topicUrl = "cannot infer_project_topic_url"  # Project topic URLs can vary widely in structure, so we won't attempt to infer them here.
-
-                topicApiUrlList.append(topicApiUrl)
-                topicNameList.append(topicTitle)
-                topicSlugList.append(topicSlug)
-                topicUrlList.append(topicUrl)
-                topicTypeList.append(pageType)
-
-                topicData = {
-                    "title": topicTitle,
-                    "slug": topicSlug,
-                    "api_url": topicApiUrl,
-                    "url": topicUrl,
-                    "type": pageType
-                }
-                return topicData
-
-            categories = jsonData["toc"]["categories"]
-            for category in categories:
-                if not category["pages"]:
-                    topicData = add_topic(authorId, collectionId, projectId, category, workType)
-                    toc.append(topicData)
-                else:
-                    categoryTopic = {"category": category["title"], "topics": []}
-                    for page in category["pages"]:
-                        topicData = add_topic(authorId, collectionId, projectId, page, workType)
-                        categoryTopic["topics"].append(topicData)
-                    toc.append(categoryTopic)
-                    
-            return {
-                "authorId": authorId,
-                "collectionId": collectionId,
-                "projectId": projectId,
-                "title": title,
-                "topicApiUrlList": topicApiUrlList,
-                "topicNameList": topicNameList,
-                "topicSlugList": topicSlugList,
-                "topicUrlList": topicUrlList,
-                "topicTypeList": topicTypeList,
-                "toc": toc,
-            }
-        except Exception as e:
-            lineNumber = e.__traceback__.tb_lineno
-            raise Exception(f"ApiUtility:getProjectCollectionsJson: {lineNumber}: {e}")
 
 
     def getCollectionsJson(self, courseApiUrls, courseType, workType, topicUrl):
@@ -217,102 +149,20 @@ class ApiUtility:
                 projectApiUrl = courseApiUrls[0]
                 self.logger.info(f"Getting Course Collections JSON (Project) from URL: {projectApiUrl}")
                 jsonData = self.getMainApiContentJson(projectApiUrl, courseType)
-                result.append(self.getProjectCollectionsJson(jsonData, workType))
+                result.append(self.projectModule.getProjectCollectionsJson(jsonData, workType))
                 return result
             
             for courseApiUrl in courseApiUrls:
                 self.logger.info(f"Getting Course Collections JSON (Course/Path) from URL: {courseApiUrl}")
                 jsonData = self.getMainApiContentJson(courseApiUrl, courseType)
-                coursePathCollectionsJson = self.getCoursePathCollectionsJson(jsonData, courseType, workType, topicUrl)
+                coursePathCollectionsJson = self.coursePathModule.getCoursePathCollectionsJson(
+                    jsonData, courseType, workType, topicUrl
+                )
                 result.append(coursePathCollectionsJson)
             return result
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"ApiUtility:getCollectionsJson: {lineNumber}: {e}")
-
-
-    def getCoursePathCollectionsJson(self, jsonData, courseType, workType, topicUrl):
-        try:
-            jsonData = jsonData["details"]
-            authorId = str(jsonData["author_id"])
-            collectionId = str(jsonData["collection_id"])
-            title = jsonData["title"]
-            pathMeta = {
-                "path_author_id": str(jsonData["path_author_id"]), 
-                "path_collection_id": str(jsonData["path_id"]), 
-                "path_url_slug": jsonData.get("path_url_slug", slugify(jsonData["path_title"])), 
-                "path_title": jsonData["path_title"]
-            } if courseType == "Path" else None
-            
-            toc = []
-            topicApiUrlList = []
-            topicNameList = []
-            topicSlugList = []
-            topicUrlList = []
-            topicTypeList = []
-            def add_topic(authorId, collectionId, page, workType, topicUrl):
-                def _build_topic_url(topic_url, page):
-                    base = str(topic_url).split("?", 1)[0].rstrip("/")
-                    parent = base.rsplit("/", 1)[0]
-                    slug = page.get("slug") or page.get("id")
-                    return f"{parent}/{slug}?showContent=true"
-                
-                pageId = str(page["id"])
-                topicTitle = self._sanitize_topic_name(page.get("title", ""))
-                topicSlug = page.get("slug", slugify(topicTitle))
-                pageType = page["type"]
-                authorId = str(page.get("author_id", authorId))
-                collectionId = str(page.get("collection_id", collectionId))
-                pageId = str(page.get("page_id", page["id"]))
-
-                topicApiUrl = f"https://www.educative.io/api/collection/{authorId}/{collectionId}/page/{pageId}?work_type={workType}"
-                topicUrl = _build_topic_url(topicUrl, page)
-
-                topicApiUrlList.append(topicApiUrl)
-                topicNameList.append(topicTitle)
-                topicSlugList.append(topicSlug)
-                topicUrlList.append(topicUrl)
-                topicTypeList.append(pageType)
-
-                topicData = {
-                    "title": topicTitle,
-                    "slug": topicSlug,
-                    "api_url": topicApiUrl,
-                    "url": topicUrl,
-                    "type": pageType,
-                }
-                return topicData
-
-            categories = jsonData["toc"]["categories"]
-            for category in categories:
-                for tocEntry in category.get("toc", [category]):
-                    pages = tocEntry.get("pages")
-                    if not pages:
-                        topicData = add_topic(authorId, collectionId, tocEntry, workType, topicUrl)
-                        toc.append(topicData)
-                    else:
-                        categoryTitle = category["title"] if category.get("toc") else tocEntry["title"]
-                        categoryTopic = {"category": categoryTitle, "topics": []}
-                        for page in pages:
-                            topicData = add_topic(authorId, collectionId, page, workType, topicUrl)
-                            categoryTopic["topics"].append(topicData)
-                        toc.append(categoryTopic)
-        except Exception as e:
-            lineNumber = e.__traceback__.tb_lineno
-            raise Exception(f"ApiUtility:getCoursePathCollectionsJson:add_topic: {lineNumber}: {e}")
-                
-        return {
-            "authorId": authorId,
-            "collectionId": collectionId,
-            "title": title,
-            "topicApiUrlList": topicApiUrlList,
-            "topicNameList": topicNameList,
-            "topicSlugList": topicSlugList,
-            "topicUrlList": topicUrlList,
-            "topicTypeList": topicTypeList,
-            "toc": toc,
-            "pathMeta": pathMeta,
-        }
 
 
     def getCourseUrl(self, textFileUrl):
@@ -349,7 +199,7 @@ class ApiUtility:
             if (anchorElement) {{
                 hrefValue = anchorElement.getAttribute('href');
             }}
-            return "https://www.educative.io" + hrefValue + "?showContent=true";
+            return "{EDUCATIVE_BASE_URL}" + hrefValue + "{SHOW_CONTENT_QUERY}";
             """
             courseUrl = self.browser.execute_script(courseUrlJsScript)
             self.logger.info(f"Found Course URL: {courseUrl}")
@@ -362,9 +212,8 @@ class ApiUtility:
     def getNextData(self, workType):
         try:
             self.logger.info(f"Could not find authorid, collectionid, trying to get Next Data")
-            nextDataSelector = "script[id*='__NEXT_DATA__']"
             nextDataScript = f"""
-            const el = document.querySelectorAll("{nextDataSelector}")[0];
+            const el = document.querySelectorAll("{NEXT_DATA_SELECTOR}")[0];
             if (!el) return null;
             return JSON.parse(el.textContent);
                             """
@@ -406,7 +255,7 @@ class ApiUtility:
             # window.__next_f is populated progressively — retry to handle timing
             retry = 1
             resMap = {}
-            while retry <= 3:
+            while retry <= RETRY_NEXT_F_MAX_ATTEMPTS:
                 resMap = self.browser.execute_script(authorAndCollectionIdScript)
                 self.logger.info(f"Attempt {retry}: Found AuthorAndCollectionId {resMap}")
                 if resMap.get('authorId') and resMap.get('collectionId'):
