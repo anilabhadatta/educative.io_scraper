@@ -24,7 +24,7 @@ Updates Information
 ```
 ###                                
 
-## To view the downloaded courses, you can use the [Educative-Viewer V5](https://github.com/Biraj2004/EducativeViewer) repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
+## To view the downloaded courses, you can use the [Educative-Viewer V5](https://github.com/Biraj2004/educative-viewer) repository, which provides a better readability and user-friendly interface for accessing the downloaded course content.
 
 
 ## Steps to use the scraper:
