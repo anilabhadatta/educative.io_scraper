@@ -10,6 +10,7 @@ from src.ScraperType.ApiScraper.APIScraperConstants import (
     COURSE_TYPE_SELECTOR_TEMPLATE,
     EDUCATIVE_BASE_URL,
     HTTP_AUTH_ERRORS,
+    MINIMAP_BUTTON_XPATH,
     NEXT_DATA_SELECTOR,
     PAL_API_URL_PATTERN,
     PROJECT_API_URL_PATTERN,
@@ -66,7 +67,7 @@ class ApiUtility:
                     if match:
                         authorId, collectionId = match.group(1), match.group(2)
                         courseAPIUrls.append(self.urlUtils.getCourseApiPalUrl(authorId, collectionId, workType))
-                        break
+                        # break
 
             # Priority 2: collection endpoint in network capture.
             if self.allowCollection:
@@ -194,13 +195,24 @@ class ApiUtility:
                     WebDriverWait(self.browser, self.timeout).until(
                         EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
 
-            # Find and click MiniMap button using aria-label
+            # Find and click MiniMap button using JavaScript
             try:
-                miniMapButton = self.browser.find_element(By.XPATH, '//button[@aria-label="Toggle Mini Map"]')
-                miniMapButton.click()
-                self.logger.info("Clicked on MiniMap button")
-            except:
-                self.logger.debug("MiniMap button not found or could not be clicked")
+                miniMapClickScript = f"""
+                var button = document.evaluate("{MINIMAP_BUTTON_XPATH}", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                if (button) {{
+                    button.click();
+                    return true;
+                }}
+                return false;
+                """
+                isClicked = self.browser.execute_script(miniMapClickScript)
+                if isClicked:
+                    self.osUtils.sleep(2)  # Wait a moment for the UI to update after clicking
+                    self.logger.info("Clicked on MiniMap button")
+                else:
+                    self.logger.debug("MiniMap button not found")
+            except Exception as e:
+                self.logger.debug(f"Error clicking MiniMap button: {e}")
 
             courseUrlJsScript = f"""
             var anchorElement = document.evaluate(
