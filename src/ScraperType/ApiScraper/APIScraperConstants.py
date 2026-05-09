@@ -40,6 +40,8 @@ COURSE_TYPE_SELECTOR_TEMPLATE = "//div[contains(@id, 'view-collection-article-co
 COURSE_TYPE_COLLECTION_NAV_SELECTOR = "//nav//a[contains(@href, '/collection/')]/span/.."
 COURSE_TYPE_BREADCRUMB_SELECTOR = "(//*[starts-with(@id,'problemPage_breadcrumbsContainer')]//a)[last()]"
 
+MINIMAP_BUTTON_XPATH = "//button[@aria-label='Toggle Mini Map']"
+
 PROJECT_START_OR_RESUME_BUTTON_SELECTOR = "//button[(normalize-space(.)='Start Project' or normalize-space(.)='Resume Project') and not(@disabled)]"
 PROJECT_WIDGET_SELECTOR = "//div[contains(@id, 'widget-parent')][.//text()[normalize-space()]]"
 
