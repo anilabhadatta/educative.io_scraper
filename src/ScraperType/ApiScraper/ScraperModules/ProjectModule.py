@@ -3,6 +3,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from src.ScraperType.ApiScraper.APIScraperConstants import (
+	PROJECT_START_OR_RESUME_BUTTON_SELECTOR,
+	PROJECT_WIDGET_SELECTOR,
+)
 from src.ScraperType.ApiScraper.ScraperModules.CommonUtility import CommonUtility
 from src.Utility.UrlUtility import UrlUtility
 from src.Utility.OSUtility import OSUtility
@@ -91,14 +95,11 @@ class ProjectModule:
 
 	def clickOnStartProject(self):
 		try:
-			self.logger.info("Clicking on Start Project button")
-			# Use XPath selector matching CourseTopicScraper pattern
-			startProjectSelector = "//button[(normalize-space(.)='Start Project' or normalize-space(.)='Resume Project') and not(@disabled)]"
-			
+			self.logger.info("Clicking on Start Project button")			
 			# Click the button
 			clickButtonScript = f"""
 			try {{
-				var startButton = document.evaluate("{startProjectSelector}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+				var startButton = document.evaluate("{PROJECT_START_OR_RESUME_BUTTON_SELECTOR}", document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 				if (startButton.snapshotLength > 0) {{
 					startButton.snapshotItem(0).click();
 					return true;
@@ -119,9 +120,7 @@ class ProjectModule:
 			
 			# Wait for the Start Project button to disappear
 			try:
-				WebDriverWait(self.browser, self.timeout).until(
-					EC.staleness_of_element_located((By.XPATH, startProjectSelector))
-				)
+				WebDriverWait(self.browser, self.timeout).until(EC.staleness_of_element_located((By.XPATH, PROJECT_START_OR_RESUME_BUTTON_SELECTOR)))
 				self.logger.info("Start Project button has disappeared.")
 			except:
 				self.logger.info("Start Project button is not present anymore or timeout occurred.")
@@ -129,11 +128,8 @@ class ProjectModule:
 			self.osUtils.sleep(5)
 			# Wait for the project widget to load
 			self.logger.info("Waiting for project widget to load...")
-			projectContentSelector = "//div[contains(@id, 'widget-parent')][.//text()[normalize-space()]]"
 			try:
-				WebDriverWait(self.browser, self.timeout).until(
-					EC.presence_of_element_located((By.XPATH, projectContentSelector))
-				)
+				WebDriverWait(self.browser, self.timeout).until(EC.presence_of_element_located((By.XPATH, PROJECT_WIDGET_SELECTOR)))
 				self.logger.info("Project widget loaded successfully.")
 				return True
 			except Exception as wait_error:

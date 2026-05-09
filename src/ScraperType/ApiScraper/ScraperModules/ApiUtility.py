@@ -5,6 +5,9 @@ from selenium.webdriver.support.wait import WebDriverWait
 from src.Logging.Logger import Logger
 from src.ScraperType.ApiScraper.APIScraperConstants import (
     COLLECTION_API_URL_PATTERN,
+    COURSE_TYPE_BREADCRUMB_SELECTOR,
+    COURSE_TYPE_COLLECTION_NAV_SELECTOR,
+    COURSE_TYPE_SELECTOR_TEMPLATE,
     EDUCATIVE_BASE_URL,
     HTTP_AUTH_ERRORS,
     NEXT_DATA_SELECTOR,
@@ -175,21 +178,29 @@ class ApiUtility:
                 self.logger.info("Page Loading Issue, pressing ESC to stop page load")
                 self.browser.execute_script("window.stop();")
             try:
-                courseTypeSelector = f"//div[contains(@id, 'view-collection-article-content-root')]//a[contains(@href, '/{textFileUrl.split('/')[3]}/')]"
+                courseTypeSelector = COURSE_TYPE_SELECTOR_TEMPLATE.format(segment=textFileUrl.split('/')[3])
                 self.logger.info(f"Course Type Selector: {courseTypeSelector}")
                 WebDriverWait(self.browser, self.timeout).until(
                     EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
             except:
                 try:
-                    courseTypeSelector = "//nav//a[contains(@href, '/collection/')]/span/.."
+                    courseTypeSelector = COURSE_TYPE_COLLECTION_NAV_SELECTOR
                     self.logger.info(f"New Course Type Selector: {courseTypeSelector}")
                     WebDriverWait(self.browser, self.timeout).until(
                         EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
                 except:
-                    courseTypeSelector = "(//*[starts-with(@id,'problemPage_breadcrumbsContainer')]//a)[last()]"
+                    courseTypeSelector = COURSE_TYPE_BREADCRUMB_SELECTOR
                     self.logger.info(f"New Course Type Selector: {courseTypeSelector}")
                     WebDriverWait(self.browser, self.timeout).until(
                         EC.presence_of_element_located((By.XPATH, courseTypeSelector)))
+
+            # Find and click MiniMap button using aria-label
+            try:
+                miniMapButton = self.browser.find_element(By.XPATH, '//button[@aria-label="Toggle Mini Map"]')
+                miniMapButton.click()
+                self.logger.info("Clicked on MiniMap button")
+            except:
+                self.logger.debug("MiniMap button not found or could not be clicked")
 
             courseUrlJsScript = f"""
             var anchorElement = document.evaluate(
