@@ -181,6 +181,33 @@ def _normalize_educative_api_url(raw_url) -> str:
     return ""
 
 
+def _resolve_url_entry(entry, save_dir: Path):
+    """Normalise an assets_json entry into a (key, fetch_url, dest, use_session) tuple.
+
+    Two entry shapes are supported:
+      - Plain string  — a /api/ URL from any standard component type.
+                        Fetched via the authenticated session.
+      - [local_path, download_url]  — a D2Diagram pair written by the extractor.
+        local_path : the /api/educative-d2-diagrams/... save path
+        download_url : the public GCS URL to fetch from (no auth needed)
+
+    Returns None if the entry cannot be resolved to a valid asset.
+    """
+    if isinstance(entry, list) and len(entry) == 2:
+        local_path, download_url = entry
+        if not (local_path and download_url):
+            return None
+        dest = save_dir / local_path.lstrip("/")
+        return (local_path, download_url, dest, False)  # use_session=False (public GCS)
+
+    # Plain URL string — must be a valid educative /api/ URL
+    normalized = _normalize_educative_api_url(entry)
+    if not normalized:
+        return None
+    dest = _file_path_for_url(normalized, save_dir)
+    return (normalized, normalized, dest, True)  # use_session=True
+
+
 # ── Core download logic ───────────────────────────────────────────────────── #
 
 def download_all(db_path: str, config_json: dict, progress_queue=None):
@@ -201,7 +228,9 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
     logger.info(f"Found {len(rows)} topic row(s) in static_assets.")
     print(f"Found {len(rows)} topic row(s) in static_assets.")
 
-    # Build the global unique URL set once for progress and final totals.
+    # Build the global unique key set once for progress and final totals.
+    # Both plain educative URLs and D2Diagram [local_path, gcs_url] pairs
+    # are normalised via _resolve_url_entry.
     unique_urls: set = set()
     for row in rows:
         try:
@@ -209,11 +238,11 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
         except json.JSONDecodeError:
             continue
 
-        for urls in assets.values():
-            for url in urls:
-                normalized = _normalize_educative_api_url(url)
-                if normalized:
-                    unique_urls.add(normalized)
+        for url_entries in assets.values():
+            for entry in url_entries:
+                resolved = _resolve_url_entry(entry, save_dir)
+                if resolved:
+                    unique_urls.add(resolved[0])  # key
 
     total_urls = len(unique_urls)
     logger.info(f"Total unique URL(s) to resolve: {total_urls}")
@@ -276,34 +305,32 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
             except json.JSONDecodeError:
                 continue
 
-            # Flatten and deduplicate URLs across all components in this topic row.
-            # Dedup here prevents double-counting row_failed if the same URL appears
-            # in more than one component.
+            # Flatten and deduplicate all entries (plain URLs + D2 pairs) for this topic row.
+            # Each entry is resolved to (key, fetch_url, dest, use_session) via _resolve_url_entry.
             seen_in_row: set = set()
-            row_urls: list = []
-            for urls in assets.values():
-                for url in urls:
-                    url = _normalize_educative_api_url(url)
-                    if url and url not in seen_in_row:
-                        seen_in_row.add(url)
-                        row_urls.append(url)
+            row_urls: list = []  # list of (key, fetch_url, dest, use_session)
+            for url_entries in assets.values():
+                for entry in url_entries:
+                    resolved = _resolve_url_entry(entry, save_dir)
+                    if resolved and resolved[0] not in seen_in_row:
+                        seen_in_row.add(resolved[0])
+                        row_urls.append(resolved)
             row_failed = 0
 
-            for url in row_urls:
-                if url in downloaded_set:
+            for key, fetch_url, dest, use_session in row_urls:
+                if key in downloaded_set:
                     skipped += 1
                     skipped_dup += 1
                     continue
 
                 # Check if already on disk
-                stem_path = save_dir / _url_path(url)
                 existing  = (
-                    list(stem_path.parent.glob(f"{stem_path.name}*"))
-                    if stem_path.parent.exists() else []
+                    list(dest.parent.glob(f"{dest.name}*"))
+                    if dest.parent.exists() else []
                 )
                 if existing:
-                    logger.info(f"Already on disk, skipping: {url}")
-                    downloaded_set.add(url)
+                    logger.info(f"Already on disk, skipping: {fetch_url}")
+                    downloaded_set.add(key)
                     skipped += 1
                     already_in_disk += 1
                     processed_urls += 1
@@ -311,11 +338,11 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
                         progress_queue.put(("progress-course", processed_urls))
                     continue
 
-                logger.info(f"Downloading: {url}")
+                logger.info(f"Downloading: {fetch_url}")
                 try:
-                    resp = session.get(url, timeout=30)
+                    resp = session.get(fetch_url, timeout=30) if use_session else requests.get(fetch_url, timeout=30)
                 except requests.RequestException as e:
-                    logger.warning(f"Request error for {url}: {e}")
+                    logger.warning(f"Request error for {fetch_url}: {e}")
                     row_failed   += 1
                     failed_total += 1
                     processed_urls += 1
@@ -325,8 +352,8 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
 
                 status_code = resp.status_code
                 if status_code == 404:
-                    logger.warning(f"Not found (HTTP 404), skipping: {url}")
-                    downloaded_set.add(url)
+                    logger.warning(f"Not found (HTTP 404), skipping: {fetch_url}")
+                    downloaded_set.add(key)
                     skipped += 1
                     skipped_404 += 1
                     processed_urls += 1
@@ -336,7 +363,7 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
 
                 if status_code in (401, 403):
                     logger.error(
-                        f"Auth failed (HTTP {status_code}) for {url}. "
+                        f"Auth failed (HTTP {status_code}) for {fetch_url}. "
                         "Stopping downloader."
                     )
                     row_failed   += 1
@@ -348,7 +375,7 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
                     # break
 
                 if status_code != 200:
-                    logger.warning(f"Failed (HTTP {status_code}): {url}")
+                    logger.warning(f"Failed (HTTP {status_code}): {fetch_url}")
                     row_failed   += 1
                     failed_total += 1
                     processed_urls += 1
@@ -358,7 +385,7 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
 
                 file_bytes = resp.content
                 if not file_bytes:
-                    logger.warning(f"Empty response body for: {url}")
+                    logger.warning(f"Empty response body for: {fetch_url}")
                     row_failed   += 1
                     failed_total += 1
                     processed_urls += 1
@@ -366,11 +393,10 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
                         progress_queue.put(("progress-course", processed_urls))
                     continue
 
-                dest = _file_path_for_url(url, save_dir)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_bytes(file_bytes)
 
-                downloaded_set.add(url)
+                downloaded_set.add(key)
                 downloaded += 1
                 processed_urls += 1
                 if progress_queue:

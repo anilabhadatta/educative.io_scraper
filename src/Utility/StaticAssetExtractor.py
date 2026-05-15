@@ -54,6 +54,12 @@ from src.Common.Constants import constants
 # Stopping at ? means query parameters are never included in the match.
 _API_RE = re.compile(r'/api/(?:collection|cheatsheet)/[^\s"\' <>{}\\?\]]+')
 
+# D2Diagram GCS base — files are stored at a public GCS bucket, not under /api/.
+# We mirror them locally under /api/educative-d2-diagrams/... so they fit the
+# same path-based layout as every other downloaded asset.
+_D2_GCS_HOST = "educative-d2-diagrams.storage.googleapis.com"
+_D2_LOCAL_PREFIX = "/api/educative-d2-diagrams"
+
 
 # ── Helpers ──────────────────────────────────────────────────────────────── #
 
@@ -118,6 +124,73 @@ def _urls_for_button_link(content: dict) -> list:
             seen.add(url)
             result.append(url)
     return result
+
+
+def _local_path_for_d2_download_url(download_url: str) -> str:
+    """Derive a local /api/ path from an external D2Diagram GCS download URL.
+
+    Example:
+        https://educative-d2-diagrams.storage.googleapis.com/123/456/file.txt
+        → /api/educative-d2-diagrams/123/456/file.txt
+    """
+    if not isinstance(download_url, str):
+        return ""
+    url = download_url.strip()
+    # Strip scheme (http:// or https://)
+    for prefix in ("https://", "http://"):
+        if url.startswith(prefix):
+            url = url[len(prefix):]
+            break
+    # Must come from the expected GCS host
+    if not url.startswith(_D2_GCS_HOST):
+        return ""
+    remaining = url[len(_D2_GCS_HOST):]  # e.g. /123/456/file.txt
+    return _D2_LOCAL_PREFIX + remaining
+
+
+def _urls_for_d2diagram(content: dict, conn: sqlite3.Connection, course_id: int,
+                        topic_index: int, component_index: int) -> list:
+    """Extract the D2Diagram download URL and persist the local path into content_json.
+
+    Returns a list with the local /api/ path (used by the downloader to resolve
+    the save destination).  The actual download source is stored as a second
+    element so the downloader can fetch from the external URL.
+    """
+    d2_file = content.get("d2File")
+    if not isinstance(d2_file, dict):
+        return []
+
+    download_url = d2_file.get("downloadUrl", "")
+    if not download_url:
+        return []
+
+    local_path = _local_path_for_d2_download_url(download_url)
+    if not local_path:
+        return []
+
+    # Persist local_path back into content_json only if the key is not yet set.
+    if not d2_file.get("localPath"):
+        row = conn.execute(
+            "SELECT content_json FROM components "
+            "WHERE course_id = ? AND topic_index = ? AND component_index = ?",
+            (course_id, topic_index, component_index),
+        ).fetchone()
+        if row:
+            try:
+                stored = json.loads(row["content_json"] or "{}")
+            except json.JSONDecodeError:
+                stored = {}
+            if isinstance(stored.get("d2File"), dict) and not stored["d2File"].get("localPath"):
+                stored["d2File"]["localPath"] = local_path
+                conn.execute(
+                    "UPDATE components SET content_json = ? "
+                    "WHERE course_id = ? AND topic_index = ? AND component_index = ?",
+                    (json.dumps(stored, ensure_ascii=False), course_id, topic_index, component_index),
+                )
+
+    # Return (local_path, download_url) tuple encoded as a two-item list so the
+    # downloader knows both the save path and the fetch URL.
+    return [[local_path, download_url]]
 
 
 def _urls_from_scan(content_json_str: str) -> list:
@@ -248,6 +321,8 @@ def extract_and_store(db_path: str, progress_queue=None):
                     urls = _urls_for_button_link(content)
                     if not urls:
                         urls = _urls_from_scan(content_str)
+                elif comp_type == "D2Diagram":
+                    urls = _urls_for_d2diagram(content, conn, course_id, topic_index, comp_idx)
                 else:
                     urls = _urls_from_scan(content_str)
 
