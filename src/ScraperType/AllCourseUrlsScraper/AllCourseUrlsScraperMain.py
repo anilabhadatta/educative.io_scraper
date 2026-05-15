@@ -72,12 +72,20 @@ class AllCourseUrlsScraper:
             self.logger.info("Completed Scraping Topic Urls")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
-            raise Exception(f"CourseTopicScraper:start: {lineNumber}: {e}")
+            raise Exception(f"AllCourseUrlsScraper:start: {lineNumber}: {e}")
 
 
     def generateLinks(self, allData, type):
         links = []
-        for data in allData:
+        for idx, data in enumerate(allData):
+            title = data.get("title") or "<unknown>"
+            self.logger.info(f"Generating link for {type} {idx + 1}/{len(allData)}: {title}")
+            parent_pal = data.get("parent_pal")
+            if parent_pal == "CODING_INTERVIEW_PREP":
+                self.logger.info(
+                    f"Skipping {type} with title {title} as it is part of parent pal {parent_pal}"
+                )
+                continue
             if type == "courses":
                 url = "courses/" + data["course_url_slug"] if ("course_url_slug" in data and
                        data["course_url_slug"]) else "collection/" + str(data["author_id"]) + "/" + str(data["id"])
@@ -96,7 +104,8 @@ class AllCourseUrlsScraper:
 
     def generateCourseTopicLinks(self, allCourseLinks):
         try:
-            for courseLink in allCourseLinks:
+            for idx, courseLink in enumerate(allCourseLinks):
+                self.logger.info(f"Processing Course url {idx + 1}/{len(allCourseLinks)}: {courseLink[0]}")
                 if courseLink[0] in self.courseLinkLogData:
                     self.logger.info(f"Skipping {courseLink[0]}")
                     continue
@@ -106,8 +115,13 @@ class AllCourseUrlsScraper:
                     if 'Page Not Found!' in response.text or "Looks like there's been a glitch..." in response.text:
                         raise Exception(f"Page not Found Error on course url: {courseLink[0]}")
                     soup = BeautifulSoup(response.content, 'html.parser')
-                    topicLinks = soup.find_all('a', class_=lambda x: x and 'Lesson_lesson__' in x)
-                    self.logger.info(f"TopicLinks: {topicLinks}")
+                    topicLinks = soup.find_all('a', class_=lambda x: x and 'Lesson_' in x)
+                    self.logger.debug(f"TopicLinks: {topicLinks}")
+                    if not topicLinks:
+                        self.logger.warning(
+                            f"No lesson links found for course url: {courseLink[0]}; skipping for now"
+                        )
+                        continue
                     firstTopicLink = "https://www.educative.io" + topicLinks[0].get('href')
                     self.logger.info(firstTopicLink)
                     if firstTopicLink not in self.topicLinkLogData:
