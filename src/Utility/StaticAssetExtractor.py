@@ -40,7 +40,6 @@ Usage
 """
 
 import json
-import re
 import sqlite3
 import sys
 import configparser
@@ -48,11 +47,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.Common.Constants import constants
-
-# Captures static /api/collection/... or /api/cheatsheet/... paths, stopping at
-# ?, quote, whitespace, brace, or backslash.
-# Stopping at ? means query parameters are never included in the match.
-_API_RE = re.compile(r'/api/(?:collection|cheatsheet)/[^\s"\' <>{}\\?\]]+')
+from src.ScraperType.ApiScraper.APIScraperConstants import ASSET_SCAN_API_PATH_REGEX
 
 # D2Diagram GCS base — files are stored at a public GCS bucket, not under /api/.
 # We mirror them locally under /api/educative-d2-diagrams/... so they fit the
@@ -108,12 +103,16 @@ def _urls_for_file(content: dict, author_id: str, collection_id: str, page_id: s
     return [f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}/{file_name}"]
 
 
-def _urls_for_image(content: dict, author_id: str, collection_id: str, page_id: str) -> list:
-    """Construct the image URL for an Image component (id only, no filename)."""
+def _urls_for_image(content: dict, author_id: str, collection_id: str, page_id: str, content_str: str = "") -> list:
+    """Construct the image URL for an Image component.
+    Falls back to scanning the raw JSON string if image_id is absent
+    (e.g. URL stored under a 'path' key with ?page_type=... query param).
+    """
     image_id = content.get("image_id")
-    if not image_id:
-        return []
-    return [f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}"]
+    if image_id:
+        return [f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}"]
+    # Fallback: scan raw JSON for any /api/ URL
+    return _urls_from_scan(content_str) if content_str else []
 
 
 def _urls_for_button_link(content: dict) -> list:
@@ -195,7 +194,7 @@ def _urls_for_d2diagram(content: dict, conn: sqlite3.Connection, course_id: int,
 
 def _urls_from_scan(content_json_str: str) -> list:
     """Return all unique https://educative.io/api/collection/... URLs found in the raw JSON string."""
-    matches = _API_RE.findall(content_json_str)
+    matches = ASSET_SCAN_API_PATH_REGEX.findall(content_json_str)
     seen, result = set(), []
     for path in matches:
         url = _normalize_educative_api_url(path)
@@ -316,7 +315,7 @@ def extract_and_store(db_path: str, progress_queue=None):
                 if comp_type == "File":
                     urls = _urls_for_file(content, author_id, collection_id, page_id)
                 elif comp_type == "Image":
-                    urls = _urls_for_image(content, author_id, collection_id, page_id)
+                    urls = _urls_for_image(content, author_id, collection_id, page_id, content_str)
                 elif comp_type == "ButtonLink":
                     urls = _urls_for_button_link(content)
                     if not urls:
