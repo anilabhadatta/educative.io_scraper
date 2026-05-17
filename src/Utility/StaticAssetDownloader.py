@@ -135,7 +135,12 @@ def _file_path_for_url(url: str, save_dir: Path) -> Path:
     URL without  extension:  .../image/123456789     → save_dir/api/.../image/123456789
     URL with trailing ';':   .../image/123456789;    → save_dir/api/.../image/123456789;
     """
-    return save_dir / _url_path(url)
+    path = _url_path(url)
+    if path.startswith("udata/"):
+        import urllib.parse
+        path = urllib.parse.unquote(path)
+        path = "api/" + path
+    return save_dir / path
 
 
 def _build_session(browser) -> requests.Session:
@@ -174,9 +179,13 @@ def _normalize_educative_api_url(raw_url) -> str:
         return "https://www.educative.io" + url
     if url.startswith("api/"):
         return "https://www.educative.io/" + url
-    if url.startswith("https://www.educative.io/api/"):
+    if url.startswith("/udata/"):
+        return "https://www.educative.io" + url
+    if url.startswith("udata/"):
+        return "https://www.educative.io/" + url
+    if url.startswith("https://www.educative.io/api/") or url.startswith("https://www.educative.io/udata/"):
         return url
-    if url.startswith("http://www.educative.io/api/"):
+    if url.startswith("http://www.educative.io/api/") or url.startswith("http://www.educative.io/udata/"):
         return "https://" + url[len("http://"):]
     return ""
 

@@ -45,9 +45,10 @@ import sys
 import configparser
 from datetime import datetime
 from pathlib import Path
+import urllib.parse
 
 from src.Common.Constants import constants
-from src.ScraperType.ApiScraper.APIScraperConstants import ASSET_SCAN_API_PATH_REGEX
+from src.ScraperType.ApiScraper.APIScraperConstants import ASSET_SCAN_API_PATH_REGEX, UDATA_SCAN_REGEX
 
 # D2Diagram GCS base — files are stored at a public GCS bucket, not under /api/.
 # We mirror them locally under /api/educative-d2-diagrams/... so they fit the
@@ -204,6 +205,39 @@ def _urls_from_scan(content_json_str: str) -> list:
     return result
 
 
+def _urls_for_udata(content_json_str: str, conn: sqlite3.Connection, course_id: int, topic_index: int, component_index: int) -> list:
+    """Extract /udata/ URLs from component JSON string and persist localPath mapping.
+    
+    Returns a list of [local_path, download_url] tuples for the downloader.
+    """
+    matches = UDATA_SCAN_REGEX.findall(content_json_str)
+    if not matches:
+        return []
+
+    seen = set()
+    result = []
+    
+    updated_str = content_json_str
+
+    for path in matches:
+        if path not in seen:
+            seen.add(path)
+            local_path = "/api" + path
+            # String replace directly in the JSON string
+            updated_str = updated_str.replace(path, local_path)
+            # Return flat string URL so static_assets table stores the direct URL without /api/
+            result.append(urllib.parse.quote(path))
+
+    if updated_str != content_json_str:
+        conn.execute(
+            "UPDATE components SET content_json = ? "
+            "WHERE course_id = ? AND topic_index = ? AND component_index = ?",
+            (updated_str, course_id, topic_index, component_index),
+        )
+
+    return result
+
+
 def resolve_db_path(config_json: dict = None, db_path: str = None) -> str:
     """Resolve database path from explicit path first, then config.ini saveDirectory."""
     if db_path:
@@ -324,6 +358,10 @@ def extract_and_store(db_path: str, progress_queue=None):
                     urls = _urls_for_d2diagram(content, conn, course_id, topic_index, comp_idx)
                 else:
                     urls = _urls_from_scan(content_str)
+
+                udata_urls = _urls_for_udata(content_str, conn, course_id, topic_index, comp_idx)
+                if udata_urls:
+                    urls.extend(udata_urls)
 
                 if urls:
                     assets[str(comp_idx)] = urls
