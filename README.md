@@ -12,15 +12,14 @@ Disclaimer:
 I want to clarify that I am not accountable for any inappropriate use of this scraper. 
 I developed it solely for research purposes and take no responsibility for its misuse.
 
-Repository Version: v4.0.20 (Recommended)
+Repository Version: v4.0.28 (Recommended)
 Master Branch: v4-dev</code></pre>
 ```
 Updates Information
 1. New architecture introduced:
-   - Topic content is now stored in the database and can be rendered in Educative Viewer v5.
+   - Topic content is now stored in the database and can be rendered in our new Educative Viewer(v5).
    - The viewer renders each topic dynamically by component type, delivering an experience close to Educative.io.
-2. V4 will maintain and provide fixes only for the API Scraper.
-3. V3 will maintain and provide fixes for the Single File HTML-based Scraper.
+2. v4.0.28+: Extraction logic was updated - few static assets were not downloaded previously. Run Extract and Download again.
 ```
 ###                                
 
