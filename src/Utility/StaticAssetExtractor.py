@@ -205,14 +205,14 @@ def _urls_from_scan(content_json_str: str) -> list:
     return result
 
 
-def _urls_for_udata(content_json_str: str, conn: sqlite3.Connection, course_id: int, topic_index: int, component_index: int) -> list:
+def _urls_for_udata(content_json_str: str) -> tuple:
     """Extract /udata/ URLs from component JSON string and persist localPath mapping.
     
-    Returns a list of [local_path, download_url] tuples for the downloader.
+    Returns a tuple of (list of urls, updated_str).
     """
     matches = UDATA_SCAN_REGEX.findall(content_json_str)
     if not matches:
-        return []
+        return [], content_json_str
 
     seen = set()
     result = []
@@ -228,14 +228,15 @@ def _urls_for_udata(content_json_str: str, conn: sqlite3.Connection, course_id: 
             # Return flat string URL so static_assets table stores the direct URL without /api/
             result.append(urllib.parse.quote(path))
 
-    if updated_str != content_json_str:
-        conn.execute(
-            "UPDATE components SET content_json = ? "
-            "WHERE course_id = ? AND topic_index = ? AND component_index = ?",
-            (updated_str, course_id, topic_index, component_index),
-        )
+    return result, updated_str
 
-    return result
+
+def _clean_api_domains(content_json_str: str) -> str:
+    """Removes educative.io domain prefix from any /api/ paths in content_json."""
+    if not content_json_str:
+        return content_json_str
+    import re
+    return re.sub(r'https?://(?:www\.)?educative\.io/api/', '/api/', content_json_str)
 
 
 def resolve_db_path(config_json: dict = None, db_path: str = None) -> str:
@@ -359,9 +360,20 @@ def extract_and_store(db_path: str, progress_queue=None):
                 else:
                     urls = _urls_from_scan(content_str)
 
-                udata_urls = _urls_for_udata(content_str, conn, course_id, topic_index, comp_idx)
+                udata_urls, updated_str = _urls_for_udata(content_str)
                 if udata_urls:
                     urls.extend(udata_urls)
+
+                # Clean domain prefixes from all /api/ URLs across the entire component JSON
+                updated_str = _clean_api_domains(updated_str)
+
+                # Persist modifications if string was updated
+                if updated_str != content_str:
+                    conn.execute(
+                        "UPDATE components SET content_json = ? "
+                        "WHERE course_id = ? AND topic_index = ? AND component_index = ?",
+                        (updated_str, course_id, topic_index, comp_idx),
+                    )
 
                 if urls:
                     assets[str(comp_idx)] = urls
