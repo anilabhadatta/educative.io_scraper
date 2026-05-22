@@ -75,6 +75,7 @@ def _load_config_json() -> dict:
         "autonext":           _bool("autonext"),
         "overwrite":          _bool("overwrite"),
         "useExtension":       _bool("useExtension"),
+        "retryFailedUrls":    _bool("retryfailedurls"),
     }
 
 

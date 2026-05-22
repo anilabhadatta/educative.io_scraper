@@ -152,12 +152,15 @@ class HomeScreen:
             else:
                 self.overwriteCheckbox.grid_remove()
 
-        if hasattr(self, "autoNextCheckbox"):
+        if hasattr(self, "autoNextCheckbox") and hasattr(self, "retryFailedUrlsCheckbox"):
             if is_api_scraper:
                 self.autoNextCheckbox.grid_remove()
                 self.autoNextVar.set(False)
+                self.retryFailedUrlsCheckbox.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
             else:
                 self.autoNextCheckbox.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
+                self.retryFailedUrlsCheckbox.grid_remove()
+                self.retryFailedUrlsVar.set(False)
 
         if hasattr(self, "moduleTypeLabel") and hasattr(self, "moduleTypeCombobox"):
             if is_api_scraper:
@@ -323,7 +326,8 @@ class HomeScreen:
             variable=self.retryFailedUrlsVar,
             anchor="w",
         )
-        self.retryFailedUrlsCheckbox.grid(row=2, column=0, sticky="w", padx=0, pady=2)
+        self.retryFailedUrlsCheckbox.grid(row=1, column=1, sticky="w", padx=(10, 0), pady=2)
+        self.retryFailedUrlsCheckbox.grid_remove()
 
         scraperOptionFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
         checkboxesFrame.grid(row=0, column=1, padx=(12, 0), pady=3, sticky="new")
@@ -556,6 +560,7 @@ class HomeScreen:
         self.autoFixTextFile.set(self.config["autofixtextfile"])
         self.autoNextVar.set(self.config["autonext"])
         self.overwriteVar.set(self.config["overwrite"])
+        self.retryFailedUrlsVar.set(self.config.get("retryfailedurls", "False"))
         self.downloadTypeVar.set(self.config.get("downloadType", "PAL+COLLECTION"))
 
 
