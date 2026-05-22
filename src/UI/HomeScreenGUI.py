@@ -56,6 +56,7 @@ class HomeScreen:
         self.autoResumeScraper = tk.BooleanVar(value=False)
         self.autoFixTextFile = tk.BooleanVar(value=False)
         self.overwriteVar = tk.BooleanVar(value=False)
+        self.retryFailedUrlsVar = tk.BooleanVar(value=False)
         self.downloadTypeVar = tk.StringVar()
         self.downloadTypes = ["PAL", "COLLECTION", "PAL+COLLECTION"]
         self.courseUrlsFilePathVar = tk.StringVar()
@@ -316,6 +317,14 @@ class HomeScreen:
         self.overwriteCheckbox.grid(row=1, column=2, sticky="w", padx=(10, 0), pady=2)
         self.overwriteCheckbox.grid_remove()
 
+        self.retryFailedUrlsCheckbox = tk.Checkbutton(
+            checkboxesFrame,
+            text="Retry Failed URLs",
+            variable=self.retryFailedUrlsVar,
+            anchor="w",
+        )
+        self.retryFailedUrlsCheckbox.grid(row=2, column=0, sticky="w", padx=0, pady=2)
+
         scraperOptionFrame.grid(row=0, column=0, padx=0, pady=3, sticky="nw")
         checkboxesFrame.grid(row=0, column=1, padx=(12, 0), pady=3, sticky="new")
         optionsContainerFrame.pack(pady=3, padx=10, anchor="w")
@@ -572,7 +581,8 @@ class HomeScreen:
             'autonext': False if is_api_scraper else self.autoNextVar.get(),
             'overwrite': self.overwriteVar.get(),
             'downloadType': self.downloadTypeVar.get(),
-            'useExtension': self.config["useExtension"]
+            'useExtension': self.config["useExtension"],
+            'retryFailedUrls': self.retryFailedUrlsVar.get(),
         }
 
 

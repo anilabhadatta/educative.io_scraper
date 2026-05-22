@@ -217,13 +217,79 @@ def _resolve_url_entry(entry, save_dir: Path):
     return (normalized, normalized, dest, True)  # use_session=True
 
 
+# ── DB helpers for failed_urls ───────────────────────────────────────────── #
+
+def _ensure_failed_urls_table(conn: sqlite3.Connection):
+    """Create the failed_urls table if it doesn't exist."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS failed_urls (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            status_code INTEGER NOT NULL,
+            url         TEXT    NOT NULL,
+            recorded_at TEXT    NOT NULL,
+            UNIQUE(url)
+        );
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_failed_urls_status ON failed_urls(status_code);")
+    conn.commit()
+
+
+def _load_failed_urls(conn: sqlite3.Connection) -> set:
+    """Return the set of URLs already recorded as failed."""
+    rows = conn.execute("SELECT url FROM failed_urls").fetchall()
+    return {row["url"] for row in rows}
+
+
+def _record_failed_url(conn: sqlite3.Connection, status_code: int, url: str):
+    """Persist a failed URL with its status code. Upserts on conflict."""
+    from datetime import datetime
+    conn.execute(
+        """
+        INSERT INTO failed_urls (status_code, url, recorded_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(url) DO UPDATE SET
+            status_code = excluded.status_code,
+            recorded_at = excluded.recorded_at
+        """,
+        (status_code, url, datetime.utcnow().isoformat()),
+    )
+    conn.commit()
+
+
+def get_failed_urls_map(db_path: str) -> dict:
+    """Return a dict mapping status_code -> list[url] for all recorded failures."""
+    conn = _connect(db_path)
+    _ensure_failed_urls_table(conn)
+    rows = conn.execute("SELECT status_code, url FROM failed_urls ORDER BY status_code, url").fetchall()
+    conn.close()
+    result: dict = {}
+    for row in rows:
+        sc = row["status_code"]
+        result.setdefault(sc, []).append(row["url"])
+    return result
+
+
 # ── Core download logic ───────────────────────────────────────────────────── #
 
-def download_all(db_path: str, config_json: dict, progress_queue=None):
+def download_all(db_path: str, config_json: dict, progress_queue=None, retry_failed: bool = False):
     logger   = Logger(config_json, "StaticAssetDownloader").logger
     save_dir = Path(config_json["saveDirectory"])
 
     conn = _connect(db_path)
+    _ensure_failed_urls_table(conn)
+
+    # If retry mode: clear all previously-failed URLs so they get re-attempted.
+    if retry_failed:
+        conn.execute("DELETE FROM failed_urls")
+        conn.commit()
+        logger.info("retry_failed=True: cleared all previously failed URLs from failed_urls table.")
+        print("retry_failed=True: cleared all previously failed URLs — will retry them.")
+
+    # Load the current set of known-failed URLs to skip (empty when retry_failed cleared them).
+    known_failed_urls: set = _load_failed_urls(conn)
+    if known_failed_urls:
+        logger.info(f"Skipping {len(known_failed_urls)} previously-failed URL(s) (set retry_failed=True to retry).")
+        print(f"Skipping {len(known_failed_urls)} previously-failed URL(s).")
 
     rows = conn.execute(
         "SELECT course_id, topic_index, assets_json FROM static_assets ORDER BY course_id, topic_index"
@@ -332,6 +398,16 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
                     skipped_dup += 1
                     continue
 
+                # Skip URLs that previously failed (unless retry mode already cleared them)
+                if fetch_url in known_failed_urls:
+                    logger.info(f"Skipping previously-failed URL: {fetch_url}")
+                    downloaded_set.add(key)
+                    skipped += 1
+                    processed_urls += 1
+                    if progress_queue:
+                        progress_queue.put(("progress-course", processed_urls))
+                    continue
+
                 # Check if already on disk
                 existing  = (
                     list(dest.parent.glob(f"{dest.name}*"))
@@ -352,6 +428,7 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
                     resp = session.get(fetch_url, timeout=30) if use_session else requests.get(fetch_url, timeout=30)
                 except requests.RequestException as e:
                     logger.warning(f"Request error for {fetch_url}: {e}")
+                    _record_failed_url(conn, -1, fetch_url)  # -1 = network/request error
                     row_failed   += 1
                     failed_total += 1
                     processed_urls += 1
@@ -362,6 +439,7 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
                 status_code = resp.status_code
                 if status_code == 404:
                     logger.warning(f"Not found (HTTP 404), skipping: {fetch_url}")
+                    _record_failed_url(conn, 404, fetch_url)
                     downloaded_set.add(key)
                     skipped += 1
                     skipped_404 += 1
@@ -375,6 +453,7 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
                         f"Auth failed (HTTP {status_code}) for {fetch_url}. "
                         "Stopping downloader."
                     )
+                    _record_failed_url(conn, status_code, fetch_url)
                     row_failed   += 1
                     failed_total += 1
                     processed_urls += 1
@@ -385,6 +464,7 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
 
                 if status_code != 200:
                     logger.warning(f"Failed (HTTP {status_code}): {fetch_url}")
+                    _record_failed_url(conn, status_code, fetch_url)
                     row_failed   += 1
                     failed_total += 1
                     processed_urls += 1
@@ -480,12 +560,16 @@ def download_all(db_path: str, config_json: dict, progress_queue=None):
     print(summary)
 
 
-def run_from_config(config_json: dict = None, db_path: str = None, progress_queue=None):
+def run_from_config(config_json: dict = None, db_path: str = None, progress_queue=None, retry_failed: bool = False):
     cfg = config_json or _load_config_json()
     resolved_db = resolve_db_path(config_json=cfg, db_path=db_path)
+    # Allow retry_failed to be passed via config_json (e.g. from GUI)
+    if not retry_failed:
+        retry_failed = bool(cfg.get("retryFailedUrls", False))
     print(f"Database : {resolved_db}")
     print(f"Save dir : {cfg['saveDirectory']}")
-    download_all(resolved_db, cfg, progress_queue=progress_queue)
+    print(f"Retry failed URLs: {retry_failed}")
+    download_all(resolved_db, cfg, progress_queue=progress_queue, retry_failed=retry_failed)
 
 
 # ── Entry point ───────────────────────────────────────────────────────────── #
