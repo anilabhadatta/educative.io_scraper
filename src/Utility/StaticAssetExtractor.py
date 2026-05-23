@@ -46,6 +46,7 @@ import configparser
 from datetime import datetime
 from pathlib import Path
 import urllib.parse
+import re
 
 from src.Common.Constants import constants
 from src.ScraperType.ApiScraper.APIScraperConstants import ASSET_SCAN_API_PATH_REGEX, UDATA_SCAN_REGEX
@@ -191,6 +192,34 @@ def _urls_for_d2diagram(content: dict, conn: sqlite3.Connection, course_id: int,
     # Return (local_path, download_url) tuple encoded as a two-item list so the
     # downloader knows both the save path and the fetch URL.
     return [[local_path, download_url]]
+
+
+def _urls_for_drawiowidget(content: dict) -> tuple:
+    """Returns (urls, updated_content) for DrawIOWidget slides."""
+    slides_id = content.get("slidesId")
+    if not (content.get("slidesEnabled") and content.get("isSlides") and slides_id):
+        return [], content
+
+    editor_image_path = content.get("editorImagePath", "")
+    slides_api_data = content.get("slidesApiData", {})
+    image_ids = slides_api_data.get("image_ids", [])
+
+    if image_ids and editor_image_path:
+        match = re.search(r'(/api/collection/\d+/\d+/page/\d+/image)', editor_image_path)
+        if match:
+            base_path = match.group(1)
+            content["slidesImages"] = [f"{base_path}/{iid}" for iid in image_ids]
+
+    urls = []
+    slides_images = content.get("slidesImages", [])
+    for img_url in slides_images:
+        path_match = re.search(r'(/api/collection/\d+/\d+/page/\d+/image/\d+)', img_url)
+        if path_match:
+            clean_path = path_match.group(1)
+            dl_url = f"{clean_path}?page_type=collection_lesson&get_optimised=true&slide_id={slides_id}&collection_token=undefined"
+            urls.append(dl_url)
+
+    return urls, content
 
 
 def _urls_from_scan(content_json_str: str) -> list:
@@ -340,7 +369,8 @@ def extract_and_store(db_path: str, progress_queue=None):
             for comp in components:
                 comp_idx    = comp["component_index"]
                 comp_type   = comp["type"]
-                content_str = comp["content_json"] or "{}"
+                original_content_str = comp["content_json"] or "{}"
+                content_str = original_content_str
 
                 try:
                     content = json.loads(content_str)
@@ -357,6 +387,12 @@ def extract_and_store(db_path: str, progress_queue=None):
                         urls = _urls_from_scan(content_str)
                 elif comp_type == "D2Diagram":
                     urls = _urls_for_d2diagram(content, conn, course_id, topic_index, comp_idx)
+                    # reload content_str in case D2Diagram modified content_json directly in DB
+                    row = conn.execute("SELECT content_json FROM components WHERE course_id=? AND topic_index=? AND component_index=?", (course_id, topic_index, comp_idx)).fetchone()
+                    if row: content_str = row["content_json"] or content_str
+                elif comp_type == "DrawIOWidget":
+                    urls, content = _urls_for_drawiowidget(content)
+                    content_str = json.dumps(content, ensure_ascii=False)
                 else:
                     urls = _urls_from_scan(content_str)
 
@@ -368,7 +404,7 @@ def extract_and_store(db_path: str, progress_queue=None):
                 updated_str = _clean_api_domains(updated_str)
 
                 # Persist modifications if string was updated
-                if updated_str != content_str:
+                if updated_str != original_content_str:
                     conn.execute(
                         "UPDATE components SET content_json = ? "
                         "WHERE course_id = ? AND topic_index = ? AND component_index = ?",
