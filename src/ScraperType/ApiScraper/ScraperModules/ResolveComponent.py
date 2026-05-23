@@ -32,7 +32,8 @@ class ResolveComponent:
 
                 component["content"]["slidesApiData"] = slides_data
 
-                image_urls = self.extractSlidesImageUrls(slides_data, author_id, collection_id, page_id)
+                editor_image_path = content.get("editorImagePath", "")
+                image_urls = self.extractSlidesImageUrls(slides_data, author_id, collection_id, page_id, editor_image_path)
                 if image_urls:
                     component["content"]["slidesImages"] = image_urls
                     self.logger.info(
@@ -50,8 +51,16 @@ class ResolveComponent:
             return topicJson
 
 
-    def extractSlidesImageUrls(self, slides_data: dict, author_id: str, collection_id: str, page_id: str) -> list:
-        base = f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image"
+    def extractSlidesImageUrls(self, slides_data: dict, author_id: str, collection_id: str, page_id: str, editor_image_path: str = "") -> list:
+        base = ""
+        if editor_image_path:
+            import re
+            match = re.search(r'(/api/collection/\d+/\d+/page/\d+/image)', editor_image_path)
+            if match:
+                base = match.group(1)
+
+        if not base:
+            base = f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image"
 
         def _url_from_id(image_id) -> str:
             return f"{base}/{image_id}"
