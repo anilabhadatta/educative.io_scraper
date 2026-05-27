@@ -39,8 +39,8 @@ class ProjectModule:
 			topicTitle = CommonUtility.sanitize_topic_name(page.get("title", ""))
 			topicSlug = page.get("slug", slugify(topicTitle))
 			pageType = page["type"]
-			authorId = str(page.get("author_id", authorId))
-			collectionId = str(page.get("collection_id", collectionId))
+			authorId = str(page.get("author_id") or authorId)
+			collectionId = str(page.get("collection_id") or collectionId)
 			pageId = str(page.get("page_id", page["id"]))
 
 			topicApiUrl = self.urlUtils.getProjectTopicApiUrl(
