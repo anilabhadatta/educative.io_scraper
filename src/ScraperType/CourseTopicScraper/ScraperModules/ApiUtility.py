@@ -380,14 +380,14 @@ class ApiUtility:
                             for page in pages:
                                 topicId = page.get("page_id", page.get("id"))
                                 topicTitle = page.get("title", tocEntry.get("title", moduleTitle))
-                                authorId = page.get("author_id", jsonData["author_id"])
-                                collectionId = page.get("collection_id", jsonData["collection_id"])
+                                authorId = page.get("author_id") or jsonData["author_id"]
+                                collectionId = page.get("collection_id") or jsonData["collection_id"]
                                 appendTopic(topicId, topicTitle, authorId, collectionId, moduleTopics)
                         else:
                             topicId = tocEntry.get("page_id", tocEntry.get("id"))
                             topicTitle = tocEntry.get("title", moduleTitle)
-                            authorId = tocEntry.get("author_id", jsonData["author_id"])
-                            collectionId = tocEntry.get("collection_id", jsonData["collection_id"])
+                            authorId = tocEntry.get("author_id") or jsonData["author_id"]
+                            collectionId = tocEntry.get("collection_id") or jsonData["collection_id"]
                             appendTopic(topicId, topicTitle, authorId, collectionId, moduleTopics)
                 else:
                     pages = category.get("pages")
@@ -395,14 +395,14 @@ class ApiUtility:
                         for page in pages:
                             topicId = page.get("page_id", page.get("id"))
                             topicTitle = page.get("title", moduleTitle)
-                            authorId = page.get("author_id", jsonData["author_id"])
-                            collectionId = page.get("collection_id", jsonData["collection_id"])
+                            authorId = page.get("author_id") or jsonData["author_id"]
+                            collectionId = page.get("collection_id") or jsonData["collection_id"]
                             appendTopic(topicId, topicTitle, authorId, collectionId, moduleTopics)
                     else:
                         topicId = category.get("page_id", category.get("id"))
                         topicTitle = category.get("title", "")
-                        authorId = category.get("author_id", jsonData["author_id"])
-                        collectionId = category.get("collection_id", jsonData["collection_id"])
+                        authorId = category.get("author_id") or jsonData["author_id"]
+                        collectionId = category.get("collection_id") or jsonData["collection_id"]
                         appendTopic(topicId, topicTitle, authorId, collectionId, moduleTopics)
 
                 if moduleTopics:
