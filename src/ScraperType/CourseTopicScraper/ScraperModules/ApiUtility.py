@@ -649,7 +649,7 @@ class ApiUtility:
     def getAuthorAndCollectionId(self):
         try:
             self.logger.info(f"Getting AuthorAndCollectionId")
-            authorAndCollectionIdScript = f"""
+            authorAndCollectionIdScript = fr"""
                                     const resultMap = {{}};
                                     if (!window.__next_f || !Array.isArray(window.__next_f)) return resultMap;
                                     window.__next_f.forEach(entry => {{

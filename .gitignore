@@ -170,3 +170,4 @@ src/Main/MailNotify.py
 src/Main/MailNotify.py
 /downloaded_files/
 src/Utility/downloaded_files/driver_fixing.lock
+*.db
