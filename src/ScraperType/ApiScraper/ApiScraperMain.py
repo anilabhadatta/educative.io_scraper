@@ -149,6 +149,7 @@ class ApiScraperMain:
                 else "Path" if "/module/" in courseUrl
                 else "Course"
             )
+            courseApiUrls = courseApiUrls[::-1]
             self.logger.info(f"Determined course type: {courseType}")
             self.logger.info(f"Derived course API URLs: {courseApiUrls}")
 

@@ -4,6 +4,18 @@ class UrlUtility:
 
 
     @staticmethod
+    def appendShowContentQuery(url):
+        if not url:
+            return url
+        if "showContent=true" not in url:
+            if "?" in url:
+                return url + "&showContent=true"
+            else:
+                return url + "?showContent=true"
+        return url
+
+
+    @staticmethod
     def getTopicUrlSelector(url):
         url = url.split("/")
         if url[-1] in ["assessment?showContent=true", "cloudlab?showContent=true", "project?showContent=true", "mock-interview?showContent=true"]:
@@ -58,12 +70,29 @@ class UrlUtility:
 
 
     @staticmethod
+    def isCourseUrl(url):
+        clean_url = url.split("?")[0].rstrip("/")
+        parts = clean_url.split("/")
+        for keyword in ["courses"]:
+            if keyword in parts:
+                try:
+                    idx = parts.index(keyword)
+                    return len(parts) == idx + 2
+                except ValueError:
+                    pass
+        return False
+
+
+    @staticmethod
     def getCollectionTopicPageUrl(topicUrl, page):
         try:
             base = str(topicUrl).split("?", 1)[0].rstrip("/")
-            parent = base.rsplit("/", 1)[0]
+            if UrlUtility.isCourseUrl(topicUrl):
+                course_url = base
+            else:
+                course_url = base.rsplit("/", 1)[0]
             slug = page.get("slug") or page.get("id")
-            return f"{parent}/{slug}?showContent=true"
+            return f"{course_url}/{slug}?showContent=true"
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno
             raise Exception(f"UrlUtility:getCollectionTopicPageUrl: {lineNumber}: {e}")

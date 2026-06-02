@@ -186,6 +186,19 @@ class ApiUtility:
     def getCourseUrl(self, textFileUrl):
         try:
             self.logger.info("Getting Course url")
+            if self.urlUtils.isCourseUrl(textFileUrl):
+                self.logger.info(f"Provided URL is already a course URL: {textFileUrl}")
+                try:
+                    self.browser.get(textFileUrl)
+                    self.osUtils.sleep(10)
+                except:
+                    self.logger.info("Page Loading Issue, pressing ESC to stop page load")
+                    self.browser.execute_script("window.stop();")
+                
+                res_url = self.urlUtils.appendShowContentQuery(textFileUrl)
+                self.logger.info(f"Found Course URL: {res_url}")
+                return res_url
+
             try:
                 self.browser.get(textFileUrl)
                 self.osUtils.sleep(10)
