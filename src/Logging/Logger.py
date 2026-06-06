@@ -23,6 +23,7 @@ class CustomColorFormatter(logging.Formatter):
     WHITE = "\033[97m"
     YELLOW = "\033[33m"
     ORANGE = "\033[31m"
+    LIGHT_PURPLE = "\033[95m"
 
     def format(self, record):
         message = str(record.msg)
@@ -30,6 +31,7 @@ class CustomColorFormatter(logging.Formatter):
         is_topic_start = "Scraping Topic:" in message
         is_derived_api_url = "Derived course API URLs:" in message
         is_course_started = "Started Scraping from Text File URL:" in message
+        is_error = "ERROR" in message
         
         color_index = int(hashlib.md5(record.name.encode()).hexdigest(), 16) % len(self.COLORS)
         module_color = self.COLORS[color_index]
@@ -45,6 +47,8 @@ class CustomColorFormatter(logging.Formatter):
         elif is_derived_api_url:
             return f"{self.YELLOW}{result}{self.RESET}"
         elif is_course_started:
+            return f"{self.LIGHT_PURPLE}{result}{self.RESET}"
+        elif is_error:
             return f"{self.ORANGE}{result}{self.RESET}"
         else:
             return f"{module_color}{result}{self.RESET}"
