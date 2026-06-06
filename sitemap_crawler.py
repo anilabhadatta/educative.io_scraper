@@ -4,6 +4,9 @@ import pandas as pd
 import openpyxl
 from openpyxl.styles import Alignment
 from urllib.error import URLError
+import json
+from hashids import Hashids
+
 
 def fetch_sitemap(url):
     print(f"Fetching sitemap: {url}")
@@ -32,6 +35,65 @@ def extract_category_and_slug(url):
                 slug = parts[i + 1]
             break
     return category, slug
+
+def fetch_path_modules_and_lessons(path_slug):
+    try:
+        print(f"Fetching API for path: {path_slug}")
+        req = urllib.request.Request(f'https://www.educative.io/api/collection/{path_slug}', headers={'User-Agent': 'Mozilla/5.0'})
+        response = urllib.request.urlopen(req, timeout=10)
+        data = json.loads(response.read().decode('utf-8'))
+        author_id = data['instance']['details']['author_id']
+        collection_id = data['instance']['details']['collection_id']
+        
+        # Educative frontend uses Hashids to encode the path's author_id and collection_id
+        hashids = Hashids(salt="", alphabet="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+        path_hash = hashids.encode(int(author_id), int(collection_id))
+        
+        req = urllib.request.Request(f'https://www.educative.io/api/collection/{author_id}/{collection_id}/categories?update_path_item_titles=true', headers={'User-Agent': 'Mozilla/5.0'})
+        response = urllib.request.urlopen(req, timeout=10)
+        categories_data = json.loads(response.read().decode('utf-8'))
+        
+        path_modules_key = f"{author_id}_{collection_id}"
+        if path_modules_key not in categories_data:
+            return [], []
+            
+        modules = categories_data[path_modules_key]
+        modules_list = []
+        lessons_list = []
+        
+        for mod in modules:
+            mod_title = mod.get('title', 'Unknown Module')
+            mod_author_id = mod.get('author_id')
+            mod_collection_id = mod.get('id')
+            mod_key = f"{mod_author_id}_{mod_collection_id}"
+            
+            num_topics = 0
+            first_topic_link = ""
+            
+            if mod_key in categories_data:
+                for category in categories_data[mod_key]:
+                    pages = category.get('pages', [])
+                    for page in pages:
+                        num_topics += 1
+                        page_id = page.get('id')
+                        lesson_link = f"https://www.educative.io/module/page/{path_hash}/{mod_author_id}/{mod_collection_id}/{page_id}"
+                        if not first_topic_link:
+                            first_topic_link = lesson_link
+                        lessons_list.append({
+                            'Path Slug': path_slug,
+                            'Module Title': mod_title,
+                            'Lesson URL': lesson_link
+                        })
+            if num_topics > 0:
+                modules_list.append({
+                    'Module Title': mod_title,
+                    'Number of Topics': num_topics,
+                    'Topic Link': first_topic_link
+                })
+        return modules_list, lessons_list
+    except Exception as e:
+        print(f"Error fetching API for path {path_slug}: {e}")
+        return [], []
 
 def main():
     general_url = "https://www.educative.io/sitemaps/general/sitemap.xml"
@@ -75,6 +137,12 @@ def main():
     
     valid_categories = ['courses', 'path', 'cloudlabs', 'projects']
     summary_dfs = {}
+    all_path_lessons = []
+    
+    if not df_lessons.empty:
+        grouped_lessons = df_lessons.groupby(['Category', 'Slug'])
+    else:
+        grouped_lessons = None
     
     for cat in valid_categories:
         cat_capitalized = cat.capitalize()
@@ -84,23 +152,16 @@ def main():
         for c, slug in cat_keys:
             general_link = general_items.get((c, slug), "")
             
-            if not df_lessons.empty:
-                slug_lessons = df_lessons[(df_lessons['Category'] == cat_capitalized) & (df_lessons['Slug'] == slug)]
+            if grouped_lessons is not None and (cat_capitalized, slug) in grouped_lessons.groups:
+                slug_lessons = grouped_lessons.get_group((cat_capitalized, slug))
             else:
                 slug_lessons = pd.DataFrame()
             
             num_topics = len(slug_lessons)
             
-            row_data = {
-                'Slug': slug,
-                'Number of Topics': num_topics,
-                'General Link': general_link
-            }
-            
             if cat == 'courses':
                 topic_link = ""
                 is_pal_link = "No"
-                
                 if num_topics > 0:
                     regular_lessons = slug_lessons[slug_lessons['Source Sitemap'] != 'pal_lessons']
                     if not regular_lessons.empty:
@@ -112,30 +173,67 @@ def main():
                     if not pal_lessons_df.empty:
                         is_pal_link = "Yes"
                         
-                row_data['Topic Link'] = topic_link
-                row_data['Is PAL Link'] = is_pal_link
-            
-            cat_summary_data.append(row_data)
+                cat_summary_data.append({
+                    'Slug': slug,
+                    'General Link': general_link,
+                    'Number of Topics': num_topics,
+                    'Is PAL Link': is_pal_link,
+                    'Topic Link': topic_link
+                })
+            elif cat == 'path':
+                modules_list, lessons_list = fetch_path_modules_and_lessons(slug)
+                all_path_lessons.extend(lessons_list)
+                
+                if not modules_list:
+                    cat_summary_data.append({
+                        'Path Slug': slug,
+                        'Path General Link': general_link,
+                        'Module Title': '',
+                        'Number of Topics': 0,
+                        'Topic Link': ''
+                    })
+                else:
+                    for mod in modules_list:
+                        cat_summary_data.append({
+                            'Path Slug': slug,
+                            'Path General Link': general_link,
+                            'Module Title': mod['Module Title'],
+                            'Number of Topics': mod['Number of Topics'],
+                            'Topic Link': mod['Topic Link']
+                        })
+            else:
+                cat_summary_data.append({
+                    'Slug': slug,
+                    'General Link': general_link
+                })
             
         df_cat = pd.DataFrame(cat_summary_data)
         if not df_cat.empty:
             if cat == 'courses':
-                # sort by Is PAL Link (Yes first) then Slug
                 df_cat = df_cat.sort_values(by=['Is PAL Link', 'Slug'], ascending=[False, True])
-                # ensure column order for courses
                 df_cat = df_cat[['Slug', 'General Link', 'Number of Topics', 'Is PAL Link', 'Topic Link']]
+            elif cat == 'path':
+                df_cat = df_cat.sort_values(by=['Path Slug', 'Module Title'])
+                df_cat = df_cat[['Path Slug', 'Path General Link', 'Module Title', 'Number of Topics', 'Topic Link']]
             else:
                 df_cat = df_cat.sort_values(by=['Slug'])
-                # ensure column order for others (removed Number of Topics)
                 df_cat = df_cat[['Slug', 'General Link']]
                 
         summary_dfs[cat_capitalized] = df_cat
     
+    if all_path_lessons:
+        df_path_lessons = pd.DataFrame(all_path_lessons)
+    else:
+        df_path_lessons = pd.DataFrame(columns=['Path Slug', 'Module Title', 'Lesson URL'])
+        
     output_file = "educative_sitemap_analysis_updated.xlsx"
     print(f"Writing to {output_file}...")
     with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
         if not df_lessons.empty:
             df_lessons.to_excel(writer, sheet_name='Grouped Lessons', index=False)
+        if not df_path_lessons.empty:
+            df_path_lessons.to_excel(writer, sheet_name='Grouped Path Lessons', index=False)
+            
         for cat_name, df_cat in summary_dfs.items():
             if not df_cat.empty:
                 df_cat.to_excel(writer, sheet_name=f'{cat_name} Links', index=False)
@@ -149,11 +247,13 @@ def main():
                 header = str(worksheet.cell(row=1, column=col_idx).value)
                 
                 # set widths
-                if header == 'Slug':
+                if header in ['Slug', 'Path Slug']:
+                    worksheet.column_dimensions[letter].width = 40
+                elif header == 'Module Title':
                     worksheet.column_dimensions[letter].width = 40
                 elif header == 'Number of Topics':
                     worksheet.column_dimensions[letter].width = 15
-                elif header in ['General Link', 'Topic Link', 'Lesson URL']:
+                elif header in ['General Link', 'Path General Link', 'Topic Link', 'Lesson URL']:
                     worksheet.column_dimensions[letter].width = 60
                 elif header == 'Is PAL Link':
                     worksheet.column_dimensions[letter].width = 15
