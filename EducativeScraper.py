@@ -79,23 +79,26 @@ class EducativeScraper:
         self.config = self.configUtil.loadConfig()['ScraperConfig']
         self.configJson = {
             'userDataDir': self.config['userDataDir'],
-            'headless': self.config['headless'],
+            'headless': self.config.getboolean('headless', fallback=False),
             'courseUrlsFilePath': self.config['courseUrlsFilePath'],
             'saveDirectory': self.config['saveDirectory'],
             'logger': self.config['logger'],
             'moduleType': self.config['moduleType'],
-            'isProxy': self.config['isProxy'],
+            'isProxy': self.config.getboolean('isProxy', fallback=False),
             'proxy': self.config['proxy'],
             'scraperType': self.config["scraperType"],
             "scrapingMethod": self.config["scrapingMethod"],
             'fileType': self.config["fileType"],
-            'ucdriver': self.config["ucdriver"],
+            'ucdriver': self.config.getboolean("ucdriver", fallback=False),
             'binaryversion': self.config["binaryversion"],
-            'autoresume': self.config["autoresume"],
-            'autofixtextfile': self.config["autofixtextfile"],
-            'blockscraper': self.config["blockscraper"],
-            'autonext': self.config["autonext"],
-            'useExtension': self.config["useExtension"]
+            'autoresume': self.config.getboolean("autoresume", fallback=False),
+            'autofixtextfile': self.config.getboolean("autofixtextfile", fallback=False),
+            'blockscraper': self.config.getboolean("blockscraper", fallback=False),
+            'autonext': self.config.getboolean("autonext", fallback=False),
+            'overwrite': self.config.getboolean("overwrite", fallback=False),
+            'downloadType': self.config.get("downloadType", fallback="PAL+COLLECTION"),
+            'retryFailedUrls': self.config.getboolean("retryfailedurls", fallback=False),
+            'useExtension': self.config.getboolean("useExtension", fallback=False)
         }
 
 

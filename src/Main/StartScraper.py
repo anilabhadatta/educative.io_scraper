@@ -3,6 +3,7 @@ from src.Main.UpdateTxtFileFromLog import UpdateTxtFileFromLog
 from src.Logging.Logger import Logger
 from src.Main.MailNotify import MailNotify
 from src.ScraperType.AllCourseUrlsScraper.AllCourseUrlsScraperMain import AllCourseUrlsScraper
+from src.ScraperType.AllCourseUrlsScraper.SitemapExcelGenerator import SitemapExcelGenerator
 from src.ScraperType.CourseTopicScraper.CourseTopicScraperMain import CourseTopicScraper
 from src.ScraperType.ApiScraper.ApiScraperMain import ApiScraperMain
 
@@ -22,6 +23,7 @@ class StartScraper:
             progressQueue.put(("color", "green"))
             if configJson["scraperType"] == "All-Course-Urls-Text-File-Generator":
                 AllCourseUrlsScraper(configJson, progressQueue).start()
+                SitemapExcelGenerator(configJson, progressQueue).start()
             elif configJson["scraperType"] == "API-JSON-Scraper":
                 ApiScraperMain(configJson, progressQueue).start()
             else:
