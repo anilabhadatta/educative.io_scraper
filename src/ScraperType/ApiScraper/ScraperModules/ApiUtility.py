@@ -272,20 +272,48 @@ class ApiUtility:
             self.logger.info(f"Getting AuthorAndCollectionId")
             authorAndCollectionIdScript = fr"""
                 const resultMap = {{}};
-                if (!window.__next_f || !Array.isArray(window.__next_f)) return resultMap;
-                window.__next_f.forEach(entry => {{
-                    if (!Array.isArray(entry) || typeof entry[1] !== 'string') return;
 
-                    const text = entry[1];
-
-                    const authorMatch = text.match(/["']?author_?[iI]d["']?\s*:\s*["']?(\d+)["']?/i);
-                    const collectionMatch = text.match(/["']?collection_?[iI]d["']?\s*:\s*["']?(\d+)["']?/i);
-
-                    if (authorMatch && collectionMatch) {{
-                        resultMap['authorId'] = String(authorMatch[1]);
-                        resultMap['collectionId'] = String(collectionMatch[1]);
+                // 1. Check og:image meta tag (highly reliable for current course)
+                const metaTag = document.querySelector('meta[property="og:image"]');
+                if (metaTag && metaTag.content) {{
+                    const match = metaTag.content.match(/\/api\/(?:collection|page|project)\/(\d+)\/(\d+)/i);
+                    if (match) {{
+                        resultMap['authorId'] = match[1];
+                        resultMap['collectionId'] = match[2];
+                        return resultMap;
                     }}
-                }});
+                }}
+
+                // 2. Fallback to __next_f looking for exact "details" object
+                if (window.__next_f && Array.isArray(window.__next_f)) {{
+                    for (const entry of window.__next_f) {{
+                        if (Array.isArray(entry) && typeof entry[1] === 'string') {{
+                            const text = entry[1];
+                            const detailsMatch = text.match(/"details"\s*:\s*\{{[^}}]*"author_id"\s*:\s*(\d+)[^}}]*"collection_id"\s*:\s*(\d+)/i);
+                            if (detailsMatch) {{
+                                resultMap['authorId'] = String(detailsMatch[1]);
+                                resultMap['collectionId'] = String(detailsMatch[2]);
+                                return resultMap;
+                            }}
+                        }}
+                    }}
+                    
+                    // 3. Last resort: Generic regex, stopping at FIRST match to avoid grabbing linked courses at the bottom
+                    for (const entry of window.__next_f) {{
+                        if (Array.isArray(entry) && typeof entry[1] === 'string') {{
+                            const text = entry[1];
+                            const authorMatch = text.match(/["']?author_?[iI]d["']?\s*:\s*["']?(\d+)["']?/i);
+                            const collectionMatch = text.match(/["']?collection_?[iI]d["']?\s*:\s*["']?(\d+)["']?/i);
+
+                            if (authorMatch && collectionMatch) {{
+                                resultMap['authorId'] = String(authorMatch[1]);
+                                resultMap['collectionId'] = String(collectionMatch[1]);
+                                return resultMap;
+                            }}
+                        }}
+                    }}
+                }}
+                
                 return resultMap;
             """
             # window.__next_f is populated progressively — retry to handle timing
