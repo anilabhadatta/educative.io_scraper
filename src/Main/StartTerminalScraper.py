@@ -5,6 +5,7 @@ from src.Main.UpdateTxtFileFromLog import UpdateTxtFileFromLog
 from src.Logging.Logger import Logger
 from src.Main.MailNotify import MailNotify
 from src.ScraperType.AllCourseUrlsScraper.AllCourseUrlsScraperMain import AllCourseUrlsScraper
+from src.ScraperType.AllCourseUrlsScraper.SitemapExcelGenerator import SitemapExcelGenerator
 from src.ScraperType.CourseTopicScraper.CourseTopicScraperMain import CourseTopicScraper
 from src.ScraperType.ApiScraper.ApiScraperMain import ApiScraperMain
 from src.Utility.StaticAssetExtractor import run_from_config as run_static_asset_extractor
@@ -34,7 +35,9 @@ class StartTerminalScraper:
             if self.configJson['autofixtextfile'] and not self.updateTextFromLog.updateTextFileFromLogMain():
                 self.logger.info("No URL found in log file. Starting Scraper from first url...")
             if self.configJson["scraperType"] == "All-Course-Urls-Text-File-Generator":
-                AllCourseUrlsScraper(self.configJson, progressQueue).start()
+                # New scraper is much better as it uses sitemap xml to get urls
+                # AllCourseUrlsScraper(self.configJson, progressQueue).start()
+                SitemapExcelGenerator(self.configJson, progressQueue).start()
             elif self.configJson["scraperType"] == "API-JSON-Scraper":
                 ApiScraperMain(self.configJson, progressQueue).start()
             else:
