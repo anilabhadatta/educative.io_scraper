@@ -4,6 +4,8 @@ This tool efficiently scrapes and saves Educative.io courses, paths, projects, a
 
 > **Disclaimer:** I am not accountable for any inappropriate use of this scraper. I developed it solely for research purposes and take no responsibility for its misuse.
 
+      Repository Version: v4.0.31 (Recommended)
+      Master Branch: v4-dev
 ---
 
 ## 🚀 Getting Started
@@ -28,7 +30,13 @@ python3 setup.py --install
 python3 setup.py --run
 ```
 *Note: `--install` creates a virtual environment and installs dependencies. `--run` starts the scraper GUI.*
-
+ <div align="center">
+         <figure>
+            <img src="https://github.com/user-attachments/assets/c3c3168f-88c4-432d-94c5-2f9b9c919466" style="width: 50%; height:50%;">
+            <br>
+            <figcaption>Recommeded GUI Settings</figcaption>
+         </figure>
+      </div>
 ---
 
 ## 🛠️ How to Use (Recommended Workflow)
