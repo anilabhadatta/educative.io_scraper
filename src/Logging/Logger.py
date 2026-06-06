@@ -13,7 +13,6 @@ class CustomColorFormatter(logging.Formatter):
         "\033[36m", # Cyan
         "\033[35m", # Magenta
         "\033[34m", # Blue
-        "\033[33m", # Yellow
         "\033[96m", # Light Cyan
         "\033[95m", # Light Magenta
         "\033[94m", # Light Blue
@@ -21,10 +20,16 @@ class CustomColorFormatter(logging.Formatter):
     ]
     RESET = "\033[0m"
     GREEN = "\033[32m"
+    WHITE = "\033[97m"
+    YELLOW = "\033[33m"
+    ORANGE = "\033[31m"
 
     def format(self, record):
         message = str(record.msg)
         is_topic_complete = "Saved JSON for:" in message or "done. Progress:" in message
+        is_topic_start = "Scraping Topic:" in message
+        is_derived_api_url = "Derived course API URLs:" in message
+        is_course_started = "Started Scraping from Text File URL:" in message
         
         color_index = int(hashlib.md5(record.name.encode()).hexdigest(), 16) % len(self.COLORS)
         module_color = self.COLORS[color_index]
@@ -35,6 +40,12 @@ class CustomColorFormatter(logging.Formatter):
         # Wrap the entire line in the appropriate color
         if is_topic_complete:
             return f"{self.GREEN}{result}{self.RESET}"
+        elif is_topic_start:
+            return f"{self.WHITE}{result}{self.RESET}"
+        elif is_derived_api_url:
+            return f"{self.YELLOW}{result}{self.RESET}"
+        elif is_course_started:
+            return f"{self.ORANGE}{result}{self.RESET}"
         else:
             return f"{module_color}{result}{self.RESET}"
 
