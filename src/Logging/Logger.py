@@ -24,32 +24,37 @@ class CustomColorFormatter(logging.Formatter):
     YELLOW = "\033[33m"
     ORANGE = "\033[31m"
     LIGHT_PURPLE = "\033[95m"
+    TEAL = "\033[38;5;45m"   # deep sky blue — contrasts clearly with magenta
 
     def format(self, record):
         message = str(record.msg)
         is_topic_complete = "Saved JSON for:" in message or "done. Progress:" in message
         is_topic_start = "Scraping Topic:" in message
         is_derived_api_url = "Derived course API URLs:" in message
+        is_course_type = "Determined course type:" in message
         is_course_started = "Started Scraping from Text File URL:" in message
-        is_error = "ERROR" in message
-        
+        # Use log level, not message text — logger.error() sets levelno, not the message string
+        is_error = record.levelno >= logging.ERROR
+
         color_index = int(hashlib.md5(record.name.encode()).hexdigest(), 16) % len(self.COLORS)
         module_color = self.COLORS[color_index]
-        
+
         # Generate the standard formatted line first
         result = super().format(record)
-        
-        # Wrap the entire line in the appropriate color
-        if is_topic_complete:
+
+        # ERROR / CRITICAL always take priority — colour overrides everything else
+        if is_error:
+            return f"{self.ORANGE}{result}{self.RESET}"
+        elif is_topic_complete:
             return f"{self.GREEN}{result}{self.RESET}"
         elif is_topic_start:
             return f"{self.WHITE}{result}{self.RESET}"
         elif is_derived_api_url:
             return f"{self.YELLOW}{result}{self.RESET}"
+        elif is_course_type:
+            return f"{self.TEAL}{result}{self.RESET}"
         elif is_course_started:
             return f"{self.LIGHT_PURPLE}{result}{self.RESET}"
-        elif is_error:
-            return f"{self.ORANGE}{result}{self.RESET}"
         else:
             return f"{module_color}{result}{self.RESET}"
 
