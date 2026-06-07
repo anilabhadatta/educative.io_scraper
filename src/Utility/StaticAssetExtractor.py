@@ -209,19 +209,15 @@ def _urls_for_drawiowidget(content: dict) -> tuple:
     image_ids = slides_api_data.get("image_ids", [])
 
     if image_ids and editor_image_path:
-        match = re.search(r'(/api/collection/\d+/\d+/page/\d+/image)', editor_image_path)
-        if match:
-            base_path = match.group(1)
-            content["slidesImages"] = [f"{base_path}/{iid}" for iid in image_ids]
+        base_path = editor_image_path.rsplit('/', 1)[0]
+        content["slidesImages"] = [f"{base_path}/{iid}" for iid in image_ids]
 
     urls = []
     slides_images = content.get("slidesImages", [])
     for img_url in slides_images:
-        path_match = re.search(r'(/api/collection/\d+/\d+/page/\d+/image/\d+)', img_url)
-        if path_match:
-            clean_path = path_match.group(1)
-            dl_url = f"{clean_path}?page_type=collection_lesson&get_optimised=true&slide_id={slides_id}&collection_token=undefined"
-            urls.append(dl_url)
+        clean_path = img_url.split('?')[0]
+        dl_url = f"{clean_path}?page_type=collection_lesson&get_optimised=true&slide_id={slides_id}&collection_token=undefined"
+        urls.append(dl_url)
 
     return urls, content
 
