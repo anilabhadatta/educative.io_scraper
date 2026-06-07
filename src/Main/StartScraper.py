@@ -6,6 +6,7 @@ from src.ScraperType.AllCourseUrlsScraper.AllCourseUrlsScraperMain import AllCou
 from src.ScraperType.AllCourseUrlsScraper.SitemapExcelGenerator import SitemapExcelGenerator
 from src.ScraperType.CourseTopicScraper.CourseTopicScraperMain import CourseTopicScraper
 from src.ScraperType.ApiScraper.ApiScraperMain import ApiScraperMain
+from src.ScraperType.PublicContentScraper.PublicContentScraperMain import PublicContentScraperMain
 
 
 class StartScraper:
@@ -22,10 +23,12 @@ class StartScraper:
         try:
             progressQueue.put(("color", "green"))
             if configJson["scraperType"] == "All-Course-Urls-Text-File-Generator":
-                AllCourseUrlsScraper(configJson, progressQueue).start()
+                # AllCourseUrlsScraper(configJson, progressQueue).start()
                 SitemapExcelGenerator(configJson, progressQueue).start()
             elif configJson["scraperType"] == "API-JSON-Scraper":
                 ApiScraperMain(configJson, progressQueue).start()
+            elif configJson["scraperType"] == "Public-Content-Scraper":
+                PublicContentScraperMain(configJson, progressQueue).start()
             else:
                 CourseTopicScraper(configJson, progressQueue).start()
             self.mailNotify.send_email("Scraping Complete")

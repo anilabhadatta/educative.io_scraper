@@ -1,4 +1,4 @@
-﻿"""
+"""
 DatabaseManager.py
 
 SQLite persistence layer for the API scraper.
@@ -22,6 +22,7 @@ from src.ScraperType.ApiScraper.Database.DatabaseTableQueries import (
     PathsTableQueries,
     ProgressQueries,
     ProjectsTableQueries,
+    PublicCourseQueries,
     TopicsTableQueries,
 )
 from src.Logging.Logger import Logger
@@ -129,12 +130,13 @@ class DatabaseManager:
         self.db_path = db_path
         self._lock = threading.Lock()
         self._init_db()
-        self.paths = PathsTableQueries(self._connect, self._lock, self.logger)
-        self.courses = CoursesTableQueries(self._connect, self._lock, self.logger)
-        self.projects = ProjectsTableQueries(self._connect, self._lock, self.logger)
-        self.topics = TopicsTableQueries(self._connect, self._lock, self.logger)
+        self.paths      = PathsTableQueries(self._connect, self._lock, self.logger)
+        self.courses    = CoursesTableQueries(self._connect, self._lock, self.logger)
+        self.projects   = ProjectsTableQueries(self._connect, self._lock, self.logger)
+        self.topics     = TopicsTableQueries(self._connect, self._lock, self.logger)
         self.components = ComponentsTableQueries(self._connect, self._lock, self.logger)
-        self.progress = ProgressQueries(self._connect, self._lock, self.logger)
+        self.progress   = ProgressQueries(self._connect, self._lock, self.logger)
+        self.publicContent = PublicCourseQueries(self._connect, self._lock, self.logger)
         self.logger.info(f"Database ready at: {self.db_path}")
 
     # ------------------------------------------------------------------ #
@@ -247,3 +249,22 @@ class DatabaseManager:
 
     def get_scrape_progress(self, course_id: int) -> dict:
         return self.progress.get_scrape_progress(course_id)
+
+    # ------------------------------------------------------------------ #
+    #  Public Content (Answers / Blog / Newsletter)
+    # ------------------------------------------------------------------ #
+
+    def upsert_public_course(self, page_type: str) -> int:
+        """Find or create the single aggregator course row for a public content type."""
+        return self.publicContent.upsert_public_course(page_type)
+
+    def upsert_topic_in_public_course(self, course_id: int, topic_url: str,
+                                      title: str, slug: str, page_id: str) -> tuple:
+        """Append/update one topic inside a public course. Returns (topic_index, is_new)."""
+        return self.publicContent.upsert_topic_in_public_course(
+            course_id, topic_url, title, slug, page_id
+        )
+
+    def update_public_course_toc(self, course_id: int):
+        """Rebuild toc_json for a public course from its current topics."""
+        self.publicContent.update_public_course_toc(course_id)

@@ -46,6 +46,16 @@ class AllCourseUrlsScraper:
             }
         self.logger.info(f"Current IP: {self.cloudscraper.get('https://httpbin.org/ip', proxies=self.proxies).content}")
 
+        categories_raw = self.configJson.get('excelCategories', ['courses', 'path', 'cloudlabs', 'projects', 'answers', 'blog', 'newsletter'])
+        if isinstance(categories_raw, str):
+            import ast
+            try:
+                self.valid_categories = ast.literal_eval(categories_raw)
+            except:
+                self.valid_categories = ['courses', 'path', 'cloudlabs', 'projects', 'answers', 'blog', 'newsletter']
+        else:
+            self.valid_categories = categories_raw
+
 
     def start(self):
         self.logger.info("Started All Course Urls scraper.")
@@ -56,19 +66,25 @@ class AllCourseUrlsScraper:
             allPathsData = allDataFromEducative["tracks"]
             allCloudLabData = allDataFromEducative["standalone_cloudlabs"]
             allProjectData = allDataFromEducative["standalone_projects"]
-            allCourseLinks = self.generateLinks(allCoursesData, "courses")
-            allPathsLinks = self.generateLinks(allPathsData, "paths")
-            allCloudLabLinks = self.generateLinks(allCloudLabData, "cloudlabs")
-            allProjectLinks = self.generateLinks(allProjectData, "projects")
+            allCourseLinks = self.generateLinks(allCoursesData, "courses") if 'courses' in self.valid_categories else []
+            allPathsLinks = self.generateLinks(allPathsData, "paths") if 'path' in self.valid_categories else []
+            allCloudLabLinks = self.generateLinks(allCloudLabData, "cloudlabs") if 'cloudlabs' in self.valid_categories else []
+            allProjectLinks = self.generateLinks(allProjectData, "projects") if 'projects' in self.valid_categories else []
             self.logger.debug(allCourseLinks)
             self.logger.debug(allPathsLinks)
             self.logger.debug(allCloudLabLinks)
             self.logger.debug(allProjectLinks)
             self.logger.info(f"Received Course Links {len(allCourseLinks)} and Path Links {len(allPathsLinks)} and CloudLab Links {len(allCloudLabLinks)} and Project Links {len(allProjectLinks)}")
-            self.generateCourseTopicLinks(allCourseLinks)
-            self.generatePathTopicLinks(allPathsLinks)
-            self.generateCloudLabLinks(allCloudLabLinks)
-            self.generateProjectLinks(allProjectLinks)
+            
+            if 'courses' in self.valid_categories:
+                self.generateCourseTopicLinks(allCourseLinks)
+            if 'path' in self.valid_categories:
+                self.generatePathTopicLinks(allPathsLinks)
+            if 'cloudlabs' in self.valid_categories:
+                self.generateCloudLabLinks(allCloudLabLinks)
+            if 'projects' in self.valid_categories:
+                self.generateProjectLinks(allProjectLinks)
+                
             self.logger.info("Completed Scraping Topic Urls")
         except Exception as e:
             lineNumber = e.__traceback__.tb_lineno

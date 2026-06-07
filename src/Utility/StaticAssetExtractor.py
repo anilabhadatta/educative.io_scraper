@@ -98,6 +98,8 @@ def _normalize_educative_api_url(raw_url) -> str:
 
 def _urls_for_file(content: dict, author_id: str, collection_id: str, page_id: str) -> list:
     """Construct the download URL for a File component."""
+    if content.get("path") and "/api/" in content.get("path"):
+        return [content["path"]]
     image_id  = content.get("image_id")
     file_name = content.get("file_name") or ""
     if not image_id:
@@ -110,6 +112,8 @@ def _urls_for_image(content: dict, author_id: str, collection_id: str, page_id: 
     Falls back to scanning the raw JSON string if image_id is absent
     (e.g. URL stored under a 'path' key with ?page_type=... query param).
     """
+    if content.get("path") and "/api/" in content.get("path"):
+        return [content["path"]]
     image_id = content.get("image_id")
     if image_id:
         return [f"/api/collection/{author_id}/{collection_id}/page/{page_id}/image/{image_id}"]

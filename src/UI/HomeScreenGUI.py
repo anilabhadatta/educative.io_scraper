@@ -67,6 +67,23 @@ class HomeScreen:
         self.loggingLevels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "NOTSET"]
         self.moduleTypeVar = tk.StringVar()
         self.moduleTypes = ["COURSE-PATH", "CLOUDLAB", "PROJECT"]
+        
+        self.excelCourseVar = tk.BooleanVar(value=True)
+        self.excelPathVar = tk.BooleanVar(value=True)
+        self.excelCloudlabVar = tk.BooleanVar(value=True)
+        self.excelProjectVar = tk.BooleanVar(value=True)
+        self.excelAnswersVar = tk.BooleanVar(value=True)
+        self.excelBlogVar = tk.BooleanVar(value=True)
+        self.excelNewsletterVar = tk.BooleanVar(value=True)
+        self.excelVars = {
+            "courses": self.excelCourseVar,
+            "path": self.excelPathVar,
+            "cloudlabs": self.excelCloudlabVar,
+            "projects": self.excelProjectVar,
+            "answers": self.excelAnswersVar,
+            "blog": self.excelBlogVar,
+            "newsletter": self.excelNewsletterVar,
+        }
         self.logLevelDesc = {
             "DEBUG": "Detailed info for debugging.",
             "INFO": "Confirmation of expected functionality.",
@@ -78,7 +95,7 @@ class HomeScreen:
         self.scrapingMethodVar = tk.StringVar()
         self.scrapingMethods = ["SingleFile-HTML", "Full-Page-Screenshot"]
         self.scraperTypeVar = tk.StringVar()
-        self.scraperTypes = ["Course-Topic-Scraper", "All-Course-Urls-Text-File-Generator", "API-JSON-Scraper"]
+        self.scraperTypes = ["Course-Topic-Scraper", "All-Course-Urls-Text-File-Generator", "API-JSON-Scraper", "Public-Content-Scraper"]
         self.fileTypeVar = tk.StringVar()
         self.fileTypes = ["html2pdf", "html", "png2pdf", "png"]
 
@@ -108,10 +125,11 @@ class HomeScreen:
             return
 
         scraper_type = self.scraperTypeVar.get()
-        is_api_scraper = scraper_type == "API-JSON-Scraper"
+        is_api_scraper = scraper_type in ("API-JSON-Scraper", "Public-Content-Scraper")
         hide_scraping_output_controls = scraper_type in (
             "All-Course-Urls-Text-File-Generator",
             "API-JSON-Scraper",
+            "Public-Content-Scraper",
         )
 
         if hide_scraping_output_controls:
@@ -163,15 +181,24 @@ class HomeScreen:
                 self.retryFailedUrlsVar.set(False)
 
         if hasattr(self, "moduleTypeLabel") and hasattr(self, "moduleTypeCombobox"):
-            if is_api_scraper:
+            if scraper_type == "All-Course-Urls-Text-File-Generator":
+                self.moduleTypeLabel.grid(row=5, column=0, sticky="nw", padx=2, pady=2)
+                self.moduleTypeCombobox.grid_remove()
+                if hasattr(self, "excelCategoriesFrame"):
+                    self.excelCategoriesFrame.grid(row=5, column=1, sticky="w", padx=0, pady=0)
+            elif is_api_scraper:
                 self.moduleTypeLabel.grid_remove()
                 self.moduleTypeCombobox.grid_remove()
+                if hasattr(self, "excelCategoriesFrame"):
+                    self.excelCategoriesFrame.grid_remove()
             else:
                 self.moduleTypeLabel.grid(row=5, column=0, sticky="w", padx=2, pady=0)
                 self.moduleTypeCombobox.grid(row=5, column=1, sticky="w", padx=0, pady=5)
+                if hasattr(self, "excelCategoriesFrame"):
+                    self.excelCategoriesFrame.grid_remove()
 
         if hasattr(self, "apiUrlTypeLabel") and hasattr(self, "apiUrlTypeCombobox"):
-            if is_api_scraper:
+            if scraper_type == "API-JSON-Scraper":
                 self.apiUrlTypeLabel.grid(row=6, column=0, sticky="w", padx=2, pady=0)
                 self.apiUrlTypeCombobox.grid(row=6, column=1, sticky="w", padx=0, pady=5)
             else:
@@ -271,6 +298,15 @@ class HomeScreen:
             width=30,
         )
         self.moduleTypeCombobox.grid(row=5, column=1, sticky="w", padx=0, pady=5)
+        
+        self.excelCategoriesFrame = tk.Frame(scraperOptionFrame)
+        tk.Checkbutton(self.excelCategoriesFrame, text="Course", variable=self.excelCourseVar).grid(row=0, column=0, sticky="w", padx=(0,5))
+        tk.Checkbutton(self.excelCategoriesFrame, text="Path", variable=self.excelPathVar).grid(row=0, column=1, sticky="w", padx=(0,5))
+        tk.Checkbutton(self.excelCategoriesFrame, text="Cloudlabs", variable=self.excelCloudlabVar).grid(row=1, column=0, sticky="w", padx=(0,5))
+        tk.Checkbutton(self.excelCategoriesFrame, text="Project", variable=self.excelProjectVar).grid(row=1, column=1, sticky="w", padx=(0,5))
+        tk.Checkbutton(self.excelCategoriesFrame, text="Answers", variable=self.excelAnswersVar).grid(row=2, column=0, sticky="w", padx=(0,5))
+        tk.Checkbutton(self.excelCategoriesFrame, text="Blog", variable=self.excelBlogVar).grid(row=2, column=1, sticky="w", padx=(0,5))
+        tk.Checkbutton(self.excelCategoriesFrame, text="Newsletter", variable=self.excelNewsletterVar).grid(row=3, column=0, sticky="w", padx=(0,5))
 
         self.apiUrlTypeLabel = tk.Label(scraperOptionFrame, text="API URL TYPE:")
         self.apiUrlTypeCombobox = ttk.Combobox(
@@ -562,10 +598,24 @@ class HomeScreen:
         self.overwriteVar.set(self.config["overwrite"])
         self.retryFailedUrlsVar.set(self.config.get("retryfailedurls", "False"))
         self.downloadTypeVar.set(self.config.get("downloadType", "PAL+COLLECTION"))
+        
+        # Parse excelCategories safely
+        import ast
+        categories_raw = self.config.get("excelcategories", "['courses', 'path', 'cloudlabs', 'projects', 'answers', 'blog', 'newsletter']")
+        try:
+            if isinstance(categories_raw, str):
+                loaded_categories = ast.literal_eval(categories_raw)
+            else:
+                loaded_categories = categories_raw
+        except:
+            loaded_categories = ['courses', 'path', 'cloudlabs', 'projects', 'answers', 'blog', 'newsletter']
+            
+        for key, var in self.excelVars.items():
+            var.set(key in loaded_categories)
 
 
     def createConfigJson(self):
-        is_api_scraper = self.scraperTypeVar.get() == "API-JSON-Scraper"
+        is_api_scraper = self.scraperTypeVar.get() in ("API-JSON-Scraper", "Public-Content-Scraper")
         self.configJson = {
             'userDataDir': self.userDataDirVar.get(),
             'headless': self.headlessVar.get(),
@@ -588,6 +638,7 @@ class HomeScreen:
             'downloadType': self.downloadTypeVar.get(),
             'useExtension': self.config["useExtension"],
             'retryFailedUrls': self.retryFailedUrlsVar.get(),
+            'excelCategories': [cat for cat, var in self.excelVars.items() if var.get()],
         }
 
 
@@ -601,8 +652,8 @@ class HomeScreen:
     def extractStaticAssets(self):
         self.logger.debug("extractStaticAssets called")
         self.createConfigJson()
-        if self.scraperTypeVar.get() != "API-JSON-Scraper":
-            tk.messagebox.showinfo("Asset Tools", "Switch to API-JSON-Scraper to use asset tools.")
+        if self.scraperTypeVar.get() not in ("API-JSON-Scraper", "Public-Content-Scraper"):
+            tk.messagebox.showinfo("Asset Tools", "Switch to API-JSON-Scraper or Public-Content-Scraper to use asset tools.")
             return
 
         self.resetProgressBars()
@@ -622,8 +673,8 @@ class HomeScreen:
     def downloadStaticAssets(self):
         self.logger.debug("downloadStaticAssets called")
         self.createConfigJson()
-        if self.scraperTypeVar.get() != "API-JSON-Scraper":
-            tk.messagebox.showinfo("Asset Tools", "Switch to API-JSON-Scraper to use asset tools.")
+        if self.scraperTypeVar.get() not in ("API-JSON-Scraper", "Public-Content-Scraper"):
+            tk.messagebox.showinfo("Asset Tools", "Switch to API-JSON-Scraper or Public-Content-Scraper to use asset tools.")
             return
 
         self.resetProgressBars()
@@ -661,8 +712,8 @@ class HomeScreen:
     def startManualScraper(self):
         self.logger.debug("startManualScraper called")
         self.createConfigJson()
-        if self.scraperTypeVar.get() == "API-JSON-Scraper":
-            tk.messagebox.showinfo("Manual Scraper", "Manual scraper is disabled for API-JSON-Scraper.")
+        if self.scraperTypeVar.get() in ("API-JSON-Scraper", "Public-Content-Scraper"):
+            tk.messagebox.showinfo("Manual Scraper", "Manual scraper is disabled for this scraper type.")
             return
         startScraper = StartScraper()
         self.process = multiprocessing.Process(name="ManualScraper", target=startScraper.startManual, args=(self.configJson, ))
@@ -719,7 +770,7 @@ class HomeScreen:
 
 
     def updateManualScraperButtonState(self):
-        if self.scraperTypeVar.get() == "API-JSON-Scraper":
+        if self.scraperTypeVar.get() in ("API-JSON-Scraper", "Public-Content-Scraper"):
             self.startChromeDriverButton.config(state="disabled")
         elif self.process and self.process.name == "ManualScraper":
             if self.process.is_alive():
@@ -734,7 +785,7 @@ class HomeScreen:
     def EnableDisableButtons(self, state):
         self.downloadChromeDriverButton.config(state=state)
         self.downloadChromeBinaryButton.config(state=state)
-        manual_state = "disabled" if self.scraperTypeVar.get() == "API-JSON-Scraper" else state
+        manual_state = "disabled" if self.scraperTypeVar.get() in ("API-JSON-Scraper", "Public-Content-Scraper") else state
         self.startChromeDriverButton.config(state=manual_state)
         self.startScraperButton.config(state=state)
         self.loginAccountButton.config(state=state)
@@ -743,7 +794,7 @@ class HomeScreen:
                 self.extractAssetsButton.config(state="disabled")
                 self.downloadAssetsButton.config(state="disabled")
             else:
-                button_state = "normal" if self.scraperTypeVar.get() == "API-JSON-Scraper" else "disabled"
+                button_state = "normal" if self.scraperTypeVar.get() in ("API-JSON-Scraper", "Public-Content-Scraper") else "disabled"
                 self.extractAssetsButton.config(state=button_state)
                 self.downloadAssetsButton.config(state=button_state)
 
