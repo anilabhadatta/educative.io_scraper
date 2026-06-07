@@ -38,7 +38,7 @@ ASSET_SCAN_API_PATH_REGEX = re.compile(
     r'collection|cheatsheet'            # course / cheatsheet images
     r'|edpresso/shot'                   # Answers images: /api/edpresso/shot/{id}/image/{id}
     r'|page/\d+/image'                  # Blog/Newsletter images: /api/page/{id}/image/download/{id}
-    r')/[^\s"\' <>{}\\\]]+'
+    r')/[^\s"\' <>{}\\)(\]]+'
 )
 UDATA_SCAN_REGEX = re.compile(r'(?<!/api)/udata/[^"\'<>{}\\)\];]+')
 
