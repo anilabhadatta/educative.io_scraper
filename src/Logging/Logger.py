@@ -28,9 +28,9 @@ class CustomColorFormatter(logging.Formatter):
 
     def format(self, record):
         message = str(record.msg)
-        is_topic_complete = "Saved JSON for:" in message or "done. Progress:" in message
-        is_topic_start = "Scraping Topic:" in message
-        is_derived_api_url = "Derived course API URLs:" in message
+        is_topic_complete = "Saved JSON for:" in message or "done. Progress:" in message or "Saved public page" in message
+        is_topic_start = "Scraping Topic:" in message or "Scraping public" in message
+        is_derived_api_url = "Derived course API URLs:" in message or "page API" in message
         is_course_type = "Determined course type:" in message
         is_course_started = "Started Scraping from Text File URL:" in message
         # Use log level, not message text — logger.error() sets levelno, not the message string
@@ -69,7 +69,7 @@ class Logger:
         self.setupHandlers()
 
     def setupHandlers(self):
-        use_color = self.configJson.get("scraperType") == "API-JSON-Scraper"
+        use_color = self.configJson.get("scraperType") in ["API-JSON-Scraper", "Public-Content-Scraper", "All-Course-Urls-Text-File-Generator"]
         
         file_formatter = logging.Formatter(" %(asctime)s - %(levelname)s - %(name)s - %(message)s")
         if use_color:

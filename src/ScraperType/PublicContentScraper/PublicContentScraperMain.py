@@ -100,7 +100,7 @@ class PublicContentScraperMain:
                 if page_type:
                     course_id = self.db.upsert_public_course(page_type)
                     topic_row = self.db.get_topic_by_api_url(course_id, page_url)
-                    overwrite = self.configJson["ScraperConfig"].get("overwrite", "false").lower() == "true"
+                    overwrite = self.configJson.get("overwrite", False)
                     
                     if topic_row and topic_row["status"] == "done":
                         if not overwrite:
@@ -114,12 +114,20 @@ class PublicContentScraperMain:
 
                 self._scrape_page(page_url)
                 self.progressQueue.put(("progress-course", idx + 1))
+                self.osUtils.sleep(2)
             except KeyboardInterrupt:
                 asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
                 raise
             except Exception as exc:
-                asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
-                raise Exception(f"PublicContentScraperMain:start: {exc}")
+                self.logger.error(f"Error scraping {page_url}: {exc}")
+                try:
+                    if 'course_id' in locals() and 'topic_row' in locals() and topic_row:
+                        self.db.mark_topic_error(course_id, topic_row["topic_index"], str(exc))
+                except Exception as db_exc:
+                    self.logger.error(f"Failed to mark error in DB for {page_url}: {db_exc}")
+                self.progressQueue.put(("progress-course", idx + 1))
+                self.osUtils.sleep(2)
+                continue
 
         asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
         self.logger.info("PublicContentScraperMain completed.")

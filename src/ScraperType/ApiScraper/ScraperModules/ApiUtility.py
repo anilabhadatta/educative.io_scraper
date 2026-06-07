@@ -93,6 +93,7 @@ class ApiUtility:
         self.logger.info(f"Executing JS to get JSON from URL: {url}")
         apiJsonScript = f"""
             return new Promise((resolve, reject) => {{
+                const timeoutId = setTimeout(() => reject(new Error('HTTP_TIMEOUT')), 15000);
                 fetch("{url}", {{
                     method: 'GET',
                     mode: 'cors',
@@ -102,28 +103,40 @@ class ApiUtility:
                 }})
                     .then(response => {{
                         if (response.status === 401 || response.status === 403) {{
-                            reject('HTTP_' + response.status);
+                            clearTimeout(timeoutId);
+                            reject(new Error('HTTP_' + response.status));
                             return;
                         }}
                         if (response.status !== 200) {{
+                            clearTimeout(timeoutId);
                             resolve('HTTP_' + response.status);
                             return;
                         }}
                         return response.json();
                     }})
                     .then(data => {{
+                        clearTimeout(timeoutId);
                         if (data !== undefined) resolve(data);
+                        else resolve({{}});
                     }})
                     .catch(error => {{
+                        clearTimeout(timeoutId);
                         reject(error);
                     }});
             }});
         """
-        result = self.browser.execute_script(apiJsonScript)
-        if isinstance(result, str) and result in HTTP_AUTH_ERRORS:
-            code = result.split("_")[1]
-            raise Exception(f"HTTP {code} fetching API URL — topic inaccessible or session expired: {url}")
-        return result
+        try:
+            result = self.browser.execute_script(apiJsonScript)
+            return result
+        except Exception as e:
+            error_msg = str(e)
+            if "HTTP_401" in error_msg or "HTTP_403" in error_msg:
+                code = "401" if "HTTP_401" in error_msg else "403"
+                raise Exception(f"HTTP {code} fetching API URL — topic inaccessible or session expired: {url}")
+            elif "HTTP_TIMEOUT" in error_msg:
+                raise Exception(f"HTTP_TIMEOUT: API fetch request timed out after 15 seconds for URL: {url}")
+            else:
+                raise Exception(f"JS execution failed for URL {url}: {e}")
 
 
     def getMainApiContentJson(self, apiUrl, courseType):
