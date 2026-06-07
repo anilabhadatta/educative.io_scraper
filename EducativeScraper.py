@@ -104,7 +104,7 @@ class EducativeScraper:
 
 
 if __name__ == '__main__':
-    version = "v4.0.34 Dev Branch"
+    version = "v4.0.36 Dev Branch"
     helpDescription = f"""
                         Educative Scraper ({version}), developed by Anilabha Datta
                         Project Link: https://github.com/anilabhadatta/educative.io_scraper/
