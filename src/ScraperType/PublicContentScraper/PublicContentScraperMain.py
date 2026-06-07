@@ -128,7 +128,7 @@ class PublicContentScraperMain:
                         self.logger.error(f"Failed to mark error in DB for {page_url}: {db_exc}")
                     self.progressQueue.put(("progress-course", idx + 1))
                     self.osUtils.sleep(2)
-                    continue
+                    raise
 
             asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
         finally:
