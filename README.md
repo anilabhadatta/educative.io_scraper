@@ -4,7 +4,7 @@ This tool efficiently scrapes and saves Educative.io courses, paths, projects, a
 
 > **Disclaimer:** I am not accountable for any inappropriate use of this scraper. I developed it solely for research purposes and take no responsibility for its misuse.
 
-      Repository Version: v4.0.33 (Recommended)
+      Repository Version: v4.0.34 (Recommended)
       Master Branch: v4-dev
 ---
 
@@ -63,8 +63,15 @@ To quickly get the exact URLs of all available courses, paths, and projects:
 4. Click **Login Account** to authenticate your Educative session. A browser will open—log in, and once authenticated, close the browser window.
 5. Click **Start Scraper**. The scraper will use internal APIs to download the courses cleanly into a local database.
 
-### Step 4: Extract and Download Assets
-Once the courses are scraped, use the GUI to run **Extract Assets**, followed by **Download Assets**. This step will fetch all embedded images, SVGs, and files referenced in the courses.
+### Step 4: Scraping Public Content (Answers, Blog, Newsletter)
+If you want to download free public content from Educative (e.g., Blog posts, Edpresso Answers, Newsletters):
+1. Ensure your text file contains the desired public URLs (these are also categorized in the Excel file generated in Step 1).
+2. In the Scraper GUI, select **`Public-Content-Scraper`** as the Scraper Type.
+3. Select your Text File and Save Directory.
+4. Click **Start Scraper**. The tool will use clean internal JSON APIs to fetch public pages and store them in the database identically to standard courses.
+
+### Step 5: Extract and Download Assets
+Once the courses or public content are scraped, use the GUI to run **Extract Assets**, followed by **Download Assets**. This step will fetch all embedded images, SVGs, and files referenced in the content.
 
 ---
 

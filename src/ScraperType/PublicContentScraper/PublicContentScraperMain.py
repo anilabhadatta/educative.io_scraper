@@ -81,56 +81,60 @@ class PublicContentScraperMain:
         self.progressQueue.put(("max-course", len(urls)))
         self.progressQueue.put(("progress-course", 0))
 
-        for idx, page_url in enumerate(urls):
+        try:
+            for idx, page_url in enumerate(urls):
 
-            self.logger.info(
-                f"------------------------------------------------------------\n"
-                f"[{idx+1}/{len(urls)}] Scraping public page: {page_url}"
-            )
-            try:
-                self._ensure_browser()
-
+                self.logger.info(
+                    f"------------------------------------------------------------\n"
+                    f"[{idx+1}/{len(urls)}] Scraping public page: {page_url}"
+                )
                 try:
-                    page_type = _detect_page_type(page_url)
-                except ValueError as e:
-                    self.logger.warning(str(e))
+                    self._ensure_browser()
+
+                    try:
+                        page_type = _detect_page_type(page_url)
+                    except ValueError as e:
+                        self.logger.warning(str(e))
+                        self.progressQueue.put(("progress-course", idx + 1))
+                        continue
+
+                    if page_type:
+                        course_id = self.db.upsert_public_course(page_type)
+                        topic_row = self.db.get_topic_by_api_url(course_id, page_url)
+                        overwrite = self.configJson.get("overwrite", False)
+                        
+                        if topic_row and topic_row["status"] == "done":
+                            if not overwrite:
+                                self.logger.info(f"Topic already downloaded, skipping: {page_url}")
+                                self.progressQueue.put(("progress-course", idx + 1))
+                                continue
+                            else:
+                                self.logger.info(f"Topic downloaded, but overwrite is enabled. Re-scraping: {page_url}")
+                                # Mark as pending to prevent partial state on crash
+                                self.db.mark_topic_error(course_id, topic_row["topic_index"], "Pending overwrite")
+
+                    self._scrape_page(page_url)
                     self.progressQueue.put(("progress-course", idx + 1))
+                    self.osUtils.sleep(2)
+                except KeyboardInterrupt:
+                    asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
+                    raise
+                except Exception as exc:
+                    self.logger.error(f"Error scraping {page_url}: {exc}")
+                    try:
+                        if 'course_id' in locals() and 'topic_row' in locals() and topic_row:
+                            self.db.mark_topic_error(course_id, topic_row["topic_index"], str(exc))
+                    except Exception as db_exc:
+                        self.logger.error(f"Failed to mark error in DB for {page_url}: {db_exc}")
+                    self.progressQueue.put(("progress-course", idx + 1))
+                    self.osUtils.sleep(2)
                     continue
 
-                if page_type:
-                    course_id = self.db.upsert_public_course(page_type)
-                    topic_row = self.db.get_topic_by_api_url(course_id, page_url)
-                    overwrite = self.configJson.get("overwrite", False)
-                    
-                    if topic_row and topic_row["status"] == "done":
-                        if not overwrite:
-                            self.logger.info(f"Topic already downloaded, skipping: {page_url}")
-                            self.progressQueue.put(("progress-course", idx + 1))
-                            continue
-                        else:
-                            self.logger.info(f"Topic downloaded, but overwrite is enabled. Re-scraping: {page_url}")
-                            # Mark as pending to prevent partial state on crash
-                            self.db.mark_topic_error(course_id, topic_row["topic_index"], "Pending overwrite")
-
-                self._scrape_page(page_url)
-                self.progressQueue.put(("progress-course", idx + 1))
-                self.osUtils.sleep(2)
-            except KeyboardInterrupt:
-                asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
-                raise
-            except Exception as exc:
-                self.logger.error(f"Error scraping {page_url}: {exc}")
-                try:
-                    if 'course_id' in locals() and 'topic_row' in locals() and topic_row:
-                        self.db.mark_topic_error(course_id, topic_row["topic_index"], str(exc))
-                except Exception as db_exc:
-                    self.logger.error(f"Failed to mark error in DB for {page_url}: {db_exc}")
-                self.progressQueue.put(("progress-course", idx + 1))
-                self.osUtils.sleep(2)
-                continue
-
-        asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
+            asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
+        finally:
+            self.db.shutdown()
         self.logger.info("PublicContentScraperMain completed.")
+
 
     # ------------------------------------------------------------------ #
     #  Per-page scrape

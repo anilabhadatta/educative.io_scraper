@@ -23,6 +23,7 @@ from src.Utility.DownloadUtility import DownloadUtility
 from src.Utility.FileUtility import FileUtility
 from src.Utility.StaticAssetExtractor import run_from_config as run_static_asset_extractor
 from src.Utility.StaticAssetDownloader import run_from_config as run_static_asset_downloader
+from src.ScraperType.ApiScraper.Database.DatabaseManager import DatabaseManager
 
 
 class HomeScreen:
@@ -749,6 +750,14 @@ class HomeScreen:
             except psutil.NoSuchProcess:
                 pass
         asyncio.get_event_loop().run_until_complete(browserUtil.shutdownChromeViaWebsocket())
+        
+        # Cleanup WAL file if API scraper was running and abruptly terminated
+        if self.scraperTypeVar.get() in ("API-JSON-Scraper", "Public-Content-Scraper"):
+            try:
+                DatabaseManager(self.configJson).shutdown()
+            except Exception as db_e:
+                self.logger.error(f"Error shutting down DatabaseManager on terminate: {db_e}")
+
         self.processes = []
         self.updateButtonState()
         self.logger.debug("terminateProcess completed")
