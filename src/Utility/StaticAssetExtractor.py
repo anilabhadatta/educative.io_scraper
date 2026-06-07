@@ -202,6 +202,8 @@ def _urls_for_drawiowidget(content: dict) -> tuple:
     """Returns (urls, updated_content) for DrawIOWidget slides."""
     slides_id = content.get("slidesId")
     if not (content.get("slidesEnabled") and content.get("isSlides") and slides_id):
+        if content.get("path") and "/api/" in content.get("path"):
+            return [content["path"]], content
         return [], content
 
     editor_image_path = content.get("editorImagePath", "")
