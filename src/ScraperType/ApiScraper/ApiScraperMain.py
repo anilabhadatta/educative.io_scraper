@@ -95,27 +95,30 @@ class ApiScraperMain:
         self.progressQueue.put(("progress-course", 0))
         self.progressQueue.put(("max-course", self.totalCourseUnits))
 
-        for textFileIdx, topicUrl in enumerate(urlsTextFile):
-            try:
-                if SHOW_CONTENT_QUERY not in topicUrl:
-                    topicUrl += SHOW_CONTENT_QUERY
-                self.logger.info(f"Started Scraping from Text File URL: {topicUrl}")
-                self.browser = self.browserUtils.loadBrowser()
-                self.apiUtils.browser = self.browser
-                self.loginUtils.browser = self.browser
-                self.networkMonitor.browser = self.browser
-                self.projectModule.browser = self.browser
-                self.browser.set_window_size(1920, 1080)
-                self.scrapeCourseOrPath(topicUrl)
-                asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
-                self._removeUrlFromFile(topicUrl)
-            except KeyboardInterrupt:
-                asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
-                raise
-            except Exception as e:
-                asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
-                lineNumber = e.__traceback__.tb_lineno
-                raise Exception(f"ApiScraperMain:start: {lineNumber}: {e}")
+        try:
+            for textFileIdx, topicUrl in enumerate(urlsTextFile):
+                try:
+                    if SHOW_CONTENT_QUERY not in topicUrl:
+                        topicUrl += SHOW_CONTENT_QUERY
+                    self.logger.info(f"Started Scraping from Text File URL: {topicUrl}")
+                    self.browser = self.browserUtils.loadBrowser()
+                    self.apiUtils.browser = self.browser
+                    self.loginUtils.browser = self.browser
+                    self.networkMonitor.browser = self.browser
+                    self.projectModule.browser = self.browser
+                    self.browser.set_window_size(1920, 1080)
+                    self.scrapeCourseOrPath(topicUrl)
+                    asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
+                    self._removeUrlFromFile(topicUrl)
+                except KeyboardInterrupt:
+                    asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
+                    raise
+                except Exception as e:
+                    asyncio.get_event_loop().run_until_complete(self.browserUtils.shutdownChromeViaWebsocket())
+                    lineNumber = e.__traceback__.tb_lineno
+                    raise Exception(f"ApiScraperMain:start: {lineNumber}: {e}")
+        finally:
+            self.db.shutdown()
 
         self.logger.info("ApiScraperMain completed.")
 
