@@ -146,26 +146,39 @@ class PublicContentScraperMain:
         # Ensure the aggregator course row exists (created once, reused forever)
         course_id = self.db.upsert_public_course(page_type)
 
-        # ── Fetch page data from the JSON API ────────────────────────────
-        extractor = PublicContentExtractor(self.apiUtils, self.logger)
-        page_data = extractor.extract(page_type, page_url)
+        # ── Fetch page data from the JSON API        # Pre-register topic as pending so we can track errors if extraction fails
+        temp_slug = page_url.rstrip("/").split("/")[-1]
+        temp_title = f"Pending: {temp_slug}"
+        topic_index, is_new = self.db.upsert_topic_in_public_course(
+            course_id  = course_id,
+            topic_url  = page_url,
+            title      = temp_title,
+            slug       = temp_slug,
+            page_id    = "",
+        )
+        if is_new:
+            self.logger.info(f"Registered new public topic → {page_url}")
+
+        try:
+            extractor = PublicContentExtractor(self.apiUtils, self.logger)
+            page_data = extractor.extract(page_type, page_url)
+        except Exception as e:
+            self.logger.error(f"Failed to extract {page_url}: {e}")
+            self.db.topics.mark_topic_error(course_id, topic_index, str(e))
+            return
 
         title     = CommonUtility.sanitize_topic_name(page_data["title"])
         slug      = page_data["slug"] or slugify(title)
         source_id = page_data["source_id"]   # shotId / marketing_page_id
         author_id = page_data["author_id"]
 
-        # Register topic (appends if new, skips if already scraped)
-        topic_index, is_new = self.db.upsert_topic_in_public_course(
+        # Update topic with the authoritative data from the API
+        self.db.upsert_topic_in_public_course(
             course_id  = course_id,
             topic_url  = page_url,
             title      = title,
             slug       = slug,
             page_id    = source_id,
-        )
-        self.logger.info(
-            f"Topic '{title}' → course_id={course_id} "
-            f"topic_index={topic_index} ({'new' if is_new else 'existing'})"
         )
 
         components = page_data["components"]

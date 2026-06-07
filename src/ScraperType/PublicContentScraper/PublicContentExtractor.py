@@ -4,7 +4,7 @@ PublicContentExtractor.py
 Fetches Educative public content pages via clean JSON APIs (no RSC/DOM parsing).
 
 API endpoints by type:
-  Blog       → GET /api/page/url/5002/{slug}
+  Blog       → GET /api/page/url/5003/{slug}
   Newsletter → GET /api/page/url/5005/{slug}   (last URL segment only)
   Answers    → GET /api/edpresso/shot/url/{slug}
 
@@ -15,10 +15,10 @@ so the existing save_topic_content / ResolveComponent pipeline works unchanged.
 from src.ScraperType.ApiScraper.APIScraperConstants import EDUCATIVE_BASE_URL
 
 
-# Map page type name → API URL builder callable
-_TYPE_ID = {
-    "Blog":       "5002",
-    "Newsletter": "5005",
+# Map page type name → List of possible API URL type IDs
+_TYPE_IDS = {
+    "Blog":       ["5002", "5003"],
+    "Newsletter": ["5005"],
 }
 
 
@@ -81,20 +81,31 @@ class PublicContentExtractor:
     # ------------------------------------------------------------------ #
 
     def _fetch_marketing_page(self, page_type: str, slug: str) -> dict:
-        type_id = _TYPE_ID[page_type]
-        api_url = f"{EDUCATIVE_BASE_URL}/api/page/url/{type_id}/{slug}"
-        self.logger.info(f"Marketing page API: {api_url}")
+        type_ids = _TYPE_IDS[page_type]
+        data = None
+        
+        for type_id in type_ids:
+            api_url = f"{EDUCATIVE_BASE_URL}/api/page/url/{type_id}/{slug}"
+            self.logger.info(f"Trying Marketing page API: {api_url}")
 
-        data = self.api_utils.executeJsToGetJson(api_url)
+            try:
+                data = self.api_utils.executeJsToGetJson(api_url)
+            except Exception as e:
+                self.logger.debug(f"API {api_url} failed with exception: {e}")
+                continue
+
+            if isinstance(data, dict) and "marketing_page_content" in data:
+                break  # Successfully found the payload
+        
         if not isinstance(data, dict):
             raise ValueError(
-                f"Marketing page API returned non-dict for {page_type} slug={slug!r}: {data!r}"
+                f"Marketing page API returned non-dict for {page_type} slug={slug!r} across types {type_ids}: {data!r}"
             )
 
-        components = data.get("marketing_page_content") or []
+        components = data.get("marketing_page_content")
         if not isinstance(components, list):
             raise ValueError(
-                f"marketing_page_content is not a list for {page_type} slug={slug!r}"
+                f"marketing_page_content is missing or not a list for {page_type} slug={slug!r} (tried {type_ids}). Result: {data.get('errorText', data)}"
             )
 
         tags = self._collect_tags(data)
