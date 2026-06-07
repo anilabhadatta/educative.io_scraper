@@ -393,6 +393,8 @@ def extract_and_store(db_path: str, progress_queue=None):
                 elif comp_type == "DrawIOWidget":
                     urls, content = _urls_for_drawiowidget(content)
                     content_str = json.dumps(content, ensure_ascii=False)
+                    if not urls:
+                        urls = _urls_from_scan(content_str)
                 else:
                     urls = _urls_from_scan(content_str)
 
