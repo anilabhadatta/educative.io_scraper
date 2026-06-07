@@ -5,7 +5,7 @@ This tool efficiently scrapes and saves Educative.io courses, paths, projects, a
 > **Disclaimer:** I am not accountable for any inappropriate use of this scraper. I developed it solely for research purposes and take no responsibility for its misuse.
 
       Repository Version: v4.0.36 (Recommended)
-      Master Branch: v4-dev
+      Master Branch: v4-master
 ---
 
 ## 🚀 Getting Started
