@@ -314,14 +314,21 @@ class ComponentsTableQueries:
             content = dict(component.get("content", {}))
             content_str = json.dumps(content, ensure_ascii=False)
 
+            urls = []
             if comp_type == "File":
-                urls = urls_for_file(content, author_id, collection_id, page_id)
-                if urls:
-                    content["path"] = urls[0].replace("https://www.educative.io", "")
+                if not content.get("path"):
+                    urls = urls_for_file(content, author_id, collection_id, page_id)
+                    if urls:
+                        content["path"] = urls[0].replace("https://www.educative.io", "")
+                else:
+                    urls = [content["path"]]
             elif comp_type == "Image":
-                urls = urls_for_image(content, author_id, collection_id, page_id)
-                if urls:
-                    content["path"] = urls[0].replace("https://www.educative.io", "")
+                if not content.get("path"):
+                    urls = urls_for_image(content, author_id, collection_id, page_id)
+                    if urls:
+                        content["path"] = urls[0].replace("https://www.educative.io", "")
+                else:
+                    urls = [content["path"]]
             else:
                 urls = urls_from_scan(content_str)
 
@@ -392,5 +399,146 @@ class ProgressQueries:
                     (course_id,),
                 ).fetchall()
                 return {r["status"]: r["cnt"] for r in rows}
+            finally:
+                conn.close()
+
+
+class PublicCourseQueries:
+    """DB helpers specific to the 'one course per public content type' model."""
+
+    # Canonical aggregator course URLs — each type maps to exactly one courses row.
+    _TYPE_URLS = {
+        "Answers":    "https://www.educative.io/answers",
+        "Blog":       "https://www.educative.io/blog",
+        "Newsletter": "https://www.educative.io/newsletter",
+    }
+
+    def __init__(self, connect, lock, logger):
+        self._connect = connect
+        self._lock = lock
+        self.logger = logger
+
+    def upsert_public_course(self, page_type: str) -> int:
+        """
+        Find or create the single aggregator course row for a public content type
+        (Answers / Blog / Newsletter).  The row is identified solely by its URL
+        — structure_hash is fixed to the type slug so it never triggers a new row.
+        """
+        url  = self._TYPE_URLS[page_type]
+        slug = page_type.lower()
+        now  = datetime.utcnow().isoformat()
+        with self._lock:
+            conn = self._connect()
+            try:
+                row = conn.execute(
+                    "SELECT id FROM courses WHERE url = ? AND type = ?",
+                    (url, page_type),
+                ).fetchone()
+                if row:
+                    return row["id"]
+                conn.execute(
+                    """
+                    INSERT INTO courses
+                        (type, url, structure_hash, slug, author_id, collection_id,
+                         title, toc_json, scraped_at)
+                    VALUES (?, ?, ?, ?, '', '', ?, '[]', ?)
+                    """,
+                    (page_type, url, slug, slug, page_type, now),
+                )
+                conn.commit()
+                course_id = conn.execute(
+                    "SELECT id FROM courses WHERE url = ? AND type = ?",
+                    (url, page_type),
+                ).fetchone()["id"]
+                self.logger.info(f"Created public aggregator course '{page_type}' (id={course_id})")
+                return course_id
+            finally:
+                conn.close()
+
+    def upsert_topic_in_public_course(self, course_id: int, topic_url: str,
+                                      title: str, slug: str, page_id: str) -> tuple:
+        """
+        Insert or update a single topic row inside a public course, keyed by
+        api_url=topic_url.  Never deletes other topics (unlike the batch upsert).
+        Returns (topic_index, is_new).
+        """
+        now = datetime.utcnow().isoformat()
+        with self._lock:
+            conn = self._connect()
+            try:
+                existing = conn.execute(
+                    "SELECT topic_index FROM topics WHERE course_id = ? AND api_url = ?",
+                    (course_id, topic_url),
+                ).fetchone()
+                if existing:
+                    topic_index = existing["topic_index"]
+                    conn.execute(
+                        """
+                        UPDATE topics
+                        SET topic_name = ?, topic_slug = ?, topic_url = ?,
+                            page_id = ?, scraped_at = ?
+                        WHERE course_id = ? AND api_url = ?
+                        """,
+                        (title, slug, topic_url, page_id, now, course_id, topic_url),
+                    )
+                    conn.commit()
+                    return topic_index, False
+
+                row = conn.execute(
+                    "SELECT COALESCE(MAX(topic_index) + 1, 0) AS next_idx "
+                    "FROM topics WHERE course_id = ?",
+                    (course_id,),
+                ).fetchone()
+                topic_index = row["next_idx"]
+                conn.execute(
+                    """
+                    INSERT INTO topics
+                        (course_id, topic_index, topic_name, topic_slug, topic_url,
+                         api_url, page_id, status, scraped_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+                    """,
+                    (course_id, topic_index, title, slug, topic_url,
+                     topic_url, page_id, now),
+                )
+                conn.commit()
+                self.logger.info(
+                    f"Inserted public topic '{title}' at index {topic_index} "
+                    f"(course_id={course_id})"
+                )
+                return topic_index, True
+            finally:
+                conn.close()
+
+    def update_public_course_toc(self, course_id: int):
+        """Rebuild toc_json for a public course from its current topics rows."""
+        with self._lock:
+            conn = self._connect()
+            try:
+                rows = conn.execute(
+                    "SELECT topic_index, topic_name, topic_slug, topic_url, api_url "
+                    "FROM topics WHERE course_id = ? ORDER BY topic_index",
+                    (course_id,),
+                ).fetchall()
+                toc = [
+                    {
+                        "index":       r["topic_index"],
+                        "title":       r["topic_name"],
+                        "slug":        r["topic_slug"],
+                        "url":         r["topic_url"],
+                        "api_url":     r["api_url"],
+                        "course_id":   course_id,
+                        "topic_index": r["topic_index"],
+                    }
+                    for r in rows
+                ]
+                conn.execute(
+                    "UPDATE courses SET toc_json = ? WHERE id = ?",
+                    (json.dumps(toc, ensure_ascii=False), course_id),
+                )
+                conn.commit()
+                self.logger.info(
+                    f"Rebuilt public course toc_json: course_id={course_id}, "
+                    f"{len(toc)} topics"
+                )
             finally:
                 conn.close()
