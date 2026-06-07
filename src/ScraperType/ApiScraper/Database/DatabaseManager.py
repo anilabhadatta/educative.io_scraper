@@ -159,6 +159,18 @@ class DatabaseManager:
             finally:
                 conn.close()
 
+    def shutdown(self):
+        """Force a WAL checkpoint to merge data and clean up the .wal file."""
+        with self._lock:
+            conn = self._connect()
+            try:
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
+            except Exception as e:
+                self.logger.error(f"Error during database shutdown checkpoint: {e}")
+            finally:
+                conn.close()
+                self.logger.info("Database shutdown complete, WAL checkpointed.")
+
     # ------------------------------------------------------------------ #
     #  Path
     # ------------------------------------------------------------------ #
