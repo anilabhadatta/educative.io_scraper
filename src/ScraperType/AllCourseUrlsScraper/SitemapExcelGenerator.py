@@ -6,21 +6,27 @@ import openpyxl
 from openpyxl.styles import Alignment
 from urllib.error import URLError
 import json
+import os
+from src.Logging.Logger import Logger
 from hashids import Hashids
 
 class SitemapExcelGenerator:
     def __init__(self, configJson, progressQueue=None):
+        self.logger = Logger(configJson, "SitemapExcelGenerator").logger
         self.configJson = configJson
         self.progressQueue = progressQueue
         self.general_url = "https://www.educative.io/sitemaps/general/sitemap.xml"
+        self.answers_sitemap = "https://www.educative.io/sitemaps/answers/sitemap.xml"
         self.lesson_sitemaps = {
             "pal_lessons": "https://www.educative.io/sitemaps/pal_lessons/sitemap.xml",
             "course_lessons_1": "https://www.educative.io/sitemaps/course_lessons_1/sitemap.xml",
             "course_lessons_2": "https://www.educative.io/sitemaps/course_lessons_2/sitemap.xml"
         }
+        self.valid_categories = self.configJson.get('excelCategories', ['courses', 'path', 'cloudlabs', 'projects', 'answers', 'blog', 'newsletter'])
+
 
     def fetch_sitemap(self, url):
-        print(f"Fetching sitemap: {url}")
+        self.logger.info(f"Fetching sitemap: {url}")
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
         try:
             response = urllib.request.urlopen(req)
@@ -29,27 +35,29 @@ class SitemapExcelGenerator:
             urls = [elem.text for elem in root.findall('.//{http://www.sitemaps.org/schemas/sitemap/0.9}loc')]
             return urls
         except URLError as e:
-            print(f"Error fetching {url}: {e}")
+            self.logger.error(f"Error fetching {url}: {e}")
             return []
 
     def extract_category_and_slug(self, url):
+        url = url.rstrip('/')
         parts = url.split('/')
         if len(parts) < 4:
             return None, None
-        valid_categories = ['courses', 'path', 'cloudlabs', 'projects']
         category = None
         slug = None
         for i, part in enumerate(parts):
-            if part in valid_categories:
+            if part in self.valid_categories:
                 category = part
-                if i + 1 < len(parts):
+                if category in ['answers', 'blog', 'newsletter']:
+                    slug = parts[-1]
+                elif i + 1 < len(parts):
                     slug = parts[i + 1]
                 break
         return category, slug
 
     def fetch_path_modules_and_lessons(self, path_slug):
         try:
-            print(f"Fetching API for path: {path_slug}")
+            self.logger.info(f"Fetching API for path: {path_slug}")
             req = urllib.request.Request(f'https://www.educative.io/api/collection/{path_slug}', headers={'User-Agent': 'Mozilla/5.0'})
             response = urllib.request.urlopen(req, timeout=10)
             data = json.loads(response.read().decode('utf-8'))
@@ -103,32 +111,37 @@ class SitemapExcelGenerator:
                     })
             return modules_list, lessons_list
         except Exception as e:
-            print(f"Error fetching API for path {path_slug}: {e}")
+            self.logger.error(f"Error fetching API for path {path_slug}: {e}")
             return [], []
 
     def start(self):
         general_urls = self.fetch_sitemap(self.general_url)
+        if 'answers' in self.valid_categories:
+            answers_urls = self.fetch_sitemap(self.answers_sitemap)
+            general_urls.extend(answers_urls)
+        
         general_items = {} 
         for u in general_urls:
             cat, slug = self.extract_category_and_slug(u)
             if cat and slug:
                 general_items[(cat, slug)] = u
                 
-        print(f"Found {len(general_items)} total items in general sitemap.")
+        self.logger.info(f"Found {len(general_items)} total items in general/answers sitemaps.")
         
         lesson_data = []
-        for sitemap_name, ls_url in self.lesson_sitemaps.items():
-            l_urls = self.fetch_sitemap(ls_url)
-            print(f"  Fetched {len(l_urls)} lessons from {sitemap_name}")
-            for u in l_urls:
-                cat, slug = self.extract_category_and_slug(u)
-                if cat and slug:
-                    lesson_data.append({
-                        'Category': cat.capitalize(),
-                        'Slug': slug,
-                        'Lesson URL': u,
-                        'Source Sitemap': sitemap_name
-                    })
+        if 'courses' in self.valid_categories:
+            for sitemap_name, ls_url in self.lesson_sitemaps.items():
+                l_urls = self.fetch_sitemap(ls_url)
+                self.logger.info(f"  Fetched {len(l_urls)} lessons from {sitemap_name}")
+                for u in l_urls:
+                    cat, slug = self.extract_category_and_slug(u)
+                    if cat and slug:
+                        lesson_data.append({
+                            'Category': cat.capitalize(),
+                            'Slug': slug,
+                            'Lesson URL': u,
+                            'Source Sitemap': sitemap_name
+                        })
                     
         df_lessons = pd.DataFrame(lesson_data)
         if not df_lessons.empty:
@@ -139,7 +152,7 @@ class SitemapExcelGenerator:
             lesson_keys = set(zip(df_lessons['Category'].str.lower(), df_lessons['Slug']))
             all_keys = all_keys.union(lesson_keys)
         
-        valid_categories = ['courses', 'path', 'cloudlabs', 'projects']
+        valid_categories = self.valid_categories
         summary_dfs = {}
         all_path_lessons = []
         
@@ -230,9 +243,13 @@ class SitemapExcelGenerator:
         else:
             df_path_lessons = pd.DataFrame(columns=['Path Slug', 'Module Title', 'Lesson URL'])
             
-        output_file = "educative_sitemap_analysis_updated.xlsx"
-        print(f"Writing to {output_file}...")
-        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+        output_file = os.path.join(self.configJson["saveDirectory"], "educative_sitemap_analysis_updated.xlsx")
+        self.logger.info(f"Writing to {output_file}...")
+        
+        mode = 'a' if os.path.exists(output_file) else 'w'
+        if_sheet_exists = 'replace' if mode == 'a' else None
+        
+        with pd.ExcelWriter(output_file, engine='openpyxl', mode=mode, if_sheet_exists=if_sheet_exists) as writer:
             if not df_lessons.empty:
                 df_lessons.to_excel(writer, sheet_name='Grouped Lessons', index=False)
             if not df_path_lessons.empty:
@@ -273,4 +290,4 @@ class SitemapExcelGenerator:
                     for cell in col:
                         cell.alignment = cell_alignment
             
-        print("Done! You can find the results in", output_file)
+        self.logger.info(f"Done! You can find the results in {output_file}")

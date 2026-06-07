@@ -33,7 +33,13 @@ COLLECTION_API_URL_PATTERN = re.compile(
 
 COLLECTION_TOPIC_API_URL_REGEX = re.compile(r"/api/collection/([^/]+)/([^/]+)/page/([^/]+)$")
 PROJECT_TOPIC_API_URL_REGEX = re.compile(r"/api/project/([^/]+)/([^/]+)/([^/]+)/([^/]+)$")
-ASSET_SCAN_API_PATH_REGEX = re.compile(r'/api/(?:collection|cheatsheet)/[^\s"\' <>{}\\\]]+')
+ASSET_SCAN_API_PATH_REGEX = re.compile(
+    r'/api/(?:'
+    r'collection|cheatsheet'            # course / cheatsheet images
+    r'|edpresso/shot'                   # Answers images: /api/edpresso/shot/{id}/image/{id}
+    r'|page/\d+/image'                  # Blog/Newsletter images: /api/page/{id}/image/download/{id}
+    r')/[^\s"\' <>{}\\\]]+'
+)
 UDATA_SCAN_REGEX = re.compile(r'(?<!/api)/udata/[^"\'<>{}\\)\];]+')
 
 NEXT_DATA_SELECTOR = "script[id*='__NEXT_DATA__']"
