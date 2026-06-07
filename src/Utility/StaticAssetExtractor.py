@@ -251,13 +251,21 @@ def _urls_for_udata(content_json_str: str) -> tuple:
     updated_str = content_json_str
 
     for path in matches:
-        if path not in seen:
-            seen.add(path)
-            local_path = "/api" + path
+        clean_path = path.rstrip(')')
+        if clean_path not in seen:
+            seen.add(clean_path)
+            
+            if clean_path.startswith('/api/udata/'):
+                local_path = clean_path
+                fetch_path = clean_path[4:]  # remove '/api' to get '/udata/...'
+            else:
+                local_path = "/api" + clean_path
+                fetch_path = clean_path
+
             # String replace directly in the JSON string
-            updated_str = updated_str.replace(path, local_path)
-            # Return flat string URL so static_assets table stores the direct URL without /api/
-            result.append(urllib.parse.quote(path))
+            updated_str = updated_str.replace(clean_path, local_path)
+            # Return flat string URL so static_assets table stores the fetch URL
+            result.append(urllib.parse.quote(fetch_path))
 
     return result, updated_str
 

@@ -40,7 +40,7 @@ ASSET_SCAN_API_PATH_REGEX = re.compile(
     r'|page/\d+/image'                  # Blog/Newsletter images: /api/page/{id}/image/download/{id}
     r')/[^\s"\' <>{}\\)(\]]+'
 )
-UDATA_SCAN_REGEX = re.compile(r'(?<!/api)/udata/[^"\'<>{}\\)\];]+')
+UDATA_SCAN_REGEX = re.compile(r'(?:/api)?/udata/[^"\'<>{}\\\];]+')
 
 NEXT_DATA_SELECTOR = "script[id*='__NEXT_DATA__']"
 
