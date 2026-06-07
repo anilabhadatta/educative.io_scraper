@@ -50,7 +50,7 @@ class PublicContentExtractor:
         if page_type == "Answers":
             return self._fetch_answers(slug)
         else:
-            return self._fetch_marketing_page(page_type, slug)
+            return self._fetch_marketing_page(page_url, page_type, slug)
 
     def enrich_image_paths(self, components: list, page_type: str, source_id: str) -> list:
         """
@@ -80,7 +80,7 @@ class PublicContentExtractor:
     #  Blog / Newsletter  →  /api/page/url/{type_id}/{slug}
     # ------------------------------------------------------------------ #
 
-    def _fetch_marketing_page(self, page_type: str, slug: str) -> dict:
+    def _fetch_marketing_page(self, page_url: str, page_type: str, slug: str) -> dict:
         type_ids = _TYPE_IDS[page_type]
         data = None
         
@@ -97,15 +97,19 @@ class PublicContentExtractor:
             if isinstance(data, dict) and "marketing_page_content" in data:
                 break  # Successfully found the payload
         
-        if not isinstance(data, dict):
+        if not isinstance(data, dict) or "marketing_page_content" not in data:
+            self.logger.info(f"API endpoints returned 404. Initiating JS-native RSC memory extraction for {slug}...")
+            data = self._extract_rsc_via_browser(page_url)
+            
+        if not data or not isinstance(data, dict):
             raise ValueError(
-                f"Marketing page API returned non-dict for {page_type} slug={slug!r} across types {type_ids}: {data!r}"
+                f"Marketing page API and JS RSC extractor failed for {page_type} slug={slug!r}."
             )
 
         components = data.get("marketing_page_content")
         if not isinstance(components, list):
             raise ValueError(
-                f"marketing_page_content is missing or not a list for {page_type} slug={slug!r} (tried {type_ids}). Result: {data.get('errorText', data)}"
+                f"marketing_page_content is missing or not a list for {page_type} slug={slug!r}."
             )
 
         tags = self._collect_tags(data)
@@ -128,6 +132,128 @@ class PublicContentExtractor:
             "summary":        str(data.get("marketing_page_summary") or ""),
             "components":     components,
         }
+
+    def _extract_rsc_via_browser(self, page_url: str) -> dict:
+        """
+        Executes a native JavaScript parser directly inside the browser memory.
+        This handles Next.js hexadecimal template strings perfectly.
+        """
+        self.api_utils.logger.info(f"Navigating browser to extract RSC for: {page_url}")
+        
+        try:
+            self.api_utils.browser.get(page_url)
+            self.api_utils.osUtils.sleep(2)
+        except Exception as e:
+            self.api_utils.logger.info("Page Loading Issue, pressing ESC to stop page load")
+            self.api_utils.browser.execute_script("window.stop();")
+
+        js_script = """
+            function getRscPayload() {
+                if (!window.__next_f) return null;
+                
+                let rscData = "";
+                window.__next_f.forEach(chunk => {
+                    if (Array.isArray(chunk) && typeof chunk[1] === 'string') {
+                        rscData += chunk[1];
+                    }
+                });
+                
+                const ssrIndex = rscData.indexOf('"ssrContent":{');
+                if (ssrIndex === -1) return null;
+                
+                const startIdx = ssrIndex + 13;
+                let braceCount = 0;
+                let endIdx = -1;
+                let inString = false;
+                let escape = false;
+                
+                for (let i = startIdx; i < rscData.length; i++) {
+                    const char = rscData[i];
+                    if (inString) {
+                        if (escape) escape = false;
+                        else if (char === '\\\\') escape = true;
+                        else if (char === '"') inString = false;
+                    } else {
+                        if (char === '"') inString = true;
+                        else if (char === '{') braceCount++;
+                        else if (char === '}') {
+                            braceCount--;
+                            if (braceCount === 0) {
+                                endIdx = i + 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if (endIdx === -1) return null;
+                
+                const ssrJsonStr = rscData.substring(startIdx, endIdx);
+                let ssrJson;
+                try {
+                    ssrJson = JSON.parse(ssrJsonStr);
+                } catch (e) {
+                    return { error: "Failed to parse JSON: " + e.toString() };
+                }
+                
+                const encoder = new TextEncoder();
+                const decoder = new TextDecoder("utf-8");
+                
+                function resolveReferences(obj) {
+                    if (Array.isArray(obj)) {
+                        for (let i = 0; i < obj.length; i++) {
+                            obj[i] = resolveReferences(obj[i]);
+                        }
+                    } else if (obj !== null && typeof obj === 'object') {
+                        for (let key in obj) {
+                            if (typeof obj[key] === 'string' && obj[key].startsWith("$") && obj[key].length > 1) {
+                                const refId = obj[key].substring(1);
+                                if (/^[a-zA-Z0-9_]+$/.test(refId)) {
+                                    const regexT = new RegExp("(?:^|[^a-zA-Z0-9_])" + refId + ":T([0-9a-fA-F]+),");
+                                    const matchT = rscData.match(regexT);
+                                    if (matchT) {
+                                        const len = parseInt(matchT[1], 16);
+                                        const sIdx = matchT.index + matchT[0].length;
+                                        
+                                        const remainderStr = rscData.substring(sIdx);
+                                        const remainderBytes = encoder.encode(remainderStr);
+                                        const extractedBytes = remainderBytes.slice(0, len);
+                                        obj[key] = decoder.decode(extractedBytes);
+                                    } else {
+                                        const regexS = new RegExp("(?:^|[^a-zA-Z0-9_])" + refId + ':"((?:\\\\\\\\"|[^"])*)"');
+                                        const matchS = rscData.match(regexS);
+                                        if (matchS) {
+                                            try {
+                                                obj[key] = JSON.parse('"' + matchS[1] + '"');
+                                            } catch(e) {}
+                                        }
+                                    }
+                                }
+                            } else if (typeof obj[key] === 'object') {
+                                obj[key] = resolveReferences(obj[key]);
+                            }
+                        }
+                    }
+                    return obj;
+                }
+                
+                if (ssrJson.marketing_page_content) {
+                    ssrJson.marketing_page_content = resolveReferences(ssrJson.marketing_page_content);
+                }
+                
+                return ssrJson;
+            }
+            return getRscPayload();
+        """
+        
+        try:
+            result = self.api_utils.browser.execute_script(js_script)
+            if result and "error" not in result:
+                return result
+        except Exception as e:
+            self.logger.error(f"JS RSC Extractor failed: {e}")
+            
+        return None
 
     # ------------------------------------------------------------------ #
     #  Answers  →  /api/edpresso/shot/url/{slug}
