@@ -265,7 +265,7 @@ def _urls_for_udata(content_json_str: str) -> tuple:
             # String replace directly in the JSON string
             updated_str = updated_str.replace(clean_path, local_path)
             # Return flat string URL so static_assets table stores the fetch URL
-            result.append(urllib.parse.quote(fetch_path))
+            result.append(urllib.parse.quote(urllib.parse.unquote(fetch_path)))
 
     return result, updated_str
 
