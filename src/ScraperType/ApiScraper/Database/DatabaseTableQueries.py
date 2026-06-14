@@ -69,8 +69,8 @@ class CoursesTableQueries:
             conn = self._connect()
             try:
                 row = conn.execute(
-                    "SELECT id FROM courses WHERE url = ? AND structure_hash = ? ORDER BY id DESC LIMIT 1",
-                    (url, structure_hash),
+                    "SELECT id FROM courses WHERE type = ? AND structure_hash = ? ORDER BY id DESC LIMIT 1",
+                    (course_type, structure_hash),
                 ).fetchone()
                 if row:
                     course_id = row["id"]
@@ -97,8 +97,8 @@ class CoursesTableQueries:
                 )
                 conn.commit()
                 row = conn.execute(
-                    "SELECT id FROM courses WHERE url = ? AND structure_hash = ? ORDER BY id DESC LIMIT 1",
-                    (url, structure_hash),
+                    "SELECT id FROM courses WHERE type = ? AND structure_hash = ? ORDER BY id DESC LIMIT 1",
+                    (course_type, structure_hash),
                 ).fetchone()
                 course_id = row["id"]
                 self.logger.info(f"Inserted new {course_type} '{title}' version (id={course_id})")
