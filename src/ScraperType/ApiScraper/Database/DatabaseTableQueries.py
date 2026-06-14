@@ -65,13 +65,12 @@ class CoursesTableQueries:
         structure_hash = hashlib.sha256(
             json.dumps([str(slug or "") for slug in topic_slugs], ensure_ascii=False).encode("utf-8")
         ).hexdigest()
-        clean_url = url.split("?")[0]
         with self._lock:
             conn = self._connect()
             try:
                 row = conn.execute(
-                    "SELECT id FROM courses WHERE type = ? AND structure_hash = ? AND url LIKE ? ORDER BY id DESC LIMIT 1",
-                    (course_type, structure_hash, f"{clean_url}%"),
+                    "SELECT id FROM courses WHERE type = ? AND title = ? AND structure_hash = ? ORDER BY id DESC LIMIT 1",
+                    (course_type, title, structure_hash),
                 ).fetchone()
                 if row:
                     course_id = row["id"]
@@ -98,8 +97,8 @@ class CoursesTableQueries:
                 )
                 conn.commit()
                 row = conn.execute(
-                    "SELECT id FROM courses WHERE type = ? AND structure_hash = ? AND url LIKE ? ORDER BY id DESC LIMIT 1",
-                    (course_type, structure_hash, f"{clean_url}%"),
+                    "SELECT id FROM courses WHERE type = ? AND title = ? AND structure_hash = ? ORDER BY id DESC LIMIT 1",
+                    (course_type, title, structure_hash),
                 ).fetchone()
                 course_id = row["id"]
                 self.logger.info(f"Inserted new {course_type} '{title}' version (id={course_id})")
