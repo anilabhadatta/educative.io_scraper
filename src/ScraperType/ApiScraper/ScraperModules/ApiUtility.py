@@ -188,7 +188,7 @@ class ApiUtility:
             self.logger.info("Getting Course url")
             try:
                 self.browser.get(textFileUrl)
-                self.osUtils.sleep(3)
+                self.osUtils.sleep(10)
             except:
                 self.logger.info("Page Loading Issue, pressing ESC to stop page load")
                 self.browser.execute_script("window.stop();")
