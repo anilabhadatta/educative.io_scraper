@@ -68,11 +68,14 @@ class ProjectModule:
 			return topicData
 
 		categories = jsonData["toc"]["categories"]
+		isPagePresent = False
 		for category in categories:
 			if not category["pages"]:
 				topicData = add_topic(authorId, collectionId, projectId, category, workType)
+				topicData["type"] = "CATEGORY"
 				toc.append(topicData)
 			else:
+				isPagePresent = True
 				categoryTopic = {"category": category["title"], "topics": []}
 				for page in category["pages"]:
 					topicData = add_topic(authorId, collectionId, projectId, page, workType)
@@ -80,6 +83,7 @@ class ProjectModule:
 				toc.append(categoryTopic)
 
 		return {
+			"isPagePresent": isPagePresent,
 			"authorId": authorId,
 			"collectionId": collectionId,
 			"projectId": projectId,
