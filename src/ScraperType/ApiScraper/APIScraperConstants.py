@@ -19,7 +19,7 @@ SPECIAL_TOPIC_TYPES = [
     "CLOUD_LAB",
     "LINKED_MOCK_INTERVIEW",
     "LINKED_CLOUD_LAB",
-    "CATEGORY"
+    # "CATEGORY"   #Commenting this for now - not sure of the issues.
 ]
 
 PROJECT_API_URL_PATTERN = re.compile(

@@ -58,7 +58,7 @@ class DatabaseManager:
         project_id      INTEGER REFERENCES projects(id),
         is_active       INTEGER NOT NULL DEFAULT 1,
         scraped_at      TEXT    NOT NULL,
-        UNIQUE(url, structure_hash)
+        UNIQUE(type, structure_hash)
     );
 
     CREATE TABLE IF NOT EXISTS projects (
