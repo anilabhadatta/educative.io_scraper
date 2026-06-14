@@ -288,15 +288,15 @@ class ApiUtility:
                 const resultMap = {{}};
 
                 // 1. Check og:image meta tag (highly reliable for current course)
-                const metaTag = document.querySelector('meta[property="og:image"]');
-                if (metaTag && metaTag.content) {{
-                    const match = metaTag.content.match(/\/api\/(?:collection|page|project)\/(\d+)\/(\d+)/i);
-                    if (match) {{
-                        resultMap['authorId'] = match[1];
-                        resultMap['collectionId'] = match[2];
-                        return resultMap;
-                    }}
-                }}
+                // const metaTag = document.querySelector('meta[property="og:image"]');
+                // if (metaTag && metaTag.content) {{
+                //     const match = metaTag.content.match(/\/api\/(?:collection|page|project)\/(\d+)\/(\d+)/i);
+                //     if (match) {{
+                //         resultMap['authorId'] = match[1];
+                //         resultMap['collectionId'] = match[2];
+                //         return resultMap;
+                //     }}
+                // }}
 
                 // 2. Fallback to __next_f looking for exact "details" object
                 if (window.__next_f && Array.isArray(window.__next_f)) {{
