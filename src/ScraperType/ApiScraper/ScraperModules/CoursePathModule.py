@@ -63,13 +63,16 @@ class CoursePathModule:
 			return topicData
 
 		categories = jsonData["toc"]["categories"]
+		isPagePresent = False
 		for category in categories:
 			for tocEntry in category.get("toc", [category]):
 				pages = tocEntry.get("pages")
 				if not pages:
 					topicData = add_topic(authorId, collectionId, tocEntry, workType, topicUrl)
+					topicData["type"] = "CATEGORY"
 					toc.append(topicData)
 				else:
+					isPagePresent = True
 					categoryTitle = category["title"] if category.get("toc") else tocEntry["title"]
 					categoryTopic = {"category": categoryTitle, "topics": []}
 					for page in pages:
@@ -78,6 +81,7 @@ class CoursePathModule:
 					toc.append(categoryTopic)
 
 		return {
+			"isPagePresent": isPagePresent,
 			"authorId": authorId,
 			"collectionId": collectionId,
 			"title": title,

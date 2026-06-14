@@ -174,6 +174,10 @@ class ApiScraperMain:
                 title = courseCollectionsJson["title"]
                 toc = courseCollectionsJson["toc"]
                 topicSlugs = courseCollectionsJson["topicSlugList"]
+                isPagePresent = courseCollectionsJson["isPagePresent"]
+                if not isPagePresent:
+                    self.logger.info(f"Skipping {title} as it does not have any pages.")
+                    continue
 
                 slug = slugify(title)
                 projectId = courseCollectionsJson.get("projectId", None)
