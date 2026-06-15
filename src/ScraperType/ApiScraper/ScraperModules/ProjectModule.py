@@ -69,6 +69,7 @@ class ProjectModule:
 
 		categories = jsonData["toc"]["categories"]
 		isPagePresent = False
+		isPageMapPresent = False
 		for category in categories:
 			if not category["pages"]:
 				topicData = add_topic(authorId, collectionId, projectId, category, workType)
@@ -80,6 +81,8 @@ class ProjectModule:
 				for page in category["pages"]:
 					topicData = add_topic(authorId, collectionId, projectId, page, workType)
 					categoryTopic["topics"].append(topicData)
+					if page.get("pages_map"):
+						isPageMapPresent = True
 				toc.append(categoryTopic)
 
 		return {
@@ -94,6 +97,7 @@ class ProjectModule:
 			"topicUrlList": topicUrlList,
 			"topicTypeList": topicTypeList,
 			"toc": toc,
+			"isPageMapPresent": isPageMapPresent,
 		}
 	
 
