@@ -176,6 +176,12 @@ class ApiScraperMain:
                 toc = courseCollectionsJson["toc"]
                 topicSlugs = courseCollectionsJson["topicSlugList"]
                 isPagePresent = courseCollectionsJson["isPagePresent"]
+                isPageMapPresent = courseCollectionsJson["isPageMapPresent"]
+
+                if isPageMapPresent:
+                    self.logger.info(f"Not Downloading {title} as we donot support downloading pagemap.")
+                    continue
+
                 if not isPagePresent:
                     self.logger.info(f"Skipping {title} as it does not have any pages.")
                     continue
