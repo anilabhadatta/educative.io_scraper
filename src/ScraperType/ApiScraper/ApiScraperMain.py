@@ -130,9 +130,16 @@ class ApiScraperMain:
         try:
             courseUrl = self.apiUtils.getCourseUrl(topicUrl)
             workType = WORK_TYPE_MODULE if ("/module/" in courseUrl or "/pal/" in courseUrl) else WORK_TYPE_COLLECTION
-            self.apiUrls = self.networkMonitor.getAPIUrls()
+            
+            courseType = (
+                "Path" if "/module/" in courseUrl
+                else "Course"
+            )
+            courseApiUrls = []
+            if "Course" in courseType:
+                self.apiUrls = self.networkMonitor.getAPIUrls()
+                courseApiUrls = self.apiUtils.getCourseApiUrlFromNetworkUrls(self.apiUrls, workType)
 
-            courseApiUrls = self.apiUtils.getCourseApiUrlFromNetworkUrls(self.apiUrls, workType) or []
             try:
                 courseApiUrlFallback = self.apiUtils.getAuthorAndCollectionId(workType)
                 courseApiUrls += courseApiUrlFallback
@@ -144,11 +151,10 @@ class ApiScraperMain:
             
             seenApiUrls = set()
             courseApiUrls = [url for url in courseApiUrls if not (url in seenApiUrls or seenApiUrls.add(url))]
-            courseType = (
-                "Project" if any("/api/project/" in url for url in courseApiUrls)
-                else "Path" if "/module/" in courseUrl
-                else "Course"
-            )
+            
+            if any("/api/project/" in url for url in courseApiUrls):
+                courseType = "Project"
+                
             courseApiUrls = courseApiUrls[::-1]
             self.logger.info(f"Determined course type: {courseType}")
             self.logger.info(f"Derived course API URLs: {courseApiUrls}")
