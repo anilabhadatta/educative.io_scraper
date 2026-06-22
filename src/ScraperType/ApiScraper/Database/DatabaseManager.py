@@ -85,8 +85,7 @@ class DatabaseManager:
         status          TEXT    NOT NULL DEFAULT 'pending',
         scraped_at      TEXT,
         error_msg       TEXT,
-        UNIQUE(course_id, topic_index),
-        UNIQUE(course_id, api_url)
+        UNIQUE(course_id, topic_index)
     );
 
     CREATE TABLE IF NOT EXISTS components (
