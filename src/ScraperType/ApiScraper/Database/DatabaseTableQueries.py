@@ -62,9 +62,14 @@ class CoursesTableQueries:
         toc_json = json.dumps(toc, ensure_ascii=False)
         now = datetime.utcnow().isoformat()
         topic_slugs = topic_slugs or []
-        structure_hash = hashlib.sha256(
+        true_hash = hashlib.sha256(
             json.dumps([str(slug or "") for slug in topic_slugs], ensure_ascii=False).encode("utf-8")
         ).hexdigest()
+        
+        structure_hash = true_hash
+        if path_id is not None:
+            structure_hash = f"{true_hash}_path_{path_id}"
+
         with self._lock:
             conn = self._connect()
             try:
@@ -77,15 +82,20 @@ class CoursesTableQueries:
                     conn.execute(
                         """
                         UPDATE courses
-                        SET type = ?, path_id = ?, slug = ?, author_id = ?, collection_id = ?,
+                        SET path_id = ?, slug = ?, author_id = ?, collection_id = ?,
                             title = ?, toc_json = ?, project_id = ?, scraped_at = ?
                         WHERE id = ?
                         """,
-                        (course_type, path_id, slug, author_id, collection_id, title, toc_json, project_id, now, course_id),
+                        (path_id, slug, author_id, collection_id, title, toc_json, project_id, now, course_id),
                     )
                     conn.commit()
                     self.logger.info(f"Reused {course_type} '{title}' (id={course_id})")
                     return course_id
+
+                source_course_row = conn.execute(
+                    "SELECT id FROM courses WHERE structure_hash LIKE ? ORDER BY id DESC LIMIT 1",
+                    (f"{true_hash}%",),
+                ).fetchone()
 
                 conn.execute(
                     """
@@ -101,7 +111,42 @@ class CoursesTableQueries:
                     (course_type, title, structure_hash),
                 ).fetchone()
                 course_id = row["id"]
-                self.logger.info(f"Inserted new {course_type} '{title}' version (id={course_id})")
+                
+                if source_course_row:
+                    source_course_id = source_course_row["id"]
+                    self.logger.info(f"Found existing course content (id={source_course_id}). Copying to new course (id={course_id}).")
+                    
+                    conn.execute(
+                        """
+                        INSERT INTO topics (course_id, topic_index, topic_name, topic_slug, topic_url, api_url, page_id, status, scraped_at, error_msg)
+                        SELECT ?, topic_index, topic_name, topic_slug, topic_url, api_url, page_id, status, scraped_at, error_msg
+                        FROM topics WHERE course_id = ?
+                        """,
+                        (course_id, source_course_id),
+                    )
+                    
+                    conn.execute(
+                        """
+                        INSERT INTO components (course_id, topic_index, component_index, type, content_json, scraped_at)
+                        SELECT ?, topic_index, component_index, type, content_json, scraped_at
+                        FROM components WHERE course_id = ?
+                        """,
+                        (course_id, source_course_id),
+                    )
+
+                    conn.execute(
+                        """
+                        INSERT INTO static_assets (course_id, topic_index, assets_json, created_at)
+                        SELECT ?, topic_index, assets_json, created_at
+                        FROM static_assets WHERE course_id = ?
+                        """,
+                        (course_id, source_course_id),
+                    )
+                    conn.commit()
+                    self.logger.info(f"Successfully copied topics and components to new {course_type} '{title}' (id={course_id})")
+                else:
+                    self.logger.info(f"Inserted new {course_type} '{title}' version (id={course_id})")
+                
                 return course_id
             finally:
                 conn.close()
