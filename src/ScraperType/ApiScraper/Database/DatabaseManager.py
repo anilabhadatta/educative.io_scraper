@@ -54,7 +54,7 @@ class DatabaseManager:
         collection_id   TEXT,
         title           TEXT,
         toc_json        TEXT,
-        cloudlab_id     TEXT,
+        cloudlab_id     INTEGER REFERENCES cloudlabs(id),
         project_id      INTEGER REFERENCES projects(id),
         is_active       INTEGER NOT NULL DEFAULT 1,
         scraped_at      TEXT    NOT NULL,
@@ -111,9 +111,23 @@ class DatabaseManager:
         UNIQUE(course_id, topic_index)
     );
 
+    CREATE TABLE IF NOT EXISTS cloudlabs (
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    cloudlab_author_id     TEXT    NOT NULL,
+    cloudlab_collection_id TEXT    NOT NULL,
+    cloudlab_work_id       TEXT    NOT NULL,
+    cloudlab_title         TEXT,
+    cloudlab_url_slug      TEXT,
+    is_active              INTEGER NOT NULL DEFAULT 1,
+    scraped_at             TEXT    NOT NULL,
+    UNIQUE(cloudlab_author_id, cloudlab_collection_id, cloudlab_work_id)
+);
+
+
     CREATE INDEX IF NOT EXISTS idx_courses_path       ON courses(path_id);
     CREATE INDEX IF NOT EXISTS idx_paths_author_collection ON paths(path_author_id, path_collection_id);
     CREATE INDEX IF NOT EXISTS idx_projects_triplet   ON projects(project_author_id, project_collection_id, project_work_id);
+    CREATE INDEX IF NOT EXISTS idx_cloudlabs_triplet  ON cloudlabs(cloudlab_author_id, cloudlab_collection_id, cloudlab_work_id);
     CREATE INDEX IF NOT EXISTS idx_topics_course      ON topics(course_id);
     CREATE INDEX IF NOT EXISTS idx_components_topic   ON components(course_id, topic_index);
     CREATE INDEX IF NOT EXISTS idx_components_type    ON components(type);
